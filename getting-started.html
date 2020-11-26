@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="monitor">
+<html lang="en" class="gettingstarted">
 <head>
 	<meta charset="UTF-8">
 	<title>Tweakpane</title>
@@ -16,7 +16,7 @@
 	<link rel="stylesheet" href="assets/bundle.css">
 </head>
 <body>
-	<div class="common-main common-main-monitor">
+	<div class="common-main common-main-gettingstarted">
 		<div class="common-main_globalHeaderLayout">
 			<div class="common-globalHeader">
 	<div class="common-globalHeader_innerLayout">
@@ -132,13 +132,10 @@
 				<div class="common-main_pageHeaderLayout">
 					
 <div class="common-pageHeader">
+	<div class="common-pageHeader_sketchContainer"></div>
 	<div class="common-pageHeader_innerLayout">
 		<div class="common-pageHeader_titleLayout">
-			<h1 class="common-pageHeader_title">Monitors</h1>
-			<p>Tweakpane also has a feature for monitoring value changes. Use <code>addMonitor()</code> to add components.</p>
-		</div>
-		<div class="common-pageHeader_paneLayout">
-			<div class="common-paneContainer common-paneContainer-monitor"></div>
+			<h1 class="common-pageHeader_title">Getting started</h1>
 		</div>
 	</div>
 </div>
@@ -146,78 +143,85 @@
 				</div>
 				<div class="common-main_innerLayout">
 					
-<h2 id="multiline">Multiline</h2>
-<p><code>multiline</code> option provides multiline log components.</p>
+<h2>1. Integrate Tweakpane with your project</h2>
+<p>Using <a href="https://www.jsdelivr.com/package/npm/tweakpane" target="_blank">CDN</a> is the easiest way to integrate Tweakpane:</p>
 
 <div class="common-main_mediaLayout">
-	<div class="common-demo">
-		<div class="common-demo_codeLayout">
-			<div class="common-codeBlock"><pre><code class="js">const pane = new Tweakpane();
-pane.addMonitor(PARAMS, 'wave', {
-  <strong>multiline</strong>: true,
-});</code></pre></div>
+	<div class="common-codeBlock">
+		<pre><code class="html">&lt;script src=&quot;<strong>https://cdn.jsdelivr.net/npm/tweakpane@1.5.7/dist/tweakpane.min.js</strong>&quot;&gt;&lt;/script&gt;</code></pre>
+		<div class="common-codeBlock_title">
+			.html
 		</div>
-		<div class="common-demo_resultLayout">
-			<div class="common-paneContainer common-paneContainer-multiline"></div>
+	</div>
+</div>
+
+<p>Or, <a href="https://github.com/cocopon/tweakpane/releases">download the latest Tweakpane</a> and import it to your web page:</p>
+
+<div class="common-main_mediaLayout">
+	<div class="common-codeBlock">
+		<pre><code class="html">&lt;script src=&quot;path/to/tweakpane-1.5.7.min.js&quot;&gt;&lt;/script&gt;</code></pre>
+		<div class="common-codeBlock_title">
+			.html
+		</div>
+	</div>
+</div>
+
+<p>You can also install, require/import it as <a href="https://www.npmjs.com/package/tweakpane" target="_blank">npm package</a>:</p>
+
+<div class="common-main_mediaLayout">
+	<div class="common-codeBlock">
+		<pre><code class="sh">$ npm install --save tweakpane</code></pre>
+	</div>
+</div>
+
+<div class="common-main_mediaLayout">
+	<div class="common-codeBlock">
+		<pre><code class="js">const Tweakpane = require('tweakpane');</code></pre>
+		<div class="common-codeBlock_title">
+			.js
 		</div>
 	</div>
 </div>
 
 
-<h2 id="count">Count</h2>
-<p>You can use <code>count</code> option to change a buffer size.</p>
+<h2>2. Create a pane</h2>
+<p>Create an instance of Tweakpane by <code>new Tweakpane()</code>.</p>
 
 <div class="common-main_mediaLayout">
-	<div class="common-demo">
-		<div class="common-demo_codeLayout">
-			<div class="common-codeBlock"><pre><code class="js">const pane = new Tweakpane();
-pane.addMonitor(PARAMS, 'wave', {
-  <strong>count</strong>: 10,
-});</code></pre></div>
-		</div>
-		<div class="common-demo_resultLayout">
-			<div class="common-paneContainer common-paneContainer-count"></div>
+	<div class="common-codeBlock">
+		<pre><code class="js">const pane = new Tweakpane();</code></pre>
+		<div class="common-codeBlock_title">
+			.js
 		</div>
 	</div>
 </div>
 
 
-<h2 id="interval">Interval</h2>
-<p>To change an interval of monitors, set <code>interval</code> option in milliseconds. The default value is 200(ms).</p>
+<h2>3. Ready to go!</h2>
+<p>Create a parameter object, pass itself and its key to fine-tune/monitor values.</p>
 
 <div class="common-main_mediaLayout">
 	<div class="common-demo">
 		<div class="common-demo_codeLayout">
-			<div class="common-codeBlock"><pre><code class="js">const pane = new Tweakpane();
-pane.addMonitor(PARAMS, 'time', {
-  <strong>interval</strong>: 1000,
-});</code></pre></div>
+			<div class="common-codeBlock"><pre><code class="js">// Parameter object
+const PARAMS = {
+  speed: 0.5,
+};
+
+// Pass the object and its key to pane
+const pane = new Tweakpane();
+pane.addInput(<strong>PARAMS</strong>, <strong>'speed'</strong>);</code></pre></div>
 		</div>
-		<div class="common-demo_resultLayout">
-			<div class="common-paneContainer common-paneContainer-interval"></div>
+		<div class="common-demo_resultLayout common-demo_resultLayout-withJson">
+			<div class="common-paneContainer common-paneContainer-first"></div>
+			<div class="common-demo_resultJsonLayout">
+				<pre class="common-demo_resultJson" data-first></pre>
+			</div>
 		</div>
 	</div>
 </div>
 
-
-<h2 id="graph">Graph</h2>
-<p><code>{view: 'graph'}</code> option for number parameters provides a graph component. Pass <code>min</code> and <code>max</code> for value range.</p>
-
-<div class="common-main_mediaLayout">
-	<div class="common-demo">
-		<div class="common-demo_codeLayout">
-			<div class="common-codeBlock"><pre><code class="js">const pane = new Tweakpane();
-pane.addMonitor(PARAMS, 'wave', {
-  <strong>view: 'graph'</strong>,
-  min: -1,
-  max: +1,
-});</code></pre></div>
-		</div>
-		<div class="common-demo_resultLayout">
-			<div class="common-paneContainer common-paneContainer-graph"></div>
-		</div>
-	</div>
-</div>
+<p>You can add various components to pane. <a href="input.html">Inputs</a> for fine-tuning parameters, <a href="monitor.html">Monitors</a> for checking values, and <a href="ui-components.html">more</a>!</p>
 
 				</div>
 				<div class="common-main_globalFooterLayout">

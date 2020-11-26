@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="input">
 <head>
 	<meta charset="UTF-8">
 	<title>Tweakpane</title>
@@ -16,10 +16,9 @@
 	<link rel="stylesheet" href="assets/bundle.css">
 </head>
 <body>
-	<div class="common-main">
-		<div class="common-main_mainLayout">
-			<div class="common-main_globalHeaderLayout">
-				<div class="common-globalHeader">
+	<div class="common-main common-main-input">
+		<div class="common-main_globalHeaderLayout">
+			<div class="common-globalHeader">
 	<div class="common-globalHeader_innerLayout">
 		<div class="common-globalHeader_logoLayout">
 			<a class="common-logo" href="./">
@@ -27,46 +26,115 @@
 				Tweakpane
 			</a>
 		</div>
-		<div class="common-globalHeader_menuLayout">
-			<ul class="common-globalHeaderMenu">
-				
-
-				
-				
-				
-				
-				<li class="common-globalHeaderMenu_item common-globalHeaderMenu_item-active"><a href="input.html">Input</a></li>
-				
-				
-				
-				
-				
-				<li class="common-globalHeaderMenu_item "><a href="monitor.html">Monitor</a></li>
-				
-				
-				
-				
-				
-				<li class="common-globalHeaderMenu_item "><a href="misc.html">Misc</a></li>
-				
-				<li class="common-globalHeaderMenu_item"><a href="api/classes/rootapi.html" target="_blank">API<span class="fas fa-external-link-square-alt"></span></a></li>
-			</ul>
-		</div>
-		<div class="common-globalHeader_buttonLayout">
-			<a class="common-button" href="https://github.com/cocopon/tweakpane" target="_blank">
-				GitHub<span class="common-button_icon common-button_icon-after fas fa-external-link-square-alt"></span>
-			</a>
+		<div class="common-globalHeader_spMenuButtonLayout">
+			<button id="spMenuButton" class="common-spMenuButton">
+				<span class="fa fa-bars"></span>
+			</button>
 		</div>
 	</div>
 </div>
 
+		</div>
+		<div class="common-main_wrapLayout">
+			<div class="common-main_asideLayout">
+				<div class="common-menu">
+	<div class="common-menu_logoLayout">
+		<a class="common-logo common-logo-light" href="./">
+			<div class="common-logo_symbol"></div>
+			Tweakpane
+		</a>
+	</div>
+	<ul class="common-menu_list">
+		<li class="common-menuItem">
+			<a class="common-menuItem_anchor" href="getting-started.html">Getting started</a>
+		</li>
+		<li class="common-menuItem">
+			<a class="common-menuItem_anchor" href="input.html">Inputs</a>
+		</li>
+		<li class="common-menuItem">
+			<ul class="common-submenu">
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="input.html#number">Number</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="input.html#string">String</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="input.html#color">Color</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="input.html#point2d">Point 2D</a>
+				</li>
+			</ul>
+		</li>
+		<li class="common-menuItem">
+			<a class="common-menuItem_anchor" href="monitor.html">Monitors</a>
+		</li>
+		<li class="common-menuItem">
+			<ul class="common-submenu">
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="monitor.html#multiline">Multiline</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="monitor.html#interval">Interval</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="monitor.html#graph2d">Graph</a>
+				</li>
+			</ul>
+		</li>
+		<li class="common-menuItem">
+			<a class="common-menuItem_anchor" href="ui-components.html">UI components</a>
+		</li>
+		<li class="common-menuItem">
+			<ul class="common-submenu">
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="ui-components.html#folder">Folder</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="ui-components.html#button">Button</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="ui-components.html#separator">Separator</a>
+				</li>
+			</ul>
+		</li>
+		<li class="common-menuItem">
+			<a class="common-menuItem_anchor" href="misc.html">Misc</a>
+		</li>
+		<li class="common-menuItem">
+			<ul class="common-submenu">
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="misc.html#events">Events</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="misc.html#imex">Import/Export</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="misc.html#theming">Theming</a>
+				</li>
+				<li class="common-submenuItem">
+					<a class="common-submenuItem_anchor" href="misc.html#tips">Tips</a>
+				</li>
+			</ul>
+		</li>
+		<li class="common-menuItem">
+			<a class="common-menuItem_anchor" href="api/classes/rootapi.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
+		</li>
+		<li class="common-menuItem">
+			<a class="common-menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></a>
+		</li>
+	</ul>
+</div>
+
 			</div>
-			<div class="common-main_pageHeaderLayout">
-				
+			<div class="common-main_mainLayout">
+				<div class="common-main_pageHeaderLayout">
+					
 <div class="common-pageHeader">
 	<div class="common-pageHeader_innerLayout">
 		<div class="common-pageHeader_titleLayout">
-			<h1 class="common-pageHeader_title">Input</h1>
+			<h1 class="common-pageHeader_title">Inputs</h1>
 			<p>For fine-tuning parameters, use <code>addInput()</code> of the pane to add components. Tweakpane checks specified parameter types and provides suitable components.</p>
 		</div>
 		<div class="common-pageHeader_paneLayout">
@@ -75,9 +143,9 @@
 	</div>
 </div>
 
-			</div>
-			<div class="common-main_innerLayout">
-				
+				</div>
+				<div class="common-main_innerLayout">
+					
 <h2 id="number">Number</h2>
 <p>By default, Tweakpane provides a text field component for number parameters.</p>
 
@@ -306,6 +374,26 @@ pane.addInput(PARAMS, 'tint', {
 	</div>
 </div>
 
+<p>Or, if you want to force a color-like string to be a string input, pass <code>input: 'string'</code> option.</p>
+
+<div class="common-main_mediaLayout">
+	<div class="common-demo">
+		<div class="common-demo_codeLayout">
+			<div class="common-codeBlock"><pre><code class="js">const PARAMS = {
+  hex: '#0088ff',
+};
+
+const pane = new Tweakpane();
+pane.addInput(PARAMS, 'hex', {
+  <strong>input: 'string'</strong>,
+});</code></pre></div>
+		</div>
+		<div class="common-demo_resultLayout">
+			<div class="common-paneContainer common-paneContainer-inputString"></div>
+		</div>
+	</div>
+</div>
+
 
 <h2 id="point2d">Point 2D</h2>
 <p>For object parameters that have number properties <code>x</code> and <code>y</code>, text fields with a X-Y pad will be provided.</p>
@@ -368,72 +456,17 @@ pane.addInput(PARAMS, 'offset', {
 </div>
 
 
-			</div>
-			<div class="common-main_globalFooterLayout">
-				<div class="common-globalFooter">
+				</div>
+				<div class="common-main_globalFooterLayout">
+					<div class="common-globalFooter">
 	<div class="common-globalFooter_innerLayout">
-		<div class="common-globalFooter_titleLayout">
-			<div class="common-globalFooter_logoLayout">
-				<a class="common-logo common-logo-light" href="./">
-					<div class="common-logo_symbol"></div>
-					Tweakpane
-				</a>
-			</div>
-
-			<div class="common-globalFooterMenuItem_submenuLayout">
-				<ul>
-					<li><a href="index.html#getstarted">Getting started</a></li>
-				</ul>
-			</div>
-		</div>
-		<div class="common-globalFooter_menuLayout">
-			<ul class="common-globalFooterMenu">
-				<li class="common-globalFooterMenuItem">
-					<a href="input.html">Input</a>
-
-					<div class="common-globalFooterMenuItem_submenuLayout">
-						<ul>
-							<li><a href="input.html#number">Number</a></li>
-							<li><a href="input.html#string">String</a></li>
-							<li><a href="input.html#boolean">Boolean</a></li>
-							<li><a href="input.html#color">Color</a></li>
-						</ul>
-					</div>
-				</li>
-				<li class="common-globalFooterMenuItem">
-					<a href="monitor.html">Monitor</a>
-
-					<div class="common-globalFooterMenuItem_submenuLayout">
-						<ul>
-							<li><a href="monitor.html#multiline">Multiline</a></li>
-							<li><a href="monitor.html#count">Count</a></li>
-							<li><a href="monitor.html#interval">Interval</a></li>
-							<li><a href="monitor.html#graph">Graph</a></li>
-						</ul>
-					</div>
-				</li>
-				<li class="common-globalFooterMenuItem">
-					<a href="misc.html">Misc</a>
-
-					<div class="common-globalFooterMenuItem_submenuLayout">
-						<ul>
-							<li><a href="misc.html#othercomponents">Other components</a></li>
-							<li><a href="misc.html#events">Events</a></li>
-							<li><a href="misc.html#imex">Import / Export</a></li>
-							<li><a href="misc.html#tips">Tips</a></li>
-							<li><a href="api/" target="_blank">API<span class="fas fa-external-link-square-alt"></span></a></li>
-							<li><a href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></span></a></li>
-						</ul>
-					</div>
-				</li>
-			</ul>
-		</div>
 		<div class="common-globalFooter_copyLayout">
 			&copy; 2018 <a href="https://github.com/cocopon">cocopon</a>.
 		</div>
 	</div>
 </div>
 
+				</div>
 			</div>
 		</div>
 	</div>

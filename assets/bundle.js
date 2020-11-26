@@ -96,27 +96,89 @@
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+var getting_started_1 = __webpack_require__(/*! ./route/getting-started */ "./src/doc/js/route/getting-started.ts");
 var index_1 = __webpack_require__(/*! ./route/index */ "./src/doc/js/route/index.ts");
 var input_1 = __webpack_require__(/*! ./route/input */ "./src/doc/js/route/input.ts");
 var misc_1 = __webpack_require__(/*! ./route/misc */ "./src/doc/js/route/misc.ts");
 var monitor_1 = __webpack_require__(/*! ./route/monitor */ "./src/doc/js/route/monitor.ts");
+var ui_components_1 = __webpack_require__(/*! ./route/ui-components */ "./src/doc/js/route/ui-components.ts");
+var screw_1 = __webpack_require__(/*! ./screw */ "./src/doc/js/screw.ts");
 var simple_router_1 = __webpack_require__(/*! ./simple-router */ "./src/doc/js/simple-router.ts");
+var sp_menu_1 = __webpack_require__(/*! ./sp-menu */ "./src/doc/js/sp-menu.ts");
+function setUpScrews() {
+    var screwElems = document.querySelectorAll('.common-logo_symbol');
+    screwElems.forEach(function (elem) {
+        new screw_1.Screw(elem);
+    });
+}
+function setUpSpMenu() {
+    var buttonElem = document.getElementById('spMenuButton');
+    var menuElem = document.querySelector('.common-menu');
+    if (!buttonElem || !menuElem) {
+        return;
+    }
+    new sp_menu_1.SpMenu({
+        buttonElement: buttonElem,
+        menuElement: menuElem,
+    });
+}
 (function () {
     var router = new simple_router_1.SimpleRouter();
+    router.add(getting_started_1.GettingStartedRoute);
     router.add(index_1.IndexRoute);
     router.add(input_1.InputRoute);
     router.add(misc_1.MiscRoute);
     router.add(monitor_1.MonitorRoute);
+    router.add(ui_components_1.UiComponentsRoute);
     router.route(location.pathname);
-    var markElem = document.querySelector('.common-logo_symbol');
-    if (markElem) {
-        window.addEventListener('scroll', function () {
-            var angle = window.scrollY * 0.5;
-            markElem.style.transform = "rotate(" + angle + "deg)";
-        });
-    }
+    setUpScrews();
+    setUpSpMenu();
     hljs.initHighlightingOnLoad();
 })();
+
+
+/***/ }),
+
+/***/ "./src/doc/js/route/getting-started.ts":
+/*!*********************************************!*\
+  !*** ./src/doc/js/route/getting-started.ts ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GettingStartedRoute = void 0;
+var Util = __webpack_require__(/*! ../util */ "./src/doc/js/util.ts");
+exports.GettingStartedRoute = {
+    pathname: /^(\/tweakpane)?\/getting-started\.html$/,
+    init: function () {
+        var markerToFnMap = {
+            first: function (container) {
+                var PARAMS = { speed: 0.5 };
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                var updatePreset = function () {
+                    var elem = document.querySelector('*[data-first]');
+                    if (elem) {
+                        var preset = pane.exportPreset();
+                        elem.textContent =
+                            'PARAMS = ' + JSON.stringify(preset, null, 2) + ';';
+                    }
+                };
+                pane.addInput(PARAMS, 'speed').on('change', updatePreset);
+                updatePreset();
+            },
+        };
+        Object.keys(markerToFnMap).forEach(function (marker) {
+            var initFn = markerToFnMap[marker];
+            var container = Util.selectContainer(marker);
+            initFn(container);
+        });
+    },
+};
 
 
 /***/ }),
@@ -259,22 +321,6 @@ exports.IndexRoute = {
                     }, 200);
                 });
             },
-            first: function (container) {
-                var PARAMS = { speed: 0.5 };
-                var pane = new Tweakpane({
-                    container: container,
-                });
-                var updatePreset = function () {
-                    var elem = document.querySelector('*[data-first]');
-                    if (elem) {
-                        var preset = pane.exportPreset();
-                        elem.textContent =
-                            'PARAMS = ' + JSON.stringify(preset, null, 2) + ';';
-                    }
-                };
-                pane.addInput(PARAMS, 'speed').on('change', updatePreset);
-                updatePreset();
-            },
         };
         Object.keys(markerToFnMap).forEach(function (marker) {
             var initFn = markerToFnMap[marker];
@@ -302,7 +348,7 @@ exports.InputRoute = void 0;
 // tslint:disable:object-literal-sort-keys
 var Util = __webpack_require__(/*! ../util */ "./src/doc/js/util.ts");
 exports.InputRoute = {
-    pathname: /^(\/tweakpane)?\/input.html$/,
+    pathname: /^(\/tweakpane)?\/input\.html$/,
     init: function () {
         var markerToFnMap = {
             input: function (container) {
@@ -496,6 +542,17 @@ exports.InputRoute = {
                     input: 'color.rgba',
                 });
             },
+            inputString: function (container) {
+                var PARAMS = {
+                    hex: '#0088ff',
+                };
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane.addInput(PARAMS, 'hex', {
+                    input: 'string',
+                });
+            },
             point2d: function (container) {
                 var PARAMS = { value: { x: 50, y: 25 } };
                 var pane = new Tweakpane({
@@ -551,7 +608,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MiscRoute = void 0;
 var Util = __webpack_require__(/*! ../util */ "./src/doc/js/util.ts");
 exports.MiscRoute = {
-    pathname: /^(\/tweakpane)?\/misc.html$/,
+    pathname: /^(\/tweakpane)?\/misc\.html$/,
     init: function () {
         var IMEX_PARAMS = {
             color: '#ff8000',
@@ -636,59 +693,6 @@ exports.MiscRoute = {
                 f.addSeparator();
                 f.addButton({
                     title: 'Button3',
-                });
-            },
-            folder: function (container) {
-                var PARAMS = {
-                    acceleration: 0,
-                    randomness: 0,
-                    speed: 0,
-                };
-                var pane = new Tweakpane({
-                    container: container,
-                });
-                var f1 = pane.addFolder({
-                    title: 'Basic',
-                });
-                f1.addInput(PARAMS, 'speed');
-                var f2 = pane.addFolder({
-                    expanded: false,
-                    title: 'Advanced',
-                });
-                f2.addInput(PARAMS, 'acceleration');
-                f2.addInput(PARAMS, 'randomness');
-            },
-            button: function (container) {
-                var PARAMS = { count: '0' };
-                var pane = new Tweakpane({
-                    container: container,
-                });
-                pane
-                    .addButton({
-                    title: 'Increment',
-                })
-                    .on('click', function () {
-                    PARAMS.count = String(parseInt(PARAMS.count, 10) + 1);
-                    pane.refresh();
-                });
-                pane.addSeparator();
-                pane.addMonitor(PARAMS, 'count', {
-                    interval: 0,
-                });
-            },
-            separator: function (container) {
-                var pane = new Tweakpane({
-                    container: container,
-                });
-                pane.addButton({
-                    title: 'Previous',
-                });
-                pane.addButton({
-                    title: 'Next',
-                });
-                pane.addSeparator();
-                pane.addButton({
-                    title: 'Reset',
                 });
             },
             event: function (container) {
@@ -1048,7 +1052,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MonitorRoute = void 0;
 var Util = __webpack_require__(/*! ../util */ "./src/doc/js/util.ts");
 exports.MonitorRoute = {
-    pathname: /^(\/tweakpane)?\/monitor.html$/,
+    pathname: /^(\/tweakpane)?\/monitor\.html$/,
     init: function () {
         var SHARED_PARAMS = {
             positive: false,
@@ -1147,6 +1151,142 @@ exports.MonitorRoute = {
         });
     },
 };
+
+
+/***/ }),
+
+/***/ "./src/doc/js/route/ui-components.ts":
+/*!*******************************************!*\
+  !*** ./src/doc/js/route/ui-components.ts ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UiComponentsRoute = void 0;
+var Util = __webpack_require__(/*! ../util */ "./src/doc/js/util.ts");
+exports.UiComponentsRoute = {
+    pathname: /^(\/tweakpane)?\/ui-components\.html$/,
+    init: function () {
+        var markerToFnMap = {
+            header: function (container) {
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                var f = pane.addFolder({
+                    title: 'Folder',
+                });
+                f.addButton({
+                    title: 'Button',
+                });
+                f.addButton({
+                    title: 'Button',
+                });
+                var sf = f.addFolder({
+                    title: 'Subfolder',
+                });
+                sf.addButton({
+                    title: 'Button',
+                });
+                sf.addButton({
+                    title: 'Button',
+                });
+                f.addSeparator();
+                f.addButton({
+                    title: 'Button',
+                });
+            },
+            folder: function (container) {
+                var PARAMS = {
+                    acceleration: 0,
+                    randomness: 0,
+                    speed: 0,
+                };
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                var f1 = pane.addFolder({
+                    title: 'Basic',
+                });
+                f1.addInput(PARAMS, 'speed');
+                var f2 = pane.addFolder({
+                    expanded: false,
+                    title: 'Advanced',
+                });
+                f2.addInput(PARAMS, 'acceleration');
+                f2.addInput(PARAMS, 'randomness');
+            },
+            button: function (container) {
+                var PARAMS = { count: '0' };
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane
+                    .addButton({
+                    title: 'Increment',
+                })
+                    .on('click', function () {
+                    PARAMS.count = String(parseInt(PARAMS.count, 10) + 1);
+                    pane.refresh();
+                });
+                pane.addSeparator();
+                pane.addMonitor(PARAMS, 'count', {
+                    interval: 0,
+                });
+            },
+            separator: function (container) {
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane.addButton({
+                    title: 'Previous',
+                });
+                pane.addButton({
+                    title: 'Next',
+                });
+                pane.addSeparator();
+                pane.addButton({
+                    title: 'Reset',
+                });
+            },
+        };
+        Object.keys(markerToFnMap).forEach(function (marker) {
+            var initFn = markerToFnMap[marker];
+            var container = Util.selectContainer(marker);
+            initFn(container);
+        });
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/doc/js/screw.ts":
+/*!*****************************!*\
+  !*** ./src/doc/js/screw.ts ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Screw = void 0;
+var Screw = /** @class */ (function () {
+    function Screw(elem) {
+        this.onWindowScroll_ = this.onWindowScroll_.bind(this);
+        this.elem_ = elem;
+        window.addEventListener('scroll', this.onWindowScroll_);
+    }
+    Screw.prototype.onWindowScroll_ = function () {
+        var angle = window.scrollY * 0.5;
+        this.elem_.style.transform = "rotate(" + angle + "deg)";
+    };
+    return Screw;
+}());
+exports.Screw = Screw;
 
 
 /***/ }),
@@ -1288,6 +1428,99 @@ var Sketch = /** @class */ (function () {
     return Sketch;
 }());
 exports.Sketch = Sketch;
+
+
+/***/ }),
+
+/***/ "./src/doc/js/sp-menu.ts":
+/*!*******************************!*\
+  !*** ./src/doc/js/sp-menu.ts ***!
+  \*******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SpMenu = void 0;
+var SpMenu = /** @class */ (function () {
+    function SpMenu(config) {
+        this.expanded_ = false;
+        this.onDocumentClick_ = this.onDocumentClick_.bind(this);
+        this.onButtonClick_ = this.onButtonClick_.bind(this);
+        this.onWindowHashChange_ = this.onWindowHashChange_.bind(this);
+        this.onWindowScroll_ = this.onWindowScroll_.bind(this);
+        this.buttonElem_ = config.buttonElement;
+        this.menuElem_ = config.menuElement;
+        this.menuElem_.classList.add('common-menu-loaded');
+        document.addEventListener('click', this.onDocumentClick_);
+        window.addEventListener('hashchange', this.onWindowHashChange_);
+        window.addEventListener('scroll', this.onWindowScroll_);
+        this.buttonElem_.addEventListener('click', this.onButtonClick_);
+        this.updateActiveItem_();
+    }
+    Object.defineProperty(SpMenu.prototype, "expanded", {
+        get: function () {
+            return this.expanded_;
+        },
+        set: function (expanded) {
+            this.expanded_ = expanded;
+            if (this.expanded_) {
+                this.menuElem_.classList.add('common-menu-expanded');
+            }
+            else {
+                this.menuElem_.classList.remove('common-menu-expanded');
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    SpMenu.prototype.updateActiveItem_ = function () {
+        var classNames = ['common-menuItem_anchor', 'common-submenuItem_anchor'];
+        classNames.forEach(function (className) {
+            var activeClass = className + "-active";
+            var elems = Array.prototype.slice.call(document.querySelectorAll("." + activeClass));
+            elems.forEach(function (elem) {
+                elem.classList.remove(activeClass);
+            });
+        });
+        classNames.forEach(function (className) {
+            var comps = location.pathname.split('/');
+            var lastComp = comps[comps.length - 1];
+            var href = lastComp + location.hash;
+            var elems = document.querySelector("." + className + "[href='" + href + "']");
+            if (elems) {
+                elems.classList.add(className + "-active");
+            }
+        });
+    };
+    SpMenu.prototype.onDocumentClick_ = function (ev) {
+        var elem = ev.target;
+        if (this.menuElem_.contains(elem)) {
+            return;
+        }
+        if (elem === this.buttonElem_ || this.buttonElem_.contains(elem)) {
+            return;
+        }
+        if (!this.expanded) {
+            return;
+        }
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        this.expanded = false;
+    };
+    SpMenu.prototype.onWindowScroll_ = function () {
+        this.expanded = false;
+    };
+    SpMenu.prototype.onWindowHashChange_ = function () {
+        this.updateActiveItem_();
+    };
+    SpMenu.prototype.onButtonClick_ = function () {
+        this.expanded = true;
+    };
+    return SpMenu;
+}());
+exports.SpMenu = SpMenu;
 
 
 /***/ }),

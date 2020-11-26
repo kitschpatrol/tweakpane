@@ -1441,6 +1441,9 @@ function createWithString(document, target, params) {
     if (typeof initialValue !== 'string') {
         return null;
     }
+    if ('input' in params && params.input === 'string') {
+        return null;
+    }
     var notation = StringColorParser.getNotation(initialValue);
     if (!notation) {
         return null;
@@ -6306,7 +6309,7 @@ var NOTATION_TO_PARSER_MAP = {
         return new color_1.Color(comps, 'hsl');
     },
     'hex.rgb': function (text) {
-        var mRrggbb = text.match(/^#?([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
+        var mRrggbb = text.match(/^#([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
         if (mRrggbb) {
             return new color_1.Color([
                 parseInt(mRrggbb[1] + mRrggbb[1], 16),
@@ -6314,7 +6317,7 @@ var NOTATION_TO_PARSER_MAP = {
                 parseInt(mRrggbb[3] + mRrggbb[3], 16),
             ], 'rgb');
         }
-        var mRgb = text.match(/^#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
+        var mRgb = text.match(/^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
         if (mRgb) {
             return new color_1.Color([parseInt(mRgb[1], 16), parseInt(mRgb[2], 16), parseInt(mRgb[3], 16)], 'rgb');
         }
