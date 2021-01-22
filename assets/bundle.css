@@ -458,35 +458,58 @@ strong {
       .common-support_buttonLayout {
         margin-top: 16px; } }
 
-.common-themes {
-  background-color: var(--themes-background-color);
+.common-paint {
+  background-color: #f1f2f3;
   border-radius: 6px;
-  overflow: hidden;
-  position: relative; }
-  .common-themes_mask {
-    bottom: 0;
-    position: absolute;
-    top: 0;
-    width: 16px;
-    z-index: 1001; }
-    .common-themes_mask.common-themes_mask-start {
-      background-color: var(--themes-background-color);
-      box-shadow: 0 0 16px 16px var(--themes-background-color);
-      left: -16px; }
-    .common-themes_mask.common-themes_mask-end {
-      background-color: var(--themes-background-color);
-      box-shadow: 0 0 16px 16px var(--themes-background-color);
-      right: -16px; }
-  .common-themes_themesLayout {
-    font-size: 0;
-    overflow-x: scroll;
+  overflow: hidden; }
+  @media screen and (min-width: 801px) {
+    .common-paint_gui {
+      display: flex; } }
+  .common-paint_controller {
+    background-color: #2f3137; }
+    @media screen and (max-width: 800px) {
+      .common-paint_controller .common-paneContainer {
+        width: 100%; } }
+    .common-paint_controller .tp-rotv {
+      border-top-right-radius: 0;
+      box-shadow: 0 0 0 transparent; }
+  .common-paint_preview {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    overflow: hidden;
     padding: 32px;
-    white-space: nowrap; }
-  .common-themes_themeLayout {
-    display: inline-block;
-    vertical-align: top; }
-    .common-themes_themeLayout + .common-themes_themeLayout {
-      margin-left: 16px; }
+    position: relative; }
+    .common-paint_preview .tp-rotv {
+      position: relative; }
+    .common-paint_preview .tp-cswtxtiv {
+      height: 188px !important; }
+    .common-paint_preview .tp-p2dpadtxtiv {
+      height: 164px !important; }
+    .common-paint_preview .tp-clpiv,
+    .common-paint_preview .tp-p2dpadiv {
+      display: block !important;
+      visibility: visible !important; }
+  .common-paint_bgImage {
+    background-color: black;
+    background: url(https://source.unsplash.com/74ft3aciAY0/900x1600) no-repeat center;
+    background-size: cover;
+    bottom: -16px;
+    left: -16px;
+    position: absolute;
+    right: -16px;
+    top: -16px; }
+
+.common-photoCredit {
+  bottom: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.6rem;
+  mix-blend-mode: exclusion;
+  position: absolute;
+  right: 8px; }
+  .common-photoCredit a {
+    color: currentColor; }
 
 .common-pageHeader {
   background-color: #f1f2f3;
@@ -602,6 +625,14 @@ strong {
 
 :root.index .common-main_asideLayout {
   display: none; }
+
+:root.theming .common-pageHeader {
+  background: url(https://source.unsplash.com/u27Rrbs9Dwc/1600x900) no-repeat center;
+  background-size: cover; }
+
+:root.theming .common-pageHeader_titleLayout h1,
+:root.theming .common-pageHeader_titleLayout p {
+  color: rgba(255, 255, 255, 0.8); }
 
 @media screen and (min-width: 801px) {
   :root.index .common-pageHeader_innerLayout {

@@ -101,6 +101,7 @@ var index_1 = __webpack_require__(/*! ./route/index */ "./src/doc/js/route/index
 var input_1 = __webpack_require__(/*! ./route/input */ "./src/doc/js/route/input.ts");
 var misc_1 = __webpack_require__(/*! ./route/misc */ "./src/doc/js/route/misc.ts");
 var monitor_1 = __webpack_require__(/*! ./route/monitor */ "./src/doc/js/route/monitor.ts");
+var theming_1 = __webpack_require__(/*! ./route/theming */ "./src/doc/js/route/theming.ts");
 var ui_components_1 = __webpack_require__(/*! ./route/ui-components */ "./src/doc/js/route/ui-components.ts");
 var screw_1 = __webpack_require__(/*! ./screw */ "./src/doc/js/screw.ts");
 var simple_router_1 = __webpack_require__(/*! ./simple-router */ "./src/doc/js/simple-router.ts");
@@ -129,12 +130,204 @@ function setUpSpMenu() {
     router.add(input_1.InputRoute);
     router.add(misc_1.MiscRoute);
     router.add(monitor_1.MonitorRoute);
+    router.add(theming_1.ThemingRoute);
     router.add(ui_components_1.UiComponentsRoute);
     router.route(location.pathname);
     setUpScrews();
     setUpSpMenu();
     hljs.initHighlightingOnLoad();
 })();
+
+
+/***/ }),
+
+/***/ "./src/doc/js/panepaint.ts":
+/*!*********************************!*\
+  !*** ./src/doc/js/panepaint.ts ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.toCss = exports.createPane = void 0;
+var ColorConverter = __webpack_require__(/*! ../../main/js/converter/color */ "./src/main/js/converter/color.ts");
+var color_1 = __webpack_require__(/*! ../../main/js/model/color */ "./src/main/js/model/color.ts");
+var Themes = __webpack_require__(/*! ./themes */ "./src/doc/js/themes.ts");
+var GROUPS = [
+    {
+        name: 'Base',
+        expanded: true,
+        props: ['base-background-color', 'base-shadow-color'],
+        label: function (prop) {
+            var m = prop.match(/^base-(.+)-color$/);
+            return (m && m[1]) || prop;
+        },
+    },
+    {
+        name: 'Input',
+        props: [
+            'input-foreground-color',
+            'input-guide-color',
+            'input-background-color',
+            'input-background-color:state',
+        ],
+        label: function (prop) {
+            var m = prop.match(/^input-(.+)-color(-.+)?$/);
+            return (m && "" + m[1] + (m[2] || '')) || prop;
+        },
+    },
+    {
+        name: 'Monitor',
+        props: ['monitor-foreground-color', 'monitor-background-color'],
+        label: function (prop) {
+            var m = prop.match(/^monitor-(.+)-color(-.+)?$/);
+            return (m && "" + m[1] + (m[2] || '')) || prop;
+        },
+    },
+    {
+        name: 'Button',
+        props: [
+            'button-foreground-color',
+            'button-background-color',
+            'button-background-color:state',
+        ],
+        label: function (prop) {
+            var m = prop.match(/^button-(.+)-color(-.+)?$/);
+            return (m && "" + m[1] + (m[2] || '')) || prop;
+        },
+    },
+    {
+        name: 'Folder',
+        props: [
+            'folder-foreground-color',
+            'folder-background-color',
+            'folder-background-color:state',
+        ],
+        label: function (prop) {
+            var m = prop.match(/^folder-(.+)-color(-.+)?$/);
+            return (m && "" + m[1] + (m[2] || '')) || prop;
+        },
+    },
+    {
+        name: 'Misc',
+        expanded: true,
+        props: ['label-foreground-color', 'separator-color'],
+        label: function (prop) {
+            var m = prop.match(/^(.+)-color(-.+)?$/);
+            return (m && "" + m[1] + (m[2] || '')) || prop;
+        },
+    },
+];
+function createPane(container, theme) {
+    var pane = new Tweakpane({
+        container: container,
+        title: 'Panepaint',
+    });
+    var presetObj = {
+        preset: 'Select...',
+    };
+    pane
+        .addInput(presetObj, 'preset', {
+        options: {
+            'Select...': '',
+            Default: 'default',
+            Iceberg: 'iceberg',
+            Jetblack: 'jetblack',
+            Light: 'light',
+            Retro: 'retro',
+            Translucent: 'translucent',
+        },
+    })
+        .on('change', function (value) {
+        if (value === '') {
+            return;
+        }
+        var t = Themes.create(value);
+        Object.keys(t).forEach(function (prop) {
+            theme[prop] = t[prop];
+        });
+        presetObj.preset = '';
+        pane.refresh();
+    });
+    pane
+        .addButton({
+        title: 'Shuffle background image',
+    })
+        .on('click', function () {
+        var bgElem = document.querySelector('.common-paint_bgImage');
+        if (!bgElem) {
+            return;
+        }
+        var now = new Date().getTime();
+        bgElem.style.backgroundImage = "url(https://source.unsplash.com/collection/91620523?date=" + now + ")";
+        var creditElems = Array.prototype.slice.call(document.querySelectorAll('.common-paint .common-photoCredit'));
+        creditElems.forEach(function (elem, index) {
+            elem.style.visibility = index === 0 ? 'visible' : 'hidden';
+        });
+    });
+    GROUPS.forEach(function (group) {
+        var f = pane.addFolder({
+            expanded: !!group.expanded,
+            title: group.name,
+        });
+        group.props.forEach(function (prop) {
+            var m = prop.match(/(.+):state$/);
+            if (!m) {
+                f.addInput(theme, prop, {
+                    label: group
+                        .label(prop)
+                        .replace('background', 'bg')
+                        .replace('foreground', 'fg'),
+                });
+                return;
+            }
+            var sf = f.addFolder({
+                title: 'State',
+            });
+            sf.addButton({
+                title: 'Autofill',
+            }).on('click', function () {
+                var value = theme[m[1]];
+                var c = ColorConverter.fromString(value);
+                var hslComps = c.getComponents('hsl');
+                var sign = hslComps[2] > 50 ? -1 : +1;
+                theme[m[1] + "-hover"] = ColorConverter.toFunctionalRgbaString(new color_1.Color([hslComps[0], hslComps[1], hslComps[2] + 5 * sign, hslComps[3]], 'hsl'));
+                theme[m[1] + "-focus"] = ColorConverter.toFunctionalRgbaString(new color_1.Color([hslComps[0], hslComps[1], hslComps[2] + 10 * sign, hslComps[3]], 'hsl'));
+                theme[m[1] + "-active"] = ColorConverter.toFunctionalRgbaString(new color_1.Color([hslComps[0], hslComps[1], hslComps[2] + 15 * sign, hslComps[3]], 'hsl'));
+                pane.refresh();
+            });
+            var baseProp = m[1];
+            ['active', 'focus', 'hover'].forEach(function (state) {
+                var prop = [baseProp, state].join('-');
+                sf.addInput(theme, prop, {
+                    label: group
+                        .label(prop)
+                        .replace('background', 'bg')
+                        .replace('foreground', 'fg'),
+                });
+            });
+        });
+    });
+    return pane;
+}
+exports.createPane = createPane;
+function toCss(selector, theme) {
+    var decls = Object.keys(theme).reduce(function (result, key) {
+        var a = theme[key];
+        return [].concat(result, "  --tp-" + key + ": " + a + ";");
+    }, []);
+    return __spreadArrays([selector + " {"], decls, ['}']).join('\n');
+}
+exports.toCss = toCss;
 
 
 /***/ }),
@@ -618,59 +811,6 @@ exports.MiscRoute = {
         var IMEX_LOG = {
             log: '',
         };
-        var showTheme = function (params) {
-            var elem = document.querySelector('*[data-themeCss]');
-            if (!elem) {
-                return;
-            }
-            var indentedProps = params.cssProps
-                .map(function (cssProp) { return "  " + cssProp; })
-                .join('\n');
-            elem.textContent = "<!-- Example theme: " + params.title + " -->\n<!-- Copy and paste the element into your head element -->\n<style>\n:root {\n" + indentedProps + "\n}\n</style>";
-            hljs.highlightBlock(elem);
-        };
-        var setUpThemedPane = function (container, params) {
-            var PARAMS = {
-                background: '#f1f2f3',
-                point2d: { x: 0, y: 0 },
-                slider: 0,
-                variables: (params && params.cssProps.join('\n')) || '',
-            };
-            var pane = new Tweakpane({
-                container: container,
-                title: (params && params.title) || 'Default',
-            });
-            pane.addInput(PARAMS, 'slider', {
-                max: 64,
-                min: 0,
-            });
-            pane.addSeparator();
-            pane.addInput(PARAMS, 'point2d');
-            if (!params) {
-                var fp = pane.addFolder({
-                    title: 'Preview',
-                });
-                fp.addInput(PARAMS, 'background').on('change', function () {
-                    document.documentElement.style.setProperty('--themes-background-color', PARAMS.background);
-                });
-                return;
-            }
-            var styleElem = document.createElement('style');
-            styleElem.textContent = ".common-paneContainer-" + params.id + "Theme {" + params.cssProps.join('') + "}";
-            document.head.appendChild(styleElem);
-            var f = pane.addFolder({
-                title: 'CSS',
-            });
-            f.addMonitor(PARAMS, 'variables', {
-                interval: 0,
-                multiline: true,
-            });
-            f.addButton({
-                title: 'Show',
-            }).on('click', function () {
-                showTheme(params);
-            });
-        };
         var markerToFnMap = {
             misc: function (container) {
                 var PARAMS = { value: 0 };
@@ -899,134 +1039,6 @@ exports.MiscRoute = {
                     f.hidden = !f.hidden;
                 });
             },
-            defaultTheme: function (container) {
-                return setUpThemedPane(container);
-            },
-            jetblackTheme: function (container) {
-                var params = {
-                    cssProps: [
-                        '/* Base colors */',
-                        '--tp-base-background-color: hsl(0, 0%, 0%);',
-                        '--tp-base-shadow-color: hsla(0, 0%, 0%, 0.2);',
-                        '',
-                        '/* Button-like control colors */',
-                        '--tp-button-background-color: hsl(0, 0%, 70%);',
-                        '--tp-button-background-color-active: hsl(0, 0%, 85%);',
-                        '--tp-button-background-color-focus: hsl(0, 0%, 80%);',
-                        '--tp-button-background-color-hover: hsl(0, 0%, 75%);',
-                        '--tp-button-foreground-color: var(--tp-base-background-color);',
-                        '',
-                        '/* Folder colors */',
-                        '--tp-folder-background-color: hsl(0, 0%, 10%);',
-                        '--tp-folder-background-color-active: hsl(0, 0%, 25%);',
-                        '--tp-folder-background-color-focus: hsl(0, 0%, 20%);',
-                        '--tp-folder-background-color-hover: hsl(0, 0%, 15%);',
-                        '--tp-folder-foreground-color: hsl(0, 0%, 50%);',
-                        '',
-                        '/* Input control colors */',
-                        '--tp-input-background-color: hsl(0, 0%, 10%);',
-                        '--tp-input-background-color-active: hsl(0, 0%, 25%);',
-                        '--tp-input-background-color-focus: hsl(0, 0%, 20%);',
-                        '--tp-input-background-color-hover: hsl(0, 0%, 15%);',
-                        '--tp-input-foreground-color: hsl(0, 0%, 70%);',
-                        '--tp-input-guide-color: hsla(0, 0%, 100%, 5%);',
-                        '',
-                        '/* Monitor control colors */',
-                        '--tp-monitor-background-color: hsl(0, 0%, 8%);',
-                        '--tp-monitor-foreground-color: hsl(0, 0%, 48%);',
-                        '',
-                        '/* Misc */',
-                        '--tp-label-foreground-color: hsl(0, 0%, 50%);',
-                        '--tp-separator-color: hsl(0, 0%, 10%);',
-                    ],
-                    id: 'jetblack',
-                    title: 'Jetblack',
-                };
-                showTheme(params);
-                return setUpThemedPane(container, params);
-            },
-            lightTheme: function (container) {
-                return setUpThemedPane(container, {
-                    cssProps: [
-                        '/* Base colors */',
-                        '--tp-base-background-color: hsl(230deg, 5%, 90%);',
-                        '--tp-base-shadow-color: hsla(0, 0%, 0%, 0.1);',
-                        '',
-                        '/* Button-like control colors */',
-                        '--tp-button-background-color: hsl(230deg, 5%, 70%);',
-                        '--tp-button-background-color-active: hsl(230deg, 5%, 55%);',
-                        '--tp-button-background-color-focus: hsl(230deg, 5%, 60%);',
-                        '--tp-button-background-color-hover: hsl(230deg, 5%, 65%);',
-                        '--tp-button-foreground-color: hsl(230deg, 5%, 20%);',
-                        '',
-                        '/* Folder colors */',
-                        '--tp-folder-background-color: hsl(230deg, 5%, 80%);',
-                        '--tp-folder-background-color-active: hsl(230deg, 5%, 65%);',
-                        '--tp-folder-background-color-focus: hsl(230deg, 5%, 70%);',
-                        '--tp-folder-background-color-hover: hsl(230deg, 5%, 75%);',
-                        '--tp-folder-foreground-color: var(--tp-input-foreground-color);',
-                        '',
-                        '/* Input control colors */',
-                        '--tp-input-background-color: hsl(230deg, 5%, 85%);',
-                        '--tp-input-background-color-active: hsl(230deg, 5%, 70%);',
-                        '--tp-input-background-color-focus: hsl(230deg, 5%, 75%);',
-                        '--tp-input-background-color-hover: hsl(230deg, 5%, 80%);',
-                        '--tp-input-foreground-color: hsl(230deg, 5%, 30%);',
-                        '--tp-input-guide-color: hsla(230deg, 5%, 30%, 10%);',
-                        '',
-                        '/* Monitor control colors */',
-                        '--tp-monitor-background-color: var(--tp-input-background-color);',
-                        '--tp-monitor-foreground-color: hsl(230deg, 5%, 60%);',
-                        '',
-                        '/* Misc */',
-                        '--tp-label-foreground-color: hsl(230deg, 5%, 50%);',
-                        '--tp-separator-color: hsl(230deg, 5%, 85%);',
-                    ],
-                    id: 'light',
-                    title: 'Light',
-                });
-            },
-            icebergTheme: function (container) {
-                return setUpThemedPane(container, {
-                    cssProps: [
-                        '/* Base colors */',
-                        '--tp-base-background-color: hsl(230deg, 20%, 11%);',
-                        '--tp-base-shadow-color: hsla(0, 0%, 0%, 0.2);',
-                        '',
-                        '/* Button-like control colors */',
-                        '--tp-button-background-color: hsl(230deg, 10%, 80%);',
-                        '--tp-button-background-color-active: hsl(230deg, 10%, 95%);',
-                        '--tp-button-background-color-focus: hsl(230deg, 10%, 90%);',
-                        '--tp-button-background-color-hover: hsl(230deg, 10%, 85%);',
-                        '--tp-button-foreground-color: var(--tp-base-background-color);',
-                        '',
-                        '/* Folder colors */',
-                        '--tp-folder-background-color: hsl(230deg, 25%, 16%);',
-                        '--tp-folder-background-color-active: hsl(230deg, 25%, 31%);',
-                        '--tp-folder-background-color-focus: hsl(230deg, 25%, 26%);',
-                        '--tp-folder-background-color-hover: hsl(230deg, 25%, 21%);',
-                        '--tp-folder-foreground-color: var(--tp-input-foreground-color);',
-                        '',
-                        '/* Input control colors */',
-                        '--tp-input-background-color: hsl(230deg, 20%, 8%);',
-                        '--tp-input-background-color-active: hsl(230deg, 28%, 26%);',
-                        '--tp-input-background-color-focus: hsl(230deg, 28%, 21%);',
-                        '--tp-input-background-color-hover: hsl(230deg, 20%, 16%);',
-                        '--tp-input-foreground-color: hsl(230deg, 10%, 80%);',
-                        '--tp-input-guide-color: hsla(230deg, 10%, 80%, 5%);',
-                        '',
-                        '/* Monitor control colors */',
-                        '--tp-monitor-background-color: hsl(230deg, 20%, 8%);',
-                        '--tp-monitor-foreground-color: hsl(230deg, 12%, 48%);',
-                        '',
-                        '/* Misc */',
-                        '--tp-label-foreground-color: hsl(230deg, 12%, 48%);',
-                        '--tp-separator-color: hsl(230deg, 20%, 8%);',
-                    ],
-                    id: 'iceberg',
-                    title: 'Iceberg',
-                });
-            },
         };
         Object.keys(markerToFnMap).forEach(function (marker) {
             var initFn = markerToFnMap[marker];
@@ -1142,6 +1154,117 @@ exports.MonitorRoute = {
                     min: -1,
                     view: 'graph',
                 });
+            },
+        };
+        Object.keys(markerToFnMap).forEach(function (marker) {
+            var initFn = markerToFnMap[marker];
+            var container = Util.selectContainer(marker);
+            initFn(container);
+        });
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/doc/js/route/theming.ts":
+/*!*************************************!*\
+  !*** ./src/doc/js/route/theming.ts ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ThemingRoute = void 0;
+var panepaint_1 = __webpack_require__(/*! ../panepaint */ "./src/doc/js/panepaint.ts");
+var Themes = __webpack_require__(/*! ../themes */ "./src/doc/js/themes.ts");
+var Util = __webpack_require__(/*! ../util */ "./src/doc/js/util.ts");
+function applyPreviewHtml(selector, theme, comment) {
+    var elem = document.querySelector(selector);
+    if (!elem) {
+        return;
+    }
+    elem.textContent = [
+        "<!-- " + comment + " -->",
+        '<style>',
+        panepaint_1.toCss(':root', theme),
+        '</style>',
+    ].join('\n');
+    hljs.highlightBlock(elem);
+}
+function applyTheme(_a) {
+    var styleElem = _a.styleElem, theme = _a.theme;
+    styleElem.textContent = panepaint_1.toCss('*[data-preview-css]', theme);
+    applyPreviewHtml('*[data-preview-code]', theme, 'Append this element into your head element to apply the theme');
+}
+function createPreviewPane(containerElem) {
+    var PARAMS = {
+        color: 'rgba(0, 0, 0, 0)',
+        point2d: { x: 0, y: 0 },
+        slider: 0,
+        text: 'text',
+        monitor: [0, 1, 2, 3].map(function () { return Math.random().toFixed(2); }).join('\n'),
+    };
+    var pane = new Tweakpane({
+        container: containerElem,
+        title: 'Preview',
+    });
+    pane.addInput(PARAMS, 'text');
+    pane.addInput(PARAMS, 'slider', {
+        max: 64,
+        min: 0,
+    });
+    pane.addButton({
+        title: 'button',
+    });
+    pane.addSeparator();
+    pane.addMonitor(PARAMS, 'monitor', {
+        interval: 0,
+        multiline: true,
+    });
+    pane
+        .addFolder({
+        title: 'folder',
+    })
+        .addInput(PARAMS, 'color');
+    pane
+        .addFolder({
+        title: 'folder',
+    })
+        .addInput(PARAMS, 'point2d');
+    return pane;
+}
+exports.ThemingRoute = {
+    pathname: /^(\/tweakpane)?\/theming\.html$/,
+    init: function () {
+        var styleElem = document.createElement('style');
+        document.head.appendChild(styleElem);
+        var controllerElem = Util.selectContainer('controller');
+        var previewElem = Util.selectContainer('preview');
+        if (!controllerElem || !previewElem) {
+            return;
+        }
+        var theme = Themes.create('translucent');
+        applyPreviewHtml('*[data-exampleCss]', theme, 'Example theme: Translucent');
+        var pane = panepaint_1.createPane(controllerElem, theme);
+        applyTheme({
+            styleElem: styleElem,
+            theme: theme,
+        });
+        pane.on('change', function () {
+            applyTheme({
+                styleElem: styleElem,
+                theme: theme,
+            });
+        });
+        createPreviewPane(previewElem);
+        var markerToFnMap = {
+            header: function (container) {
+                if (container) {
+                    createPreviewPane(container);
+                }
             },
         };
         Object.keys(markerToFnMap).forEach(function (marker) {
@@ -1525,6 +1648,171 @@ exports.SpMenu = SpMenu;
 
 /***/ }),
 
+/***/ "./src/doc/js/themes.ts":
+/*!******************************!*\
+  !*** ./src/doc/js/themes.ts ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.create = void 0;
+var ID_TO_THEME_MAP = {
+    default: function () { return ({
+        'base-background-color': 'hsla(230, 7%, 20%, 1)',
+        'base-shadow-color': 'hsla(0, 0%, 0%, 0.2)',
+        'button-background-color': 'hsla(230, 7%, 70%, 1)',
+        'button-background-color-active': 'hsla(230, 7%, 85%, 1)',
+        'button-background-color-focus': 'hsla(230, 7%, 80%, 1)',
+        'button-background-color-hover': 'hsla(230, 7%, 75%, 1)',
+        'button-foreground-color': 'hsla(230, 7%, 20%, 1)',
+        'folder-background-color': 'hsla(230, 7%, 80%, 0.1)',
+        'folder-background-color-active': 'hsla(230, 7%, 80%, 0.25)',
+        'folder-background-color-focus': 'hsla(230, 7%, 80%, 0.2)',
+        'folder-background-color-hover': 'hsla(230, 7%, 80%, 0.15)',
+        'folder-foreground-color': 'hsla(230, 7%, 70%, 1)',
+        'input-background-color': 'hsla(230, 7%, 70%, 0.15)',
+        'input-background-color-active': 'hsla(230, 7%, 70%, 0.35)',
+        'input-background-color-focus': 'hsla(230, 7%, 70%, 0.25)',
+        'input-background-color-hover': 'hsla(230, 7%, 70%, 0.15)',
+        'input-foreground-color': 'hsla(230, 7%, 70%, 1)',
+        'input-guide-color': 'hsla(230, 7%, 20%, 0.5)',
+        'monitor-background-color': 'hsla(230, 7%, 10%, 0.5)',
+        'monitor-foreground-color': 'hsla(230, 7%, 70%, 0.7)',
+        'label-foreground-color': 'hsla(230, 7%, 70%, 0.8)',
+        'separator-color': 'hsla(230, 7%, 10%, 0.3)',
+    }); },
+    jetblack: function () { return ({
+        'base-background-color': 'hsla(0, 0%, 0%, 1)',
+        'base-shadow-color': 'hsla(0, 0%, 0%, 0.2)',
+        'button-background-color': 'hsla(0, 0%, 70%, 1)',
+        'button-background-color-active': 'hsla(0, 0%, 85%, 1)',
+        'button-background-color-focus': 'hsla(0, 0%, 80%, 1)',
+        'button-background-color-hover': 'hsla(0, 0%, 75%, 1)',
+        'button-foreground-color': 'hsla(0, 0%, 0%, 1)',
+        'folder-background-color': 'hsla(0, 0%, 10%, 1)',
+        'folder-background-color-active': 'hsla(0, 0%, 25%, 1)',
+        'folder-background-color-focus': 'hsla(0, 0%, 20%, 1)',
+        'folder-background-color-hover': 'hsla(0, 0%, 15%, 1)',
+        'folder-foreground-color': 'hsla(0, 0%, 50%, 1)',
+        'input-background-color': 'hsla(0, 0%, 10%, 1)',
+        'input-background-color-active': 'hsla(0, 0%, 25%, 1)',
+        'input-background-color-focus': 'hsla(0, 0%, 20%, 1)',
+        'input-background-color-hover': 'hsla(0, 0%, 15%, 1)',
+        'input-foreground-color': 'hsla(0, 0%, 70%, 1)',
+        'input-guide-color': 'hsla(0, 0%, 100%, 0.05)',
+        'monitor-background-color': 'hsla(0, 0%, 8%, 1)',
+        'monitor-foreground-color': 'hsla(0, 0%, 48%, 1)',
+        'label-foreground-color': 'hsla(0, 0%, 50%, 1)',
+        'separator-color': 'hsla(0, 0%, 10%, 1)',
+    }); },
+    light: function () { return ({
+        'base-background-color': 'hsla(230, 5%, 90%, 1)',
+        'base-shadow-color': 'hsla(0, 0%, 0%, 0.1)',
+        'button-background-color': 'hsla(230, 5%, 70%, 1)',
+        'button-background-color-active': 'hsla(230, 5%, 55%, 1)',
+        'button-background-color-focus': 'hsla(230, 5%, 60%, 1)',
+        'button-background-color-hover': 'hsla(230, 5%, 65%, 1)',
+        'button-foreground-color': 'hsla(230, 5%, 20%, 1)',
+        'folder-background-color': 'hsla(230, 5%, 80%, 1)',
+        'folder-background-color-active': 'hsla(230, 5%, 65%, 1)',
+        'folder-background-color-focus': 'hsla(230, 5%, 70%, 1)',
+        'folder-background-color-hover': 'hsla(230, 5%, 75%, 1)',
+        'folder-foreground-color': 'hsla(230, 5%, 30%, 1)',
+        'input-background-color': 'hsla(230, 5%, 85%, 1)',
+        'input-background-color-active': 'hsla(230, 5%, 70%, 1)',
+        'input-background-color-focus': 'hsla(230, 5%, 75%, 1)',
+        'input-background-color-hover': 'hsla(230, 5%, 80%, 1)',
+        'input-foreground-color': 'hsla(230, 5%, 30%, 1)',
+        'input-guide-color': 'hsla(230, 5%, 30%, 0.1)',
+        'monitor-background-color': 'hsla(230, 5%, 80%, 1)',
+        'monitor-foreground-color': 'hsla(230, 5%, 60%, 1)',
+        'label-foreground-color': 'hsla(230, 5%, 50%, 1)',
+        'separator-color': 'hsla(230, 5%, 85%, 1)',
+    }); },
+    iceberg: function () { return ({
+        'base-background-color': 'hsla(230, 20%, 11%, 1)',
+        'base-shadow-color': 'hsla(0, 0%, 0%, 0.2)',
+        'button-background-color': 'hsla(230, 10%, 80%, 1)',
+        'button-background-color-active': 'hsla(230, 10%, 95%, 1)',
+        'button-background-color-focus': 'hsla(230, 10%, 90%, 1)',
+        'button-background-color-hover': 'hsla(230, 10%, 85%, 1)',
+        'button-foreground-color': 'hsla(230, 20%, 11%, 1)',
+        'folder-background-color': 'hsla(230, 25%, 16%, 1)',
+        'folder-background-color-active': 'hsla(230, 25%, 31%, 1)',
+        'folder-background-color-focus': 'hsla(230, 25%, 26%, 1)',
+        'folder-background-color-hover': 'hsla(230, 25%, 21%, 1)',
+        'folder-foreground-color': 'hsla(230, 10%, 80%, 1)',
+        'input-background-color': 'hsla(230, 20%, 16%, 1)',
+        'input-background-color-active': 'hsla(230, 28%, 31%, 1)',
+        'input-background-color-focus': 'hsla(230, 28%, 26%, 1)',
+        'input-background-color-hover': 'hsla(230, 20%, 21%, 1)',
+        'input-foreground-color': 'hsla(230, 10%, 80%, 1)',
+        'input-guide-color': 'hsla(230, 10%, 80%, 5%)',
+        'monitor-background-color': 'hsla(230, 20%, 8%, 1)',
+        'monitor-foreground-color': 'hsla(230, 12%, 48%, 1)',
+        'label-foreground-color': 'hsla(230, 12%, 48%, 1)',
+        'separator-color': 'hsla(230, 20%, 8%, 1)',
+    }); },
+    retro: function () { return ({
+        'base-background-color': 'hsla(40, 3%, 90%, 1)',
+        'base-shadow-color': 'hsla(0, 0%, 0%, 0.3)',
+        'button-background-color': 'hsla(40, 3%, 70%, 1)',
+        'button-background-color-active': 'hsla(40, 3%, 55%, 1)',
+        'button-background-color-focus': 'hsla(40, 3%, 60%, 1)',
+        'button-background-color-hover': 'hsla(40, 3%, 65%, 1)',
+        'button-foreground-color': 'hsla(40, 3%, 20%, 1)',
+        'folder-background-color': 'hsla(40, 3%, 40%, 1)',
+        'folder-background-color-active': 'hsla(34, 3%, 55%, 1)',
+        'folder-background-color-focus': 'hsla(43, 3%, 50%, 1)',
+        'folder-background-color-hover': 'hsla(43, 3%, 45%, 1)',
+        'folder-foreground-color': 'hsla(40, 3%, 70%, 1)',
+        'input-background-color': 'hsla(120, 3%, 20%, 1)',
+        'input-background-color-active': 'hsla(120, 3%, 35%, 1)',
+        'input-background-color-focus': 'hsla(120, 3%, 30%, 1)',
+        'input-background-color-hover': 'hsla(120, 3%, 25%, 1)',
+        'input-foreground-color': 'hsla(120, 40%, 60%, 1)',
+        'input-guide-color': 'hsla(120, 40%, 60%, 0.1)',
+        'monitor-background-color': 'hsla(120, 3%, 20%, 0.8)',
+        'monitor-foreground-color': 'hsla(120, 40%, 60%, 0.8)',
+        'label-foreground-color': 'hsla(40, 3%, 50%, 1)',
+        'separator-color': 'hsla(40, 3%, 40%, 1)',
+    }); },
+    translucent: function () { return ({
+        'base-background-color': 'hsla(0, 0%, 10%, 0.8)',
+        'base-shadow-color': 'hsla(0, 0%, 0%, 0.2)',
+        'button-background-color': 'hsla(0, 0%, 100%, 0.5)',
+        'button-background-color-active': 'hsla(0, 0%, 100%, 0.8)',
+        'button-background-color-focus': 'hsla(0, 0%, 100%, 0.7)',
+        'button-background-color-hover': 'hsla(0, 0%, 100%, 0.6)',
+        'button-foreground-color': 'hsla(0, 0%, 0%, 0.8)',
+        'folder-background-color': 'hsla(0, 0%, 0%, 0.3)',
+        'folder-background-color-active': 'hsla(0, 0%, 0%, 0.6)',
+        'folder-background-color-focus': 'hsla(0, 0%, 0%, 0.5)',
+        'folder-background-color-hover': 'hsla(0, 0%, 0%, 0.4)',
+        'folder-foreground-color': 'hsla(0, 0%, 100%, 0.5)',
+        'input-background-color': 'hsla(0, 0%, 0%, 0.3)',
+        'input-background-color-active': 'hsla(0, 0%, 0%, 0.6)',
+        'input-background-color-focus': 'hsla(0, 0%, 0%, 0.5)',
+        'input-background-color-hover': 'hsla(0, 0%, 0%, 0.4)',
+        'input-foreground-color': 'hsla(0, 0%, 100%, 0.5)',
+        'input-guide-color': 'hsla(0, 0%, 100%, 0.1)',
+        'monitor-background-color': 'hsla(0, 0%, 0%, 0.3)',
+        'monitor-foreground-color': 'hsla(0, 0%, 100%, 0.3)',
+        'label-foreground-color': 'hsla(0, 0%, 100%, 0.5)',
+        'separator-color': 'hsla(0, 0%, 0%, 0.2)',
+    }); },
+};
+function create(id) {
+    return ID_TO_THEME_MAP[id]();
+}
+exports.create = create;
+
+
+/***/ }),
+
 /***/ "./src/doc/js/util.ts":
 /*!****************************!*\
   !*** ./src/doc/js/util.ts ***!
@@ -1540,6 +1828,805 @@ function selectContainer(marker) {
     return document.querySelector(".common-paneContainer-" + marker);
 }
 exports.selectContainer = selectContainer;
+
+
+/***/ }),
+
+/***/ "./src/main/js/converter/color.ts":
+/*!****************************************!*\
+  !*** ./src/main/js/converter/color.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.toRgbaNumber = exports.toRgbNumber = exports.getStringifier = exports.toFunctionalHslaString = exports.toFunctionalHslString = exports.toFunctionalRgbaString = exports.toFunctionalRgbString = exports.toHexRgbaString = exports.toHexRgbString = exports.fromNumberToRgba = exports.fromNumberToRgb = exports.fromObject = exports.fromString = void 0;
+var number_1 = __webpack_require__(/*! ../formatter/number */ "./src/main/js/formatter/number.ts");
+var percentage_1 = __webpack_require__(/*! ../formatter/percentage */ "./src/main/js/formatter/percentage.ts");
+var ColorModel = __webpack_require__(/*! ../misc/color-model */ "./src/main/js/misc/color-model.ts");
+var number_util_1 = __webpack_require__(/*! ../misc/number-util */ "./src/main/js/misc/number-util.ts");
+var color_1 = __webpack_require__(/*! ../model/color */ "./src/main/js/model/color.ts");
+var NumberColorParser = __webpack_require__(/*! ../parser/number-color */ "./src/main/js/parser/number-color.ts");
+var StringColorParser = __webpack_require__(/*! ../parser/string-color */ "./src/main/js/parser/string-color.ts");
+function createEmptyColor() {
+    return new color_1.Color([0, 0, 0], 'rgb');
+}
+/**
+ * @hidden
+ */
+function fromString(value) {
+    if (typeof value === 'string') {
+        var cv = StringColorParser.CompositeParser(value);
+        if (cv) {
+            return cv;
+        }
+    }
+    return createEmptyColor();
+}
+exports.fromString = fromString;
+/**
+ * @hidden
+ */
+function fromObject(value) {
+    if (color_1.Color.isColorObject(value)) {
+        return color_1.Color.fromObject(value);
+    }
+    return createEmptyColor();
+}
+exports.fromObject = fromObject;
+/**
+ * @hidden
+ */
+function fromNumberToRgb(value) {
+    if (typeof value === 'number') {
+        var cv = NumberColorParser.RgbParser(value);
+        if (cv) {
+            return cv;
+        }
+    }
+    return createEmptyColor();
+}
+exports.fromNumberToRgb = fromNumberToRgb;
+/**
+ * @hidden
+ */
+function fromNumberToRgba(value) {
+    if (typeof value === 'number') {
+        var cv = NumberColorParser.RgbaParser(value);
+        if (cv) {
+            return cv;
+        }
+    }
+    return createEmptyColor();
+}
+exports.fromNumberToRgba = fromNumberToRgba;
+function zerofill(comp) {
+    var hex = number_util_1.NumberUtil.constrain(Math.floor(comp), 0, 255).toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+}
+/**
+ * @hidden
+ */
+function toHexRgbString(value) {
+    var hexes = ColorModel.withoutAlpha(value.getComponents('rgb'))
+        .map(zerofill)
+        .join('');
+    return "#" + hexes;
+}
+exports.toHexRgbString = toHexRgbString;
+/**
+ * @hidden
+ */
+function toHexRgbaString(value) {
+    var rgbaComps = value.getComponents('rgb');
+    var hexes = [rgbaComps[0], rgbaComps[1], rgbaComps[2], rgbaComps[3] * 255]
+        .map(zerofill)
+        .join('');
+    return "#" + hexes;
+}
+exports.toHexRgbaString = toHexRgbaString;
+/**
+ * @hidden
+ */
+function toFunctionalRgbString(value) {
+    var formatter = new number_1.NumberFormatter(0);
+    var comps = ColorModel.withoutAlpha(value.getComponents('rgb')).map(function (comp) { return formatter.format(comp); });
+    return "rgb(" + comps.join(', ') + ")";
+}
+exports.toFunctionalRgbString = toFunctionalRgbString;
+/**
+ * @hidden
+ */
+function toFunctionalRgbaString(value) {
+    var aFormatter = new number_1.NumberFormatter(2);
+    var rgbFormatter = new number_1.NumberFormatter(0);
+    var comps = value.getComponents('rgb').map(function (comp, index) {
+        var formatter = index === 3 ? aFormatter : rgbFormatter;
+        return formatter.format(comp);
+    });
+    return "rgba(" + comps.join(', ') + ")";
+}
+exports.toFunctionalRgbaString = toFunctionalRgbaString;
+/**
+ * @hidden
+ */
+function toFunctionalHslString(value) {
+    var formatters = [
+        new number_1.NumberFormatter(0),
+        new percentage_1.PercentageFormatter(),
+        new percentage_1.PercentageFormatter(),
+    ];
+    var comps = ColorModel.withoutAlpha(value.getComponents('hsl')).map(function (comp, index) { return formatters[index].format(comp); });
+    return "hsl(" + comps.join(', ') + ")";
+}
+exports.toFunctionalHslString = toFunctionalHslString;
+/**
+ * @hidden
+ */
+function toFunctionalHslaString(value) {
+    var formatters = [
+        new number_1.NumberFormatter(0),
+        new percentage_1.PercentageFormatter(),
+        new percentage_1.PercentageFormatter(),
+        new number_1.NumberFormatter(2),
+    ];
+    var comps = value
+        .getComponents('hsl')
+        .map(function (comp, index) { return formatters[index].format(comp); });
+    return "hsla(" + comps.join(', ') + ")";
+}
+exports.toFunctionalHslaString = toFunctionalHslaString;
+var NOTATION_TO_STRINGIFIER_MAP = {
+    'func.hsl': toFunctionalHslString,
+    'func.hsla': toFunctionalHslaString,
+    'func.rgb': toFunctionalRgbString,
+    'func.rgba': toFunctionalRgbaString,
+    'hex.rgb': toHexRgbString,
+    'hex.rgba': toHexRgbaString,
+};
+function getStringifier(notation) {
+    return NOTATION_TO_STRINGIFIER_MAP[notation];
+}
+exports.getStringifier = getStringifier;
+/**
+ * @hidden
+ */
+function toRgbNumber(value) {
+    return ColorModel.withoutAlpha(value.getComponents('rgb')).reduce(function (result, comp) {
+        return (result << 8) | (Math.floor(comp) & 0xff);
+    }, 0);
+}
+exports.toRgbNumber = toRgbNumber;
+/**
+ * @hidden
+ */
+function toRgbaNumber(value) {
+    return value.getComponents('rgb').reduce(function (result, comp, index) {
+        var hex = Math.floor(index === 3 ? comp * 255 : comp) & 0xff;
+        return (result << 8) | hex;
+    }, 0);
+}
+exports.toRgbaNumber = toRgbaNumber;
+
+
+/***/ }),
+
+/***/ "./src/main/js/formatter/number.ts":
+/*!*****************************************!*\
+  !*** ./src/main/js/formatter/number.ts ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NumberFormatter = void 0;
+/**
+ * @hidden
+ */
+var NumberFormatter = /** @class */ (function () {
+    function NumberFormatter(digits) {
+        this.digits_ = digits;
+    }
+    Object.defineProperty(NumberFormatter.prototype, "digits", {
+        get: function () {
+            return this.digits_;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    NumberFormatter.prototype.format = function (value) {
+        return value.toFixed(Math.max(Math.min(this.digits_, 20), 0));
+    };
+    return NumberFormatter;
+}());
+exports.NumberFormatter = NumberFormatter;
+
+
+/***/ }),
+
+/***/ "./src/main/js/formatter/percentage.ts":
+/*!*********************************************!*\
+  !*** ./src/main/js/formatter/percentage.ts ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PercentageFormatter = void 0;
+var number_1 = __webpack_require__(/*! ./number */ "./src/main/js/formatter/number.ts");
+var innerFormatter = new number_1.NumberFormatter(0);
+/**
+ * @hidden
+ */
+var PercentageFormatter = /** @class */ (function () {
+    function PercentageFormatter() {
+    }
+    PercentageFormatter.prototype.format = function (value) {
+        return innerFormatter.format(value) + '%';
+    };
+    return PercentageFormatter;
+}());
+exports.PercentageFormatter = PercentageFormatter;
+
+
+/***/ }),
+
+/***/ "./src/main/js/misc/color-model.ts":
+/*!*****************************************!*\
+  !*** ./src/main/js/misc/color-model.ts ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.convertMode = exports.withAlpha = exports.withoutAlpha = exports.opaque = exports.hsvToRgb = void 0;
+var number_util_1 = __webpack_require__(/*! ./number-util */ "./src/main/js/misc/number-util.ts");
+function rgbToHsl(r, g, b) {
+    var rp = number_util_1.NumberUtil.constrain(r / 255, 0, 1);
+    var gp = number_util_1.NumberUtil.constrain(g / 255, 0, 1);
+    var bp = number_util_1.NumberUtil.constrain(b / 255, 0, 1);
+    var cmax = Math.max(rp, gp, bp);
+    var cmin = Math.min(rp, gp, bp);
+    var c = cmax - cmin;
+    var h = 0;
+    var s = 0;
+    var l = (cmin + cmax) / 2;
+    if (c !== 0) {
+        s = l > 0.5 ? c / (2 - cmin - cmax) : c / (cmax + cmin);
+        if (rp === cmax) {
+            h = (gp - bp) / c;
+        }
+        else if (gp === cmax) {
+            h = 2 + (bp - rp) / c;
+        }
+        else {
+            h = 4 + (rp - gp) / c;
+        }
+        h = h / 6 + (h < 0 ? 1 : 0);
+    }
+    return [h * 360, s * 100, l * 100];
+}
+function hslToRgb(h, s, l) {
+    var _a, _b, _c, _d, _e, _f;
+    var hp = ((h % 360) + 360) % 360;
+    var sp = number_util_1.NumberUtil.constrain(s / 100, 0, 1);
+    var lp = number_util_1.NumberUtil.constrain(l / 100, 0, 1);
+    var c = (1 - Math.abs(2 * lp - 1)) * sp;
+    var x = c * (1 - Math.abs(((hp / 60) % 2) - 1));
+    var m = lp - c / 2;
+    var rp, gp, bp;
+    if (hp >= 0 && hp < 60) {
+        _a = [c, x, 0], rp = _a[0], gp = _a[1], bp = _a[2];
+    }
+    else if (hp >= 60 && hp < 120) {
+        _b = [x, c, 0], rp = _b[0], gp = _b[1], bp = _b[2];
+    }
+    else if (hp >= 120 && hp < 180) {
+        _c = [0, c, x], rp = _c[0], gp = _c[1], bp = _c[2];
+    }
+    else if (hp >= 180 && hp < 240) {
+        _d = [0, x, c], rp = _d[0], gp = _d[1], bp = _d[2];
+    }
+    else if (hp >= 240 && hp < 300) {
+        _e = [x, 0, c], rp = _e[0], gp = _e[1], bp = _e[2];
+    }
+    else {
+        _f = [c, 0, x], rp = _f[0], gp = _f[1], bp = _f[2];
+    }
+    return [(rp + m) * 255, (gp + m) * 255, (bp + m) * 255];
+}
+function rgbToHsv(r, g, b) {
+    var rp = number_util_1.NumberUtil.constrain(r / 255, 0, 1);
+    var gp = number_util_1.NumberUtil.constrain(g / 255, 0, 1);
+    var bp = number_util_1.NumberUtil.constrain(b / 255, 0, 1);
+    var cmax = Math.max(rp, gp, bp);
+    var cmin = Math.min(rp, gp, bp);
+    var d = cmax - cmin;
+    var h;
+    if (d === 0) {
+        h = 0;
+    }
+    else if (cmax === rp) {
+        h = 60 * (((((gp - bp) / d) % 6) + 6) % 6);
+    }
+    else if (cmax === gp) {
+        h = 60 * ((bp - rp) / d + 2);
+    }
+    else {
+        h = 60 * ((rp - gp) / d + 4);
+    }
+    var s = cmax === 0 ? 0 : d / cmax;
+    var v = cmax;
+    return [h, s * 100, v * 100];
+}
+/**
+ * @hidden
+ */
+function hsvToRgb(h, s, v) {
+    var _a, _b, _c, _d, _e, _f;
+    var hp = number_util_1.NumberUtil.loop(h, 360);
+    var sp = number_util_1.NumberUtil.constrain(s / 100, 0, 1);
+    var vp = number_util_1.NumberUtil.constrain(v / 100, 0, 1);
+    var c = vp * sp;
+    var x = c * (1 - Math.abs(((hp / 60) % 2) - 1));
+    var m = vp - c;
+    var rp, gp, bp;
+    if (hp >= 0 && hp < 60) {
+        _a = [c, x, 0], rp = _a[0], gp = _a[1], bp = _a[2];
+    }
+    else if (hp >= 60 && hp < 120) {
+        _b = [x, c, 0], rp = _b[0], gp = _b[1], bp = _b[2];
+    }
+    else if (hp >= 120 && hp < 180) {
+        _c = [0, c, x], rp = _c[0], gp = _c[1], bp = _c[2];
+    }
+    else if (hp >= 180 && hp < 240) {
+        _d = [0, x, c], rp = _d[0], gp = _d[1], bp = _d[2];
+    }
+    else if (hp >= 240 && hp < 300) {
+        _e = [x, 0, c], rp = _e[0], gp = _e[1], bp = _e[2];
+    }
+    else {
+        _f = [c, 0, x], rp = _f[0], gp = _f[1], bp = _f[2];
+    }
+    return [(rp + m) * 255, (gp + m) * 255, (bp + m) * 255];
+}
+exports.hsvToRgb = hsvToRgb;
+/**
+ * @hidden
+ */
+function opaque(comps) {
+    return [comps[0], comps[1], comps[2], 1];
+}
+exports.opaque = opaque;
+/**
+ * @hidden
+ */
+function withoutAlpha(comps) {
+    return [comps[0], comps[1], comps[2]];
+}
+exports.withoutAlpha = withoutAlpha;
+/**
+ * @hidden
+ */
+function withAlpha(comps, alpha) {
+    return [comps[0], comps[1], comps[2], alpha];
+}
+exports.withAlpha = withAlpha;
+var MODE_CONVERTER_MAP = {
+    hsl: {
+        hsl: function (h, s, l) { return [h, s, l]; },
+        hsv: function (h, s, l) {
+            var _a = hslToRgb(h, s, l), r = _a[0], g = _a[1], b = _a[2];
+            return rgbToHsv(r, g, b);
+        },
+        rgb: hslToRgb,
+    },
+    hsv: {
+        hsl: function (h, s, v) {
+            var _a = hsvToRgb(h, s, v), r = _a[0], g = _a[1], b = _a[2];
+            return rgbToHsl(r, g, b);
+        },
+        hsv: function (h, s, v) { return [h, s, v]; },
+        rgb: hsvToRgb,
+    },
+    rgb: {
+        hsl: rgbToHsl,
+        hsv: rgbToHsv,
+        rgb: function (r, g, b) { return [r, g, b]; },
+    },
+};
+/**
+ * @hidden
+ */
+function convertMode(components, fromMode, toMode) {
+    var _a;
+    return (_a = MODE_CONVERTER_MAP[fromMode])[toMode].apply(_a, components);
+}
+exports.convertMode = convertMode;
+
+
+/***/ }),
+
+/***/ "./src/main/js/misc/number-util.ts":
+/*!*****************************************!*\
+  !*** ./src/main/js/misc/number-util.ts ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NumberUtil = void 0;
+exports.NumberUtil = {
+    map: function (value, start1, end1, start2, end2) {
+        var p = (value - start1) / (end1 - start1);
+        return start2 + p * (end2 - start2);
+    },
+    getDecimalDigits: function (value) {
+        var text = String(value.toFixed(10));
+        var frac = text.split('.')[1];
+        return frac.replace(/0+$/, '').length;
+    },
+    constrain: function (value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    },
+    loop: function (value, max) {
+        return ((value % max) + max) % max;
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/misc/type-util.ts":
+/*!***************************************!*\
+  !*** ./src/main/js/misc/type-util.ts ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TypeUtil = void 0;
+exports.TypeUtil = {
+    forceCast: function (v) {
+        return v;
+    },
+    isEmpty: function (value) {
+        return value === null || value === undefined;
+    },
+    getOrDefault: function (value, defaultValue) {
+        return !exports.TypeUtil.isEmpty(value) ? value : defaultValue;
+    },
+    deepEqualsArray: function (a1, a2) {
+        if (a1.length !== a2.length) {
+            return false;
+        }
+        for (var i = 0; i < a1.length; i++) {
+            if (a1[i] !== a2[i]) {
+                return false;
+            }
+        }
+        return true;
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/model/color.ts":
+/*!************************************!*\
+  !*** ./src/main/js/model/color.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Color = void 0;
+var ColorModel = __webpack_require__(/*! ../misc/color-model */ "./src/main/js/misc/color-model.ts");
+var number_util_1 = __webpack_require__(/*! ../misc/number-util */ "./src/main/js/misc/number-util.ts");
+var type_util_1 = __webpack_require__(/*! ../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var CONSTRAINT_MAP = {
+    hsl: function (comps) {
+        return [
+            number_util_1.NumberUtil.loop(comps[0], 360),
+            number_util_1.NumberUtil.constrain(comps[1], 0, 100),
+            number_util_1.NumberUtil.constrain(comps[2], 0, 100),
+            number_util_1.NumberUtil.constrain(type_util_1.TypeUtil.getOrDefault(comps[3], 1), 0, 1),
+        ];
+    },
+    hsv: function (comps) {
+        return [
+            number_util_1.NumberUtil.loop(comps[0], 360),
+            number_util_1.NumberUtil.constrain(comps[1], 0, 100),
+            number_util_1.NumberUtil.constrain(comps[2], 0, 100),
+            number_util_1.NumberUtil.constrain(type_util_1.TypeUtil.getOrDefault(comps[3], 1), 0, 1),
+        ];
+    },
+    rgb: function (comps) {
+        return [
+            number_util_1.NumberUtil.constrain(comps[0], 0, 255),
+            number_util_1.NumberUtil.constrain(comps[1], 0, 255),
+            number_util_1.NumberUtil.constrain(comps[2], 0, 255),
+            number_util_1.NumberUtil.constrain(type_util_1.TypeUtil.getOrDefault(comps[3], 1), 0, 1),
+        ];
+    },
+};
+function isRgbColorComponent(obj, key) {
+    if (typeof obj !== 'object' || type_util_1.TypeUtil.isEmpty(obj)) {
+        return false;
+    }
+    return key in obj && typeof obj[key] === 'number';
+}
+/**
+ * @hidden
+ */
+var Color = /** @class */ (function () {
+    function Color(comps, mode) {
+        this.mode_ = mode;
+        this.comps_ = CONSTRAINT_MAP[mode](comps);
+    }
+    Color.fromObject = function (obj) {
+        var comps = 'a' in obj ? [obj.r, obj.g, obj.b, obj.a] : [obj.r, obj.g, obj.b];
+        return new Color(comps, 'rgb');
+    };
+    Color.toRgbaObject = function (color) {
+        return color.toRgbaObject();
+    };
+    Color.isRgbColorObject = function (obj) {
+        return (isRgbColorComponent(obj, 'r') &&
+            isRgbColorComponent(obj, 'g') &&
+            isRgbColorComponent(obj, 'b'));
+    };
+    Color.isRgbaColorObject = function (obj) {
+        return this.isRgbColorObject(obj) && isRgbColorComponent(obj, 'a');
+    };
+    Color.isColorObject = function (obj) {
+        return this.isRgbColorObject(obj);
+    };
+    Object.defineProperty(Color.prototype, "mode", {
+        get: function () {
+            return this.mode_;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Color.prototype.getComponents = function (opt_mode) {
+        return ColorModel.withAlpha(ColorModel.convertMode(ColorModel.withoutAlpha(this.comps_), this.mode_, opt_mode || this.mode_), this.comps_[3]);
+    };
+    Color.prototype.toRgbaObject = function () {
+        var rgbComps = this.getComponents('rgb');
+        // tslint:disable:object-literal-sort-keys
+        return {
+            r: rgbComps[0],
+            g: rgbComps[1],
+            b: rgbComps[2],
+            a: rgbComps[3],
+        };
+        // tslint:enable:object-literal-sort-keys
+    };
+    return Color;
+}());
+exports.Color = Color;
+
+
+/***/ }),
+
+/***/ "./src/main/js/parser/number-color.ts":
+/*!********************************************!*\
+  !*** ./src/main/js/parser/number-color.ts ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RgbaParser = exports.RgbParser = void 0;
+var number_util_1 = __webpack_require__(/*! ../misc/number-util */ "./src/main/js/misc/number-util.ts");
+var color_1 = __webpack_require__(/*! ../model/color */ "./src/main/js/model/color.ts");
+/**
+ * @hidden
+ */
+exports.RgbParser = function (num) {
+    return new color_1.Color([(num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff], 'rgb');
+};
+/**
+ * @hidden
+ */
+exports.RgbaParser = function (num) {
+    return new color_1.Color([
+        (num >> 24) & 0xff,
+        (num >> 16) & 0xff,
+        (num >> 8) & 0xff,
+        number_util_1.NumberUtil.map(num & 0xff, 0, 255, 0, 1),
+    ], 'rgb');
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/parser/string-color.ts":
+/*!********************************************!*\
+  !*** ./src/main/js/parser/string-color.ts ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.hasAlphaComponent = exports.CompositeParser = exports.getNotation = void 0;
+var number_util_1 = __webpack_require__(/*! ../misc/number-util */ "./src/main/js/misc/number-util.ts");
+var color_1 = __webpack_require__(/*! ../model/color */ "./src/main/js/model/color.ts");
+function parseCssNumberOrPercentage(text, maxValue) {
+    var m = text.match(/^(.+)%$/);
+    if (!m) {
+        return Math.min(parseFloat(text), maxValue);
+    }
+    return Math.min(parseFloat(m[1]) * 0.01 * maxValue, maxValue);
+}
+var ANGLE_TO_DEG_MAP = {
+    deg: function (angle) { return angle; },
+    grad: function (angle) { return (angle * 360) / 400; },
+    rad: function (angle) { return (angle * 360) / (2 * Math.PI); },
+    turn: function (angle) { return angle * 360; },
+};
+function parseCssNumberOrAngle(text) {
+    var m = text.match(/^([0-9.]+?)(deg|grad|rad|turn)$/);
+    if (!m) {
+        return parseFloat(text);
+    }
+    var angle = parseFloat(m[1]);
+    var unit = m[2];
+    return ANGLE_TO_DEG_MAP[unit](angle);
+}
+var NOTATION_TO_PARSER_MAP = {
+    'func.rgb': function (text) {
+        var m = text.match(/^rgb\(\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*\)$/);
+        if (!m) {
+            return null;
+        }
+        var comps = [
+            parseCssNumberOrPercentage(m[1], 255),
+            parseCssNumberOrPercentage(m[2], 255),
+            parseCssNumberOrPercentage(m[3], 255),
+        ];
+        if (isNaN(comps[0]) || isNaN(comps[1]) || isNaN(comps[2])) {
+            return null;
+        }
+        return new color_1.Color(comps, 'rgb');
+    },
+    'func.rgba': function (text) {
+        var m = text.match(/^rgba\(\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*\)$/);
+        if (!m) {
+            return null;
+        }
+        var comps = [
+            parseCssNumberOrPercentage(m[1], 255),
+            parseCssNumberOrPercentage(m[2], 255),
+            parseCssNumberOrPercentage(m[3], 255),
+            parseCssNumberOrPercentage(m[4], 1),
+        ];
+        if (isNaN(comps[0]) ||
+            isNaN(comps[1]) ||
+            isNaN(comps[2]) ||
+            isNaN(comps[3])) {
+            return null;
+        }
+        return new color_1.Color(comps, 'rgb');
+    },
+    'func.hsl': function (text) {
+        var m = text.match(/^hsl\(\s*([0-9A-Fa-f.]+(?:deg|grad|rad|turn)?)\s*,\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*\)$/);
+        if (!m) {
+            return null;
+        }
+        var comps = [
+            parseCssNumberOrAngle(m[1]),
+            parseCssNumberOrPercentage(m[2], 100),
+            parseCssNumberOrPercentage(m[3], 100),
+        ];
+        if (isNaN(comps[0]) || isNaN(comps[1]) || isNaN(comps[2])) {
+            return null;
+        }
+        return new color_1.Color(comps, 'hsl');
+    },
+    'func.hsla': function (text) {
+        var m = text.match(/^hsla\(\s*([0-9A-Fa-f.]+(?:deg|grad|rad|turn)?)\s*,\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*,\s*([0-9A-Fa-f.]+%?)\s*\)$/);
+        if (!m) {
+            return null;
+        }
+        var comps = [
+            parseCssNumberOrAngle(m[1]),
+            parseCssNumberOrPercentage(m[2], 100),
+            parseCssNumberOrPercentage(m[3], 100),
+            parseCssNumberOrPercentage(m[4], 1),
+        ];
+        if (isNaN(comps[0]) ||
+            isNaN(comps[1]) ||
+            isNaN(comps[2]) ||
+            isNaN(comps[3])) {
+            return null;
+        }
+        return new color_1.Color(comps, 'hsl');
+    },
+    'hex.rgb': function (text) {
+        var mRrggbb = text.match(/^#([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
+        if (mRrggbb) {
+            return new color_1.Color([
+                parseInt(mRrggbb[1] + mRrggbb[1], 16),
+                parseInt(mRrggbb[2] + mRrggbb[2], 16),
+                parseInt(mRrggbb[3] + mRrggbb[3], 16),
+            ], 'rgb');
+        }
+        var mRgb = text.match(/^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
+        if (mRgb) {
+            return new color_1.Color([parseInt(mRgb[1], 16), parseInt(mRgb[2], 16), parseInt(mRgb[3], 16)], 'rgb');
+        }
+        return null;
+    },
+    'hex.rgba': function (text) {
+        var mRrggbb = text.match(/^#?([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
+        if (mRrggbb) {
+            return new color_1.Color([
+                parseInt(mRrggbb[1] + mRrggbb[1], 16),
+                parseInt(mRrggbb[2] + mRrggbb[2], 16),
+                parseInt(mRrggbb[3] + mRrggbb[3], 16),
+                number_util_1.NumberUtil.map(parseInt(mRrggbb[4] + mRrggbb[4], 16), 0, 255, 0, 1),
+            ], 'rgb');
+        }
+        var mRgb = text.match(/^#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
+        if (mRgb) {
+            return new color_1.Color([
+                parseInt(mRgb[1], 16),
+                parseInt(mRgb[2], 16),
+                parseInt(mRgb[3], 16),
+                number_util_1.NumberUtil.map(parseInt(mRgb[4], 16), 0, 255, 0, 1),
+            ], 'rgb');
+        }
+        return null;
+    },
+};
+/**
+ * @hidden
+ */
+function getNotation(text) {
+    var notations = Object.keys(NOTATION_TO_PARSER_MAP);
+    return notations.reduce(function (result, notation) {
+        if (result) {
+            return result;
+        }
+        var subparser = NOTATION_TO_PARSER_MAP[notation];
+        return subparser(text) ? notation : null;
+    }, null);
+}
+exports.getNotation = getNotation;
+/**
+ * @hidden
+ */
+exports.CompositeParser = function (text) {
+    var notation = getNotation(text);
+    return notation ? NOTATION_TO_PARSER_MAP[notation](text) : null;
+};
+function hasAlphaComponent(notation) {
+    return (notation === 'func.hsla' ||
+        notation === 'func.rgba' ||
+        notation === 'hex.rgba');
+}
+exports.hasAlphaComponent = hasAlphaComponent;
 
 
 /***/ })

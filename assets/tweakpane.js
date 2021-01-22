@@ -796,7 +796,7 @@ var separator_2 = __webpack_require__(/*! ./separator */ "./src/main/js/api/sepa
  * new Tweakpane(options: TweakpaneConfig): RootApi
  * ```
  *
- * See [[TweakpaneConfig]] interface for available options.
+ * See [[`TweakpaneConfig`]] interface for available options.
  */
 var RootApi = /** @class */ (function () {
     /**
@@ -4015,6 +4015,7 @@ exports.toString = toString;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.toRgbaNumber = exports.toRgbNumber = exports.getStringifier = exports.toFunctionalHslaString = exports.toFunctionalHslString = exports.toFunctionalRgbaString = exports.toFunctionalRgbString = exports.toHexRgbaString = exports.toHexRgbString = exports.fromNumberToRgba = exports.fromNumberToRgb = exports.fromObject = exports.fromString = void 0;
 var number_1 = __webpack_require__(/*! ../formatter/number */ "./src/main/js/formatter/number.ts");
+var percentage_1 = __webpack_require__(/*! ../formatter/percentage */ "./src/main/js/formatter/percentage.ts");
 var ColorModel = __webpack_require__(/*! ../misc/color-model */ "./src/main/js/misc/color-model.ts");
 var number_util_1 = __webpack_require__(/*! ../misc/number-util */ "./src/main/js/misc/number-util.ts");
 var color_1 = __webpack_require__(/*! ../model/color */ "./src/main/js/model/color.ts");
@@ -4123,8 +4124,12 @@ exports.toFunctionalRgbaString = toFunctionalRgbaString;
  * @hidden
  */
 function toFunctionalHslString(value) {
-    var formatter = new number_1.NumberFormatter(0);
-    var comps = ColorModel.withoutAlpha(value.getComponents('hsl')).map(function (comp) { return formatter.format(comp); });
+    var formatters = [
+        new number_1.NumberFormatter(0),
+        new percentage_1.PercentageFormatter(),
+        new percentage_1.PercentageFormatter(),
+    ];
+    var comps = ColorModel.withoutAlpha(value.getComponents('hsl')).map(function (comp, index) { return formatters[index].format(comp); });
     return "hsl(" + comps.join(', ') + ")";
 }
 exports.toFunctionalHslString = toFunctionalHslString;
@@ -4132,12 +4137,15 @@ exports.toFunctionalHslString = toFunctionalHslString;
  * @hidden
  */
 function toFunctionalHslaString(value) {
-    var aFormatter = new number_1.NumberFormatter(2);
-    var hslFormatter = new number_1.NumberFormatter(0);
-    var comps = value.getComponents('hsl').map(function (comp, index) {
-        var formatter = index === 3 ? aFormatter : hslFormatter;
-        return formatter.format(comp);
-    });
+    var formatters = [
+        new number_1.NumberFormatter(0),
+        new percentage_1.PercentageFormatter(),
+        new percentage_1.PercentageFormatter(),
+        new number_1.NumberFormatter(2),
+    ];
+    var comps = value
+        .getComponents('hsl')
+        .map(function (comp, index) { return formatters[index].format(comp); });
     return "hsla(" + comps.join(', ') + ")";
 }
 exports.toFunctionalHslaString = toFunctionalHslaString;
@@ -4356,6 +4364,35 @@ var NumberFormatter = /** @class */ (function () {
     return NumberFormatter;
 }());
 exports.NumberFormatter = NumberFormatter;
+
+
+/***/ }),
+
+/***/ "./src/main/js/formatter/percentage.ts":
+/*!*********************************************!*\
+  !*** ./src/main/js/formatter/percentage.ts ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PercentageFormatter = void 0;
+var number_1 = __webpack_require__(/*! ./number */ "./src/main/js/formatter/number.ts");
+var innerFormatter = new number_1.NumberFormatter(0);
+/**
+ * @hidden
+ */
+var PercentageFormatter = /** @class */ (function () {
+    function PercentageFormatter() {
+    }
+    PercentageFormatter.prototype.format = function (value) {
+        return innerFormatter.format(value) + '%';
+    };
+    return PercentageFormatter;
+}());
+exports.PercentageFormatter = PercentageFormatter;
 
 
 /***/ }),
