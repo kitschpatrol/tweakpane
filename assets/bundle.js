@@ -101,6 +101,7 @@ var index_1 = __webpack_require__(/*! ./route/index */ "./src/doc/js/route/index
 var input_1 = __webpack_require__(/*! ./route/input */ "./src/doc/js/route/input.ts");
 var misc_1 = __webpack_require__(/*! ./route/misc */ "./src/doc/js/route/misc.ts");
 var monitor_1 = __webpack_require__(/*! ./route/monitor */ "./src/doc/js/route/monitor.ts");
+var quick_tour_1 = __webpack_require__(/*! ./route/quick-tour */ "./src/doc/js/route/quick-tour.ts");
 var theming_1 = __webpack_require__(/*! ./route/theming */ "./src/doc/js/route/theming.ts");
 var ui_components_1 = __webpack_require__(/*! ./route/ui-components */ "./src/doc/js/route/ui-components.ts");
 var screw_1 = __webpack_require__(/*! ./screw */ "./src/doc/js/screw.ts");
@@ -131,6 +132,7 @@ function setUpSpMenu() {
     router.add(misc_1.MiscRoute);
     router.add(monitor_1.MonitorRoute);
     router.add(theming_1.ThemingRoute);
+    router.add(quick_tour_1.QuickTourRoute);
     router.add(ui_components_1.UiComponentsRoute);
     router.route(location.pathname);
     setUpScrews();
@@ -348,26 +350,15 @@ exports.GettingStartedRoute = {
     pathname: /^(\/tweakpane)?\/getting-started\.html$/,
     init: function () {
         var markerToFnMap = {
-            first: function (container) {
-                var PARAMS = { speed: 0.5 };
-                var pane = new Tweakpane({
+            hello: function (container) {
+                new Tweakpane({
                     container: container,
                 });
-                var updatePreset = function () {
-                    var elem = document.querySelector('*[data-first]');
-                    if (elem) {
-                        var preset = pane.exportPreset();
-                        elem.textContent =
-                            'PARAMS = ' + JSON.stringify(preset, null, 2) + ';';
-                    }
-                };
-                pane.addInput(PARAMS, 'speed').on('change', updatePreset);
-                updatePreset();
             },
         };
         Object.keys(markerToFnMap).forEach(function (marker) {
             var initFn = markerToFnMap[marker];
-            var container = Util.selectContainer(marker);
+            var container = Util.selectContainer2(marker);
             initFn(container);
         });
     },
@@ -1077,16 +1068,11 @@ exports.MonitorRoute = {
         };
         setInterval(updateTime, 1000);
         updateTime();
-        var wavep = 0;
+        var wavet = 0;
         setInterval(function () {
-            SHARED_PARAMS.wave =
-                ((3 * 4) / Math.PI) *
-                    (Math.sin(wavep * 1 * Math.PI) +
-                        Math.sin(wavep * 3 * Math.PI) / 3 +
-                        Math.sin(wavep * 5 * Math.PI) / 5) *
-                    0.25;
+            SHARED_PARAMS.wave = Util.wave(wavet);
             SHARED_PARAMS.positive = SHARED_PARAMS.wave >= 0;
-            wavep += 0.02;
+            wavet += 1;
         }, 50);
         var markerToFnMap = {
             monitor: function (container) {
@@ -1159,6 +1145,199 @@ exports.MonitorRoute = {
         Object.keys(markerToFnMap).forEach(function (marker) {
             var initFn = markerToFnMap[marker];
             var container = Util.selectContainer(marker);
+            initFn(container);
+        });
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/doc/js/route/quick-tour.ts":
+/*!****************************************!*\
+  !*** ./src/doc/js/route/quick-tour.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.QuickTourRoute = void 0;
+var Util = __webpack_require__(/*! ../util */ "./src/doc/js/util.ts");
+exports.QuickTourRoute = {
+    pathname: /^(\/tweakpane)?\/quick-tour\.html$/,
+    init: function () {
+        var markerToFnMap = {
+            inputs: function (container) {
+                var PARAMS = {
+                    factor: 123,
+                    title: 'hello',
+                    color: '#0f0',
+                };
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane.addInput(PARAMS, 'factor');
+                pane.addInput(PARAMS, 'title');
+                pane.addInput(PARAMS, 'color');
+            },
+            inputparams: function (container) {
+                var PARAMS = {
+                    percentage: 50,
+                    theme: 'dark',
+                };
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane.addInput(PARAMS, 'percentage', {
+                    min: 0,
+                    max: 100,
+                    step: 10,
+                });
+                pane.addInput(PARAMS, 'theme', {
+                    options: {
+                        Dark: 'dark',
+                        Light: 'light',
+                    },
+                });
+            },
+            folders: function (container) {
+                var PARAMS = {
+                    factor: 123,
+                    text: 'hello',
+                    size: 16,
+                };
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane.addInput(PARAMS, 'factor');
+                var f = pane.addFolder({
+                    title: 'Title',
+                    expanded: true,
+                });
+                f.addInput(PARAMS, 'text');
+                f.addInput(PARAMS, 'size', {
+                    min: 8,
+                    max: 100,
+                    step: 1,
+                });
+            },
+            title: function (container) {
+                var PARAMS = {
+                    factor: 123,
+                    text: 'hello',
+                    size: 16,
+                };
+                var pane = new Tweakpane({
+                    container: container,
+                    title: 'Parameters',
+                });
+                pane.addInput(PARAMS, 'factor');
+                var f = pane.addFolder({
+                    title: 'Title',
+                    expanded: true,
+                });
+                f.addInput(PARAMS, 'text');
+                f.addInput(PARAMS, 'size', {
+                    min: 8,
+                    max: 100,
+                    step: 1,
+                });
+            },
+            events: function (container) {
+                var consoleElem = Util.selectContainer2('eventsconsole');
+                if (!consoleElem) {
+                    return;
+                }
+                var PARAMS = {
+                    log: '',
+                    size: 16,
+                };
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(PARAMS, 'log', {
+                    count: 100,
+                    interval: 0,
+                    label: 'console',
+                });
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane
+                    .addInput(PARAMS, 'size', {
+                    min: 8,
+                    max: 100,
+                    step: 1,
+                })
+                    .on('change', function (value) {
+                    PARAMS.log = "change: " + value;
+                    consolePane.refresh();
+                });
+            },
+            preset: function (container) {
+                var consoleElem = Util.selectContainer2('presetconsole');
+                if (!consoleElem) {
+                    return;
+                }
+                var PARAMS = {
+                    factor: 50,
+                    title: 'hello',
+                    color: '#0f0',
+                    log: '',
+                };
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(PARAMS, 'log', {
+                    interval: 0,
+                    label: 'preset',
+                    multiline: true,
+                });
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane.addInput(PARAMS, 'factor', {
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                });
+                pane.addInput(PARAMS, 'title');
+                pane.addInput(PARAMS, 'color');
+                pane.addSeparator();
+                pane
+                    .addButton({
+                    title: 'Export',
+                })
+                    .on('click', function () {
+                    var preset = pane.exportPreset();
+                    PARAMS.log = JSON.stringify(preset, undefined, 2);
+                    consolePane.refresh();
+                });
+            },
+            monitors: function (container) {
+                var PARAMS = {
+                    signal: 0,
+                };
+                var t = 0;
+                setInterval(function () {
+                    PARAMS.signal = Util.wave(t);
+                    t += 1;
+                }, 50);
+                var pane = new Tweakpane({
+                    container: container,
+                });
+                pane.addMonitor(PARAMS, 'signal', {
+                    view: 'graph',
+                    min: -1,
+                    max: +1,
+                });
+            },
+        };
+        Object.keys(markerToFnMap).forEach(function (marker) {
+            var initFn = markerToFnMap[marker];
+            var container = Util.selectContainer2(marker);
             initFn(container);
         });
     },
@@ -1823,11 +2002,24 @@ exports.create = create;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.selectContainer = void 0;
+exports.wave = exports.selectContainer2 = exports.selectContainer = void 0;
 function selectContainer(marker) {
     return document.querySelector(".common-paneContainer-" + marker);
 }
 exports.selectContainer = selectContainer;
+function selectContainer2(marker) {
+    return document.querySelector("*[data-pane-" + marker + "]");
+}
+exports.selectContainer2 = selectContainer2;
+function wave(t) {
+    var p = t * 0.02;
+    return (((3 * 4) / Math.PI) *
+        (Math.sin(p * 1 * Math.PI) +
+            Math.sin(p * 3 * Math.PI) / 3 +
+            Math.sin(p * 5 * Math.PI) / 5) *
+        0.25);
+}
+exports.wave = wave;
 
 
 /***/ }),
