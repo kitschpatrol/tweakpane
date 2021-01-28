@@ -108,14 +108,14 @@ var screw_1 = __webpack_require__(/*! ./screw */ "./src/doc/js/screw.ts");
 var simple_router_1 = __webpack_require__(/*! ./simple-router */ "./src/doc/js/simple-router.ts");
 var sp_menu_1 = __webpack_require__(/*! ./sp-menu */ "./src/doc/js/sp-menu.ts");
 function setUpScrews() {
-    var screwElems = document.querySelectorAll('.common-logo_symbol');
+    var screwElems = document.querySelectorAll('.logo_symbol');
     screwElems.forEach(function (elem) {
         new screw_1.Screw(elem);
     });
 }
 function setUpSpMenu() {
     var buttonElem = document.getElementById('spMenuButton');
-    var menuElem = document.querySelector('.common-menu');
+    var menuElem = document.querySelector('.menu');
     if (!buttonElem || !menuElem) {
         return;
     }
@@ -265,13 +265,13 @@ function createPane(container, theme) {
         title: 'Shuffle background image',
     })
         .on('click', function () {
-        var bgElem = document.querySelector('.common-paint_bgImage');
+        var bgElem = document.querySelector('.paint_bgImage');
         if (!bgElem) {
             return;
         }
         var now = new Date().getTime();
         bgElem.style.backgroundImage = "url(https://source.unsplash.com/collection/91620523?date=" + now + ")";
-        var creditElems = Array.prototype.slice.call(document.querySelectorAll('.common-paint .common-photoCredit'));
+        var creditElems = Array.prototype.slice.call(document.querySelectorAll('.paint .photoCredit'));
         creditElems.forEach(function (elem, index) {
             elem.style.visibility = index === 0 ? 'visible' : 'hidden';
         });
@@ -358,7 +358,7 @@ exports.GettingStartedRoute = {
         };
         Object.keys(markerToFnMap).forEach(function (marker) {
             var initFn = markerToFnMap[marker];
-            var container = Util.selectContainer2(marker);
+            var container = Util.selectContainer(marker);
             initFn(container);
         });
     },
@@ -432,7 +432,7 @@ exports.IndexRoute = {
             presetId: '',
             presetJson: '',
         };
-        var sketchElem = document.querySelector('.common-pageHeader_sketchContainer');
+        var sketchElem = document.querySelector('.pageHeader_sketchContainer');
         if (!sketchElem) {
             return;
         }
@@ -444,7 +444,7 @@ exports.IndexRoute = {
                     title: 'Tweakpane',
                 });
                 pane.addInput(ENV, 'title').on('change', function (value) {
-                    var titleElem = document.querySelector('.common-pageHeader_title');
+                    var titleElem = document.querySelector('.pageHeader_title');
                     if (titleElem) {
                         titleElem.textContent = value;
                     }
@@ -597,7 +597,7 @@ exports.InputRoute = {
                     label: 'picker',
                 });
             },
-            numberText: function (container) {
+            numbertext: function (container) {
                 var PARAMS = { value: 50 };
                 var pane = new Tweakpane({
                     container: container,
@@ -635,25 +635,43 @@ exports.InputRoute = {
                     step: 10,
                 });
             },
-            numberList: function (container) {
-                var PARAMS = { value: 50 };
+            numberlist: function (container) {
+                var PARAMS = {
+                    quality: 0,
+                };
+                var consoleElem = Util.selectContainer('numberlist', true);
+                var log = {
+                    json: '',
+                };
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(log, 'json', {
+                    interval: 0,
+                    label: 'PARAMS',
+                    multiline: true,
+                });
+                var updateLog = function () {
+                    log.json = JSON.stringify(PARAMS, undefined, 2);
+                    consolePane.refresh();
+                };
                 var pane = new Tweakpane({
                     container: container,
                 });
-                pane.addInput(PARAMS, 'value', {
-                    label: 'quality',
+                pane
+                    .addInput(PARAMS, 'quality', {
                     options: {
                         low: 0,
                         medium: 50,
                         high: 100,
                     },
+                })
+                    .on('change', function () {
+                    updateLog();
                 });
-                pane.addSeparator();
-                pane.addMonitor(PARAMS, 'value', {
-                    label: '(actual)',
-                });
+                updateLog();
             },
-            stringText: function (container) {
+            stringtext: function (container) {
                 var PARAMS = { value: 'hello, world' };
                 var pane = new Tweakpane({
                     container: container,
@@ -662,23 +680,39 @@ exports.InputRoute = {
                     label: 'message',
                 });
             },
-            stringList: function (container) {
-                var PARAMS = { value: '' };
+            stringlist: function (container) {
+                var PARAMS = { theme: '' };
+                var consoleElem = Util.selectContainer('stringlist', true);
+                var log = {
+                    json: '',
+                };
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(log, 'json', {
+                    interval: 0,
+                    label: 'PARAMS',
+                    multiline: true,
+                });
+                var updateLog = function () {
+                    log.json = JSON.stringify(PARAMS, undefined, 2);
+                    consolePane.refresh();
+                };
                 var pane = new Tweakpane({
                     container: container,
                 });
-                pane.addInput(PARAMS, 'value', {
-                    label: 'theme',
+                pane
+                    .addInput(PARAMS, 'theme', {
                     options: {
                         none: '',
-                        dark: 'path/to/dark.json',
-                        light: 'path/to/Light.json',
+                        dark: 'dark-theme.json',
+                        light: 'light-theme.json',
                     },
+                })
+                    .on('change', function () {
+                    updateLog();
                 });
-                pane.addSeparator();
-                pane.addMonitor(PARAMS, 'value', {
-                    label: '(actual)',
-                });
+                updateLog();
             },
             checkbox: function (container) {
                 var PARAMS = { value: true };
@@ -689,7 +723,7 @@ exports.InputRoute = {
                     label: 'hidden',
                 });
             },
-            objectColor: function (container) {
+            objectcolor: function (container) {
                 var PARAMS = {
                     background: { r: 255, g: 127, b: 0 },
                     tint: { r: 255, g: 255, b: 0, a: 0.5 },
@@ -700,7 +734,7 @@ exports.InputRoute = {
                 pane.addInput(PARAMS, 'background');
                 pane.addInput(PARAMS, 'tint');
             },
-            stringColor: function (container) {
+            stringcolor: function (container) {
                 var PARAMS = {
                     primary: '#8df',
                     secondary: 'rgb(255, 136, 221)',
@@ -711,7 +745,7 @@ exports.InputRoute = {
                 pane.addInput(PARAMS, 'primary');
                 pane.addInput(PARAMS, 'secondary');
             },
-            numberColor: function (container) {
+            numbercolor: function (container) {
                 var PARAMS = {
                     background: 0x0088ff,
                     tint: 0x00ff0044,
@@ -726,7 +760,7 @@ exports.InputRoute = {
                     input: 'color.rgba',
                 });
             },
-            inputString: function (container) {
+            inputstring: function (container) {
                 var PARAMS = {
                     hex: '#0088ff',
                 };
@@ -746,7 +780,7 @@ exports.InputRoute = {
                     label: 'offset',
                 });
             },
-            point2dParams: function (container) {
+            point2dparams: function (container) {
                 var PARAMS = { value: { x: 20, y: 30 } };
                 var pane = new Tweakpane({
                     container: container,
@@ -757,7 +791,7 @@ exports.InputRoute = {
                     y: { min: 0, max: 100 },
                 });
             },
-            point2dInvertedY: function (container) {
+            point2dinvertedy: function (container) {
                 var PARAMS = { value: { x: 50, y: 50 } };
                 var pane = new Tweakpane({
                     container: container,
@@ -796,7 +830,7 @@ exports.MiscRoute = {
     init: function () {
         var IMEX_PARAMS = {
             color: '#ff8000',
-            name: 'export',
+            name: 'exported json',
             size: 10,
         };
         var IMEX_LOG = {
@@ -827,14 +861,25 @@ exports.MiscRoute = {
                 });
             },
             event: function (container) {
+                var consoleElem = Util.selectContainer('eventconsole');
+                if (!consoleElem) {
+                    return;
+                }
                 var PARAMS = {
                     log: '',
                     value: 0,
                 };
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(PARAMS, 'log', {
+                    count: 10,
+                    interval: 0,
+                    label: 'console',
+                });
                 var pane = new Tweakpane({
                     container: container,
                 });
-                var m = null;
                 pane
                     .addInput(PARAMS, 'value', {
                     max: 100,
@@ -842,18 +887,14 @@ exports.MiscRoute = {
                 })
                     .on('change', function (value) {
                     PARAMS.log = value.toFixed(2);
-                    if (m) {
-                        m.refresh();
-                    }
-                });
-                pane.addSeparator();
-                m = pane.addMonitor(PARAMS, 'log', {
-                    count: 10,
-                    interval: 0,
-                    label: '(log)',
+                    consolePane.refresh();
                 });
             },
-            globalEvent: function (container) {
+            globalevent: function (container) {
+                var consoleElem = Util.selectContainer('globaleventconsole');
+                if (!consoleElem) {
+                    return;
+                }
                 var PARAMS = {
                     boolean: true,
                     color: '#0080ff',
@@ -861,6 +902,14 @@ exports.MiscRoute = {
                     string: 'text',
                     log: '',
                 };
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(PARAMS, 'log', {
+                    count: 10,
+                    interval: 0,
+                    label: 'console',
+                });
                 var pane = new Tweakpane({
                     container: container,
                 });
@@ -871,19 +920,24 @@ exports.MiscRoute = {
                     min: 0,
                 });
                 pane.addInput(PARAMS, 'string');
-                pane.addSeparator();
-                var m = pane.addMonitor(PARAMS, 'log', {
-                    count: 10,
-                    interval: 0,
-                    label: '(log)',
-                });
                 pane.on('change', function (value) {
                     var v = typeof value === 'number' ? value.toFixed(2) : value;
                     PARAMS.log = "changed: " + v;
-                    m.refresh();
+                    consolePane.refresh();
                 });
             },
             export: function (container) {
+                var consoleElem = Util.selectContainer('exportconsole');
+                if (!consoleElem) {
+                    return;
+                }
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(IMEX_LOG, 'log', {
+                    label: 'preset',
+                    multiline: true,
+                });
                 var pane = new Tweakpane({
                     container: container,
                 });
@@ -893,11 +947,6 @@ exports.MiscRoute = {
                     min: 0,
                 });
                 pane.addInput(IMEX_PARAMS, 'color');
-                pane.addSeparator();
-                pane.addMonitor(IMEX_LOG, 'log', {
-                    label: '(preset)',
-                    multiline: true,
-                });
                 var updatePreset = function () {
                     var preset = pane.exportPreset();
                     IMEX_LOG.log = JSON.stringify(preset, null, 2);
@@ -906,18 +955,25 @@ exports.MiscRoute = {
                 updatePreset();
             },
             import: function (container) {
+                var consoleElem = Util.selectContainer('importconsole');
+                if (!consoleElem) {
+                    return;
+                }
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(IMEX_LOG, 'log', {
+                    label: 'preset',
+                    multiline: true,
+                });
                 var PARAMS = {
                     color: '#0080ff',
                     log: '',
-                    name: 'import',
+                    name: 'tweakpane',
                     size: 50,
                 };
                 var pane = new Tweakpane({
                     container: container,
-                });
-                pane.addMonitor(IMEX_LOG, 'log', {
-                    label: '(preset)',
-                    multiline: true,
                 });
                 pane
                     .addButton({
@@ -931,12 +987,24 @@ exports.MiscRoute = {
                 pane.addInput(PARAMS, 'size');
                 pane.addInput(PARAMS, 'color');
             },
-            presetKey: function (container) {
+            presetkey: function (container) {
+                var consoleElem = Util.selectContainer('presetkeyconsole');
+                if (!consoleElem) {
+                    return;
+                }
                 var PARAMS = {
                     foo: { speed: 1 / 3 },
                     bar: { speed: 2 / 3 },
                     preset: '',
                 };
+                var consolePane = new Tweakpane({
+                    container: consoleElem,
+                });
+                consolePane.addMonitor(PARAMS, 'preset', {
+                    interval: 0,
+                    label: 'preset',
+                    multiline: true,
+                });
                 var pane = new Tweakpane({
                     container: container,
                 });
@@ -949,21 +1017,15 @@ exports.MiscRoute = {
                     min: 0,
                     presetKey: 'speed2',
                 });
-                pane.addSeparator();
-                var m = pane.addMonitor(PARAMS, 'preset', {
-                    interval: 0,
-                    label: '(preset)',
-                    multiline: true,
-                });
                 var updatePreset = function () {
                     var preset = pane.exportPreset();
                     PARAMS.preset = JSON.stringify(preset, null, 2);
-                    m.refresh();
+                    consolePane.refresh();
                 };
                 pane.on('change', updatePreset);
                 updatePreset();
             },
-            rootTitle: function (container) {
+            roottitle: function (container) {
                 var PARAMS = {
                     bounce: 0.5,
                     gravity: 0.01,
@@ -1246,7 +1308,7 @@ exports.QuickTourRoute = {
                 });
             },
             events: function (container) {
-                var consoleElem = Util.selectContainer2('eventsconsole');
+                var consoleElem = Util.selectContainer('eventsconsole');
                 if (!consoleElem) {
                     return;
                 }
@@ -1277,7 +1339,7 @@ exports.QuickTourRoute = {
                 });
             },
             preset: function (container) {
-                var consoleElem = Util.selectContainer2('presetconsole');
+                var consoleElem = Util.selectContainer('presetconsole');
                 if (!consoleElem) {
                     return;
                 }
@@ -1337,7 +1399,7 @@ exports.QuickTourRoute = {
         };
         Object.keys(markerToFnMap).forEach(function (marker) {
             var initFn = markerToFnMap[marker];
-            var container = Util.selectContainer2(marker);
+            var container = Util.selectContainer(marker);
             initFn(container);
         });
     },
@@ -1754,7 +1816,7 @@ var SpMenu = /** @class */ (function () {
         this.onWindowScroll_ = this.onWindowScroll_.bind(this);
         this.buttonElem_ = config.buttonElement;
         this.menuElem_ = config.menuElement;
-        this.menuElem_.classList.add('common-menu-loaded');
+        this.menuElem_.classList.add('menu-loaded');
         document.addEventListener('click', this.onDocumentClick_);
         window.addEventListener('hashchange', this.onWindowHashChange_);
         window.addEventListener('scroll', this.onWindowScroll_);
@@ -1768,17 +1830,17 @@ var SpMenu = /** @class */ (function () {
         set: function (expanded) {
             this.expanded_ = expanded;
             if (this.expanded_) {
-                this.menuElem_.classList.add('common-menu-expanded');
+                this.menuElem_.classList.add('menu-expanded');
             }
             else {
-                this.menuElem_.classList.remove('common-menu-expanded');
+                this.menuElem_.classList.remove('menu-expanded');
             }
         },
         enumerable: false,
         configurable: true
     });
     SpMenu.prototype.updateActiveItem_ = function () {
-        var classNames = ['common-menuItem_anchor', 'common-submenuItem_anchor'];
+        var classNames = ['menuItem_anchor', 'submenuItem_anchor'];
         classNames.forEach(function (className) {
             var activeClass = className + "-active";
             var elems = Array.prototype.slice.call(document.querySelectorAll("." + activeClass));
@@ -2002,15 +2064,18 @@ exports.create = create;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.wave = exports.selectContainer2 = exports.selectContainer = void 0;
-function selectContainer(marker) {
-    return document.querySelector(".common-paneContainer-" + marker);
+exports.wave = exports.selectContainer = void 0;
+function selectContainer(marker, console) {
+    if (console === void 0) { console = false; }
+    var postfix = marker + (console ? 'console' : '');
+    var selector = "*[data-pane-" + postfix + "]";
+    var elem = document.querySelector(selector);
+    if (!elem) {
+        throw new Error("container not found: " + selector);
+    }
+    return elem;
 }
 exports.selectContainer = selectContainer;
-function selectContainer2(marker) {
-    return document.querySelector("*[data-pane-" + marker + "]");
-}
-exports.selectContainer2 = selectContainer2;
 function wave(t) {
     var p = t * 0.02;
     return (((3 * 4) / Math.PI) *
