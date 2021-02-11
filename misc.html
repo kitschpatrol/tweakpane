@@ -79,6 +79,9 @@
 					<a class="submenuItem_anchor" href="monitor.html#multiline">Multiline</a>
 				</li>
 				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="monitor.html#buffersize">Buffer size</a>
+				</li>
+				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="monitor.html#interval">Interval</a>
 				</li>
 				<li class="submenuItem">
@@ -187,7 +190,7 @@ pane.addInput(PARAMS, 'number');
 pane.addInput(PARAMS, 'string');
 
 pane.<strong>on</strong>('change', (value) =&gt; {
-  console.log('changed: ' + String(value));
+  console.log('changed: ' + JSON.stringify(value));
 });
 </code></pre></div>
 		</div>

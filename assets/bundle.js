@@ -876,6 +876,7 @@ exports.MiscRoute = {
                     count: 10,
                     interval: 0,
                     label: 'console',
+                    lineCount: 5,
                 });
                 var pane = new Tweakpane({
                     container: container,
@@ -899,6 +900,7 @@ exports.MiscRoute = {
                     boolean: true,
                     color: '#0080ff',
                     number: 0,
+                    point2d: { x: 0, y: 0 },
                     string: 'text',
                     log: '',
                 };
@@ -909,6 +911,7 @@ exports.MiscRoute = {
                     count: 10,
                     interval: 0,
                     label: 'console',
+                    lineCount: 5,
                 });
                 var pane = new Tweakpane({
                     container: container,
@@ -919,10 +922,11 @@ exports.MiscRoute = {
                     max: 100,
                     min: 0,
                 });
+                pane.addInput(PARAMS, 'point2d');
                 pane.addInput(PARAMS, 'string');
                 pane.on('change', function (value) {
                     var v = typeof value === 'number' ? value.toFixed(2) : value;
-                    PARAMS.log = "changed: " + v;
+                    PARAMS.log = "changed: " + JSON.stringify(v);
                     consolePane.refresh();
                 });
             },
@@ -936,6 +940,7 @@ exports.MiscRoute = {
                 });
                 consolePane.addMonitor(IMEX_LOG, 'log', {
                     label: 'preset',
+                    lineCount: 5,
                     multiline: true,
                 });
                 var pane = new Tweakpane({
@@ -964,6 +969,7 @@ exports.MiscRoute = {
                 });
                 consolePane.addMonitor(IMEX_LOG, 'log', {
                     label: 'preset',
+                    lineCount: 5,
                     multiline: true,
                 });
                 var PARAMS = {
@@ -1003,6 +1009,7 @@ exports.MiscRoute = {
                 consolePane.addMonitor(PARAMS, 'preset', {
                     interval: 0,
                     label: 'preset',
+                    lineCount: 4,
                     multiline: true,
                 });
                 var pane = new Tweakpane({
@@ -1148,7 +1155,7 @@ exports.MonitorRoute = {
                     label: 'text',
                 });
                 nf.addMonitor(SHARED_PARAMS, 'wave', {
-                    count: 10,
+                    bufferSize: 10,
                     label: 'multiline',
                 });
                 nf.addMonitor(SHARED_PARAMS, 'wave', {
@@ -1171,6 +1178,7 @@ exports.MonitorRoute = {
                 });
                 pane
                     .addMonitor(PARAMS, 'params', {
+                    lineCount: 5,
                     multiline: true,
                 })
                     .on('update', function () {
@@ -1182,7 +1190,7 @@ exports.MonitorRoute = {
                     container: container,
                 });
                 pane.addMonitor(SHARED_PARAMS, 'wave', {
-                    count: 10,
+                    bufferSize: 10,
                 });
             },
             interval: function (container) {
@@ -1323,6 +1331,7 @@ exports.QuickTourRoute = {
                     count: 100,
                     interval: 0,
                     label: 'console',
+                    lineCount: 5,
                 });
                 var pane = new Tweakpane({
                     container: container,
@@ -1355,6 +1364,7 @@ exports.QuickTourRoute = {
                 consolePane.addMonitor(PARAMS, 'log', {
                     interval: 0,
                     label: 'preset',
+                    lineCount: 5,
                     multiline: true,
                 });
                 var pane = new Tweakpane({
@@ -1913,17 +1923,17 @@ var ID_TO_THEME_MAP = {
         'folder-background-color-active': 'hsla(230, 7%, 80%, 0.25)',
         'folder-background-color-focus': 'hsla(230, 7%, 80%, 0.2)',
         'folder-background-color-hover': 'hsla(230, 7%, 80%, 0.15)',
-        'folder-foreground-color': 'hsla(230, 7%, 70%, 1)',
-        'input-background-color': 'hsla(230, 7%, 70%, 0.15)',
-        'input-background-color-active': 'hsla(230, 7%, 70%, 0.35)',
-        'input-background-color-focus': 'hsla(230, 7%, 70%, 0.25)',
-        'input-background-color-hover': 'hsla(230, 7%, 70%, 0.15)',
-        'input-foreground-color': 'hsla(230, 7%, 70%, 1)',
+        'folder-foreground-color': 'hsla(230, 7%, 80%, 1)',
+        'input-background-color': 'hsla(230, 7%, 80%, 0.1)',
+        'input-background-color-active': 'hsla(230, 7%, 80%, 0.25)',
+        'input-background-color-focus': 'hsla(230, 7%, 80%, 0.2)',
+        'input-background-color-hover': 'hsla(230, 7%, 80%, 0.15)',
+        'input-foreground-color': 'hsla(230, 7%, 80%, 1)',
         'input-guide-color': 'hsla(230, 7%, 20%, 0.5)',
-        'monitor-background-color': 'hsla(230, 7%, 10%, 0.5)',
-        'monitor-foreground-color': 'hsla(230, 7%, 70%, 0.7)',
-        'label-foreground-color': 'hsla(230, 7%, 70%, 0.8)',
-        'separator-color': 'hsla(230, 7%, 10%, 0.3)',
+        'monitor-background-color': 'hsla(230, 7%, 16%, 1)',
+        'monitor-foreground-color': 'hsla(230, 7%, 80%, 0.7)',
+        'label-foreground-color': 'hsla(230, 7%, 80%, 0.7)',
+        'separator-color': 'hsla(230, 7%, 16%, 1)',
     }); },
     jetblack: function () { return ({
         'base-background-color': 'hsla(0, 0%, 0%, 1)',
@@ -2653,6 +2663,19 @@ var Color = /** @class */ (function () {
     };
     Color.isColorObject = function (obj) {
         return this.isRgbColorObject(obj);
+    };
+    Color.equals = function (v1, v2) {
+        if (v1.mode_ !== v2.mode_) {
+            return false;
+        }
+        var comps1 = v1.comps_;
+        var comps2 = v2.comps_;
+        for (var i = 0; i < comps1.length; i++) {
+            if (comps1[i] !== comps2[i]) {
+                return false;
+            }
+        }
+        return true;
     };
     Object.defineProperty(Color.prototype, "mode", {
         get: function () {

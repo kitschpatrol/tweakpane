@@ -515,8 +515,6 @@ var __assign = (this && this.__assign) || function () {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FolderApi = void 0;
-var InputBindingControllerCreators = __webpack_require__(/*! ../controller/binding-creators/input */ "./src/main/js/controller/binding-creators/input.ts");
-var MonitorBindingControllerCreators = __webpack_require__(/*! ../controller/binding-creators/monitor */ "./src/main/js/controller/binding-creators/monitor.ts");
 var button_1 = __webpack_require__(/*! ../controller/button */ "./src/main/js/controller/button.ts");
 var folder_1 = __webpack_require__(/*! ../controller/folder */ "./src/main/js/controller/folder.ts");
 var separator_1 = __webpack_require__(/*! ../controller/separator */ "./src/main/js/controller/separator.ts");
@@ -525,7 +523,9 @@ var view_model_1 = __webpack_require__(/*! ../model/view-model */ "./src/main/js
 var button_2 = __webpack_require__(/*! ./button */ "./src/main/js/api/button.ts");
 var EventHandlerAdapters = __webpack_require__(/*! ./event-handler-adapters */ "./src/main/js/api/event-handler-adapters.ts");
 var input_binding_1 = __webpack_require__(/*! ./input-binding */ "./src/main/js/api/input-binding.ts");
+var InputBindingControllers = __webpack_require__(/*! ./input-binding-controllers */ "./src/main/js/api/input-binding-controllers.ts");
 var monitor_binding_1 = __webpack_require__(/*! ./monitor-binding */ "./src/main/js/api/monitor-binding.ts");
+var MonitorBindingControllers = __webpack_require__(/*! ./monitor-binding-controllers */ "./src/main/js/api/monitor-binding-controllers.ts");
 var separator_2 = __webpack_require__(/*! ./separator */ "./src/main/js/api/separator.ts");
 var FolderApi = /** @class */ (function () {
     /**
@@ -559,13 +559,13 @@ var FolderApi = /** @class */ (function () {
     };
     FolderApi.prototype.addInput = function (object, key, opt_params) {
         var params = opt_params || {};
-        var uc = InputBindingControllerCreators.create(this.controller.document, new target_1.Target(object, key, params.presetKey), params);
+        var uc = InputBindingControllers.create(this.controller.document, new target_1.Target(object, key, params.presetKey), params);
         this.controller.uiContainer.add(uc, params.index);
         return new input_binding_1.InputBindingApi(uc);
     };
     FolderApi.prototype.addMonitor = function (object, key, opt_params) {
         var params = opt_params || {};
-        var uc = MonitorBindingControllerCreators.create(this.controller.document, new target_1.Target(object, key), params);
+        var uc = MonitorBindingControllers.create(this.controller.document, new target_1.Target(object, key), params);
         this.controller.uiContainer.add(uc, params.index);
         return new monitor_binding_1.MonitorBindingApi(uc);
     };
@@ -603,6 +603,57 @@ exports.FolderApi = FolderApi;
 
 /***/ }),
 
+/***/ "./src/main/js/api/input-binding-controllers.ts":
+/*!******************************************************!*\
+  !*** ./src/main/js/api/input-binding-controllers.ts ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.create = void 0;
+var pane_error_1 = __webpack_require__(/*! ../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
+var type_util_1 = __webpack_require__(/*! ../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var input_binding_1 = __webpack_require__(/*! ../plugin/input-binding */ "./src/main/js/plugin/input-binding.ts");
+var plugins_1 = __webpack_require__(/*! ./plugins */ "./src/main/js/api/plugins.ts");
+/**
+ * @hidden
+ */
+function create(document, target, params) {
+    var initialValue = target.read();
+    if (type_util_1.TypeUtil.isEmpty(initialValue)) {
+        throw new pane_error_1.PaneError({
+            context: {
+                key: target.key,
+            },
+            type: 'emptyvalue',
+        });
+    }
+    var bc = plugins_1.Plugins.inputs.reduce(function (result, plugin) {
+        return result ||
+            input_binding_1.createController(plugin, {
+                document: document,
+                target: target,
+                params: params,
+            });
+    }, null);
+    if (bc) {
+        return bc;
+    }
+    throw new pane_error_1.PaneError({
+        context: {
+            key: target.key,
+        },
+        type: 'nomatchingcontroller',
+    });
+}
+exports.create = create;
+
+
+/***/ }),
+
 /***/ "./src/main/js/api/input-binding.ts":
 /*!******************************************!*\
   !*** ./src/main/js/api/input-binding.ts ***!
@@ -617,8 +668,8 @@ exports.InputBindingApi = void 0;
 var HandlerAdapters = __webpack_require__(/*! ./event-handler-adapters */ "./src/main/js/api/event-handler-adapters.ts");
 /**
  * The API for the input binding between the parameter and the pane.
- * @param In The type inner Tweakpane.
- * @param Out The type outer Tweakpane (= parameter object).
+ * @param In The type internal Tweakpane.
+ * @param Ex The type externalTweakpane (= parameter object).
  */
 var InputBindingApi = /** @class */ (function () {
     /**
@@ -654,6 +705,57 @@ var InputBindingApi = /** @class */ (function () {
     return InputBindingApi;
 }());
 exports.InputBindingApi = InputBindingApi;
+
+
+/***/ }),
+
+/***/ "./src/main/js/api/monitor-binding-controllers.ts":
+/*!********************************************************!*\
+  !*** ./src/main/js/api/monitor-binding-controllers.ts ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.create = void 0;
+var pane_error_1 = __webpack_require__(/*! ../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
+var type_util_1 = __webpack_require__(/*! ../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var monitor_binding_1 = __webpack_require__(/*! ../plugin/monitor-binding */ "./src/main/js/plugin/monitor-binding.ts");
+var plugins_1 = __webpack_require__(/*! ./plugins */ "./src/main/js/api/plugins.ts");
+/**
+ * @hidden
+ */
+function create(document, target, params) {
+    var initialValue = target.read();
+    if (type_util_1.TypeUtil.isEmpty(initialValue)) {
+        throw new pane_error_1.PaneError({
+            context: {
+                key: target.key,
+            },
+            type: 'emptyvalue',
+        });
+    }
+    var bc = plugins_1.Plugins.monitors.reduce(function (result, plugin) {
+        return result ||
+            monitor_binding_1.createController(plugin, {
+                document: document,
+                params: params,
+                target: target,
+            });
+    }, null);
+    if (bc) {
+        return bc;
+    }
+    throw new pane_error_1.PaneError({
+        context: {
+            key: target.key,
+        },
+        type: 'nomatchingcontroller',
+    });
+}
+exports.create = create;
 
 
 /***/ }),
@@ -707,6 +809,25 @@ var MonitorBindingApi = /** @class */ (function () {
     return MonitorBindingApi;
 }());
 exports.MonitorBindingApi = MonitorBindingApi;
+
+
+/***/ }),
+
+/***/ "./src/main/js/api/plugins.ts":
+/*!************************************!*\
+  !*** ./src/main/js/api/plugins.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Plugins = void 0;
+exports.Plugins = {
+    inputs: [],
+    monitors: [],
+};
 
 
 /***/ }),
@@ -772,8 +893,6 @@ var __assign = (this && this.__assign) || function () {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RootApi = void 0;
-var InputBindingControllerCreators = __webpack_require__(/*! ../controller/binding-creators/input */ "./src/main/js/controller/binding-creators/input.ts");
-var MonitorBindingControllerCreators = __webpack_require__(/*! ../controller/binding-creators/monitor */ "./src/main/js/controller/binding-creators/monitor.ts");
 var button_1 = __webpack_require__(/*! ../controller/button */ "./src/main/js/controller/button.ts");
 var folder_1 = __webpack_require__(/*! ../controller/folder */ "./src/main/js/controller/folder.ts");
 var input_binding_1 = __webpack_require__(/*! ../controller/input-binding */ "./src/main/js/controller/input-binding.ts");
@@ -786,7 +905,10 @@ var button_2 = __webpack_require__(/*! ./button */ "./src/main/js/api/button.ts"
 var EventHandlerAdapters = __webpack_require__(/*! ./event-handler-adapters */ "./src/main/js/api/event-handler-adapters.ts");
 var folder_2 = __webpack_require__(/*! ./folder */ "./src/main/js/api/folder.ts");
 var input_binding_2 = __webpack_require__(/*! ./input-binding */ "./src/main/js/api/input-binding.ts");
+var InputBindingControllers = __webpack_require__(/*! ./input-binding-controllers */ "./src/main/js/api/input-binding-controllers.ts");
 var monitor_binding_2 = __webpack_require__(/*! ./monitor-binding */ "./src/main/js/api/monitor-binding.ts");
+var MonitorBindingControllers = __webpack_require__(/*! ./monitor-binding-controllers */ "./src/main/js/api/monitor-binding-controllers.ts");
+var plugins_1 = __webpack_require__(/*! ./plugins */ "./src/main/js/api/plugins.ts");
 var Preset = __webpack_require__(/*! ./preset */ "./src/main/js/api/preset.ts");
 var separator_2 = __webpack_require__(/*! ./separator */ "./src/main/js/api/separator.ts");
 /**
@@ -805,6 +927,18 @@ var RootApi = /** @class */ (function () {
     function RootApi(rootController) {
         this.controller = rootController;
     }
+    // TODO: Publish
+    /**
+     * @hidden
+     */
+    RootApi.registerPlugin = function (r) {
+        if (r.type === 'input') {
+            plugins_1.Plugins.inputs.push(r.plugin);
+        }
+        else if (r.type === 'monitor') {
+            plugins_1.Plugins.monitors.push(r.plugin);
+        }
+    };
     Object.defineProperty(RootApi.prototype, "element", {
         get: function () {
             return this.controller.view.element;
@@ -841,13 +975,13 @@ var RootApi = /** @class */ (function () {
     };
     RootApi.prototype.addInput = function (object, key, opt_params) {
         var params = opt_params || {};
-        var uc = InputBindingControllerCreators.create(this.controller.document, new target_1.Target(object, key, params.presetKey), params);
+        var uc = InputBindingControllers.create(this.controller.document, new target_1.Target(object, key, params.presetKey), params);
         this.controller.uiContainer.add(uc, params.index);
         return new input_binding_2.InputBindingApi(uc);
     };
     RootApi.prototype.addMonitor = function (object, key, opt_params) {
         var params = opt_params || {};
-        var uc = MonitorBindingControllerCreators.create(this.controller.document, new target_1.Target(object, key), params);
+        var uc = MonitorBindingControllers.create(this.controller.document, new target_1.Target(object, key), params);
         this.controller.uiContainer.add(uc, params.index);
         return new monitor_binding_2.MonitorBindingApi(uc);
     };
@@ -980,8 +1114,8 @@ var emitter_1 = __webpack_require__(/*! ../misc/emitter */ "./src/main/js/misc/e
 var InputBinding = /** @class */ (function () {
     function InputBinding(config) {
         this.onValueChange_ = this.onValueChange_.bind(this);
-        this.reader_ = config.reader;
-        this.writer_ = config.writer;
+        this.reader = config.reader;
+        this.writer = config.writer;
         this.emitter = new emitter_1.Emitter();
         this.value = config.value;
         this.value.emitter.on('change', this.onValueChange_);
@@ -991,11 +1125,11 @@ var InputBinding = /** @class */ (function () {
     InputBinding.prototype.read = function () {
         var targetValue = this.target.read();
         if (targetValue !== undefined) {
-            this.value.rawValue = this.reader_(targetValue);
+            this.value.rawValue = this.reader(targetValue);
         }
     };
     InputBinding.prototype.getValueToWrite = function (rawValue) {
-        return this.writer_(rawValue);
+        return this.writer(rawValue);
     };
     InputBinding.prototype.write_ = function (rawValue) {
         this.target.write(this.getValueToWrite(rawValue));
@@ -1278,834 +1412,6 @@ exports.ConstraintUtil = {
         return null;
     },
 };
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/boolean-input.ts":
-/*!******************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/boolean-input.ts ***!
-  \******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var input_1 = __webpack_require__(/*! ../../binding/input */ "./src/main/js/binding/input.ts");
-var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
-var list_1 = __webpack_require__(/*! ../../constraint/list */ "./src/main/js/constraint/list.ts");
-var util_1 = __webpack_require__(/*! ../../constraint/util */ "./src/main/js/constraint/util.ts");
-var BooleanConverter = __webpack_require__(/*! ../../converter/boolean */ "./src/main/js/converter/boolean.ts");
-var input_value_1 = __webpack_require__(/*! ../../model/input-value */ "./src/main/js/model/input-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var input_binding_1 = __webpack_require__(/*! ../input-binding */ "./src/main/js/controller/input-binding.ts");
-var checkbox_1 = __webpack_require__(/*! ../input/checkbox */ "./src/main/js/controller/input/checkbox.ts");
-var list_2 = __webpack_require__(/*! ../input/list */ "./src/main/js/controller/input/list.ts");
-var UiUtil = __webpack_require__(/*! ../ui-util */ "./src/main/js/controller/ui-util.ts");
-function createConstraint(params) {
-    var constraints = [];
-    if ('options' in params && params.options !== undefined) {
-        constraints.push(new list_1.ListConstraint({
-            options: UiUtil.normalizeInputParamsOptions(params.options, BooleanConverter.fromMixed),
-        }));
-    }
-    return new composite_1.CompositeConstraint({
-        constraints: constraints,
-    });
-}
-function createController(document, value) {
-    var c = value.constraint;
-    if (c && util_1.ConstraintUtil.findConstraint(c, list_1.ListConstraint)) {
-        return new list_2.ListInputController(document, {
-            viewModel: new view_model_1.ViewModel(),
-            stringifyValue: BooleanConverter.toString,
-            value: value,
-        });
-    }
-    return new checkbox_1.CheckboxInputController(document, {
-        viewModel: new view_model_1.ViewModel(),
-        value: value,
-    });
-}
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'boolean') {
-        return null;
-    }
-    var value = new input_value_1.InputValue(false, createConstraint(params));
-    var binding = new input_1.InputBinding({
-        reader: BooleanConverter.fromMixed,
-        target: target,
-        value: value,
-        writer: function (v) { return v; },
-    });
-    return new input_binding_1.InputBindingController(document, {
-        binding: binding,
-        controller: createController(document, value),
-        label: params.label || target.key,
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/boolean-monitor.ts":
-/*!********************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/boolean-monitor.ts ***!
-  \********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var monitor_1 = __webpack_require__(/*! ../../binding/monitor */ "./src/main/js/binding/monitor.ts");
-var BooleanConverter = __webpack_require__(/*! ../../converter/boolean */ "./src/main/js/converter/boolean.ts");
-var boolean_1 = __webpack_require__(/*! ../../formatter/boolean */ "./src/main/js/formatter/boolean.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-var monitor_value_1 = __webpack_require__(/*! ../../model/monitor-value */ "./src/main/js/model/monitor-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var monitor_binding_1 = __webpack_require__(/*! ../monitor-binding */ "./src/main/js/controller/monitor-binding.ts");
-var multi_log_1 = __webpack_require__(/*! ../monitor/multi-log */ "./src/main/js/controller/monitor/multi-log.ts");
-var single_log_1 = __webpack_require__(/*! ../monitor/single-log */ "./src/main/js/controller/monitor/single-log.ts");
-var util_1 = __webpack_require__(/*! ./util */ "./src/main/js/controller/binding-creators/util.ts");
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'boolean') {
-        return null;
-    }
-    var value = new monitor_value_1.MonitorValue(type_util_1.TypeUtil.getOrDefault(params.count, 1));
-    var controller = value.totalCount === 1
-        ? new single_log_1.SingleLogMonitorController(document, {
-            viewModel: new view_model_1.ViewModel(),
-            formatter: new boolean_1.BooleanFormatter(),
-            value: value,
-        })
-        : new multi_log_1.MultiLogMonitorController(document, {
-            viewModel: new view_model_1.ViewModel(),
-            formatter: new boolean_1.BooleanFormatter(),
-            value: value,
-        });
-    return new monitor_binding_1.MonitorBindingController(document, {
-        binding: new monitor_1.MonitorBinding({
-            reader: BooleanConverter.fromMixed,
-            target: target,
-            ticker: util_1.createTicker(document, params.interval),
-            value: value,
-        }),
-        controller: controller,
-        label: params.label || target.key,
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/color-input.ts":
-/*!****************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/color-input.ts ***!
-  \****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.createWithObject = exports.createWithNumber = exports.createWithString = void 0;
-var input_1 = __webpack_require__(/*! ../../binding/input */ "./src/main/js/binding/input.ts");
-var ColorConverter = __webpack_require__(/*! ../../converter/color */ "./src/main/js/converter/color.ts");
-var color_1 = __webpack_require__(/*! ../../formatter/color */ "./src/main/js/formatter/color.ts");
-var color_2 = __webpack_require__(/*! ../../model/color */ "./src/main/js/model/color.ts");
-var input_value_1 = __webpack_require__(/*! ../../model/input-value */ "./src/main/js/model/input-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var NumberColorParser = __webpack_require__(/*! ../../parser/number-color */ "./src/main/js/parser/number-color.ts");
-var StringColorParser = __webpack_require__(/*! ../../parser/string-color */ "./src/main/js/parser/string-color.ts");
-var input_binding_1 = __webpack_require__(/*! ../input-binding */ "./src/main/js/controller/input-binding.ts");
-var color_swatch_text_1 = __webpack_require__(/*! ../input/color-swatch-text */ "./src/main/js/controller/input/color-swatch-text.ts");
-/**
- * @hidden
- */
-function createWithString(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'string') {
-        return null;
-    }
-    if ('input' in params && params.input === 'string') {
-        return null;
-    }
-    var notation = StringColorParser.getNotation(initialValue);
-    if (!notation) {
-        return null;
-    }
-    var converter = ColorConverter.fromString;
-    var color = converter(initialValue);
-    var value = new input_value_1.InputValue(color);
-    var writer = ColorConverter.getStringifier(notation);
-    return new input_binding_1.InputBindingController(document, {
-        binding: new input_1.InputBinding({
-            reader: converter,
-            target: target,
-            value: value,
-            writer: writer,
-        }),
-        controller: new color_swatch_text_1.ColorSwatchTextInputController(document, {
-            formatter: new color_1.ColorFormatter(writer),
-            parser: StringColorParser.CompositeParser,
-            supportsAlpha: StringColorParser.hasAlphaComponent(notation),
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        }),
-        label: params.label || target.key,
-    });
-}
-exports.createWithString = createWithString;
-/**
- * @hidden
- */
-function createWithNumber(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'number') {
-        return null;
-    }
-    if (!('input' in params)) {
-        return null;
-    }
-    if (params.input !== 'color' &&
-        params.input !== 'color.rgb' &&
-        params.input !== 'color.rgba') {
-        return null;
-    }
-    var supportsAlpha = params.input === 'color.rgba';
-    var parser = supportsAlpha
-        ? NumberColorParser.RgbaParser
-        : NumberColorParser.RgbParser;
-    var color = parser(initialValue);
-    if (!color) {
-        return null;
-    }
-    var formatter = supportsAlpha
-        ? new color_1.ColorFormatter(ColorConverter.toHexRgbaString)
-        : new color_1.ColorFormatter(ColorConverter.toHexRgbString);
-    var reader = supportsAlpha
-        ? ColorConverter.fromNumberToRgba
-        : ColorConverter.fromNumberToRgb;
-    var writer = supportsAlpha
-        ? ColorConverter.toRgbaNumber
-        : ColorConverter.toRgbNumber;
-    var value = new input_value_1.InputValue(color);
-    return new input_binding_1.InputBindingController(document, {
-        binding: new input_1.InputBinding({
-            reader: reader,
-            target: target,
-            value: value,
-            writer: writer,
-        }),
-        controller: new color_swatch_text_1.ColorSwatchTextInputController(document, {
-            formatter: formatter,
-            parser: StringColorParser.CompositeParser,
-            supportsAlpha: supportsAlpha,
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        }),
-        label: params.label || target.key,
-    });
-}
-exports.createWithNumber = createWithNumber;
-/**
- * @hidden
- */
-function createWithObject(document, target, params) {
-    var initialValue = target.read();
-    if (!color_2.Color.isColorObject(initialValue)) {
-        return null;
-    }
-    var color = color_2.Color.fromObject(initialValue);
-    var supportsAlpha = color_2.Color.isRgbaColorObject(initialValue);
-    var formatter = supportsAlpha
-        ? new color_1.ColorFormatter(ColorConverter.toHexRgbaString)
-        : new color_1.ColorFormatter(ColorConverter.toHexRgbString);
-    var value = new input_value_1.InputValue(color);
-    return new input_binding_1.InputBindingController(document, {
-        binding: new input_1.InputBinding({
-            reader: ColorConverter.fromObject,
-            target: target,
-            value: value,
-            writer: color_2.Color.toRgbaObject,
-        }),
-        controller: new color_swatch_text_1.ColorSwatchTextInputController(document, {
-            viewModel: new view_model_1.ViewModel(),
-            formatter: formatter,
-            parser: StringColorParser.CompositeParser,
-            supportsAlpha: supportsAlpha,
-            value: value,
-        }),
-        label: params.label || target.key,
-    });
-}
-exports.createWithObject = createWithObject;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/input.ts":
-/*!**********************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/input.ts ***!
-  \**********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var pane_error_1 = __webpack_require__(/*! ../../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-var BooleanInputBindingControllerCreators = __webpack_require__(/*! ./boolean-input */ "./src/main/js/controller/binding-creators/boolean-input.ts");
-var ColorInputBindingControllerCreators = __webpack_require__(/*! ./color-input */ "./src/main/js/controller/binding-creators/color-input.ts");
-var NumberInputBindingControllerCreators = __webpack_require__(/*! ./number-input */ "./src/main/js/controller/binding-creators/number-input.ts");
-var Point2dInputBindingControllerCreators = __webpack_require__(/*! ./point-2d-input */ "./src/main/js/controller/binding-creators/point-2d-input.ts");
-var StringInputBindingControllerCreators = __webpack_require__(/*! ./string-input */ "./src/main/js/controller/binding-creators/string-input.ts");
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (type_util_1.TypeUtil.isEmpty(initialValue)) {
-        throw new pane_error_1.PaneError({
-            context: {
-                key: target.key,
-            },
-            type: 'emptyvalue',
-        });
-    }
-    var bc = [
-        BooleanInputBindingControllerCreators.create,
-        ColorInputBindingControllerCreators.createWithNumber,
-        ColorInputBindingControllerCreators.createWithObject,
-        ColorInputBindingControllerCreators.createWithString,
-        NumberInputBindingControllerCreators.create,
-        StringInputBindingControllerCreators.create,
-        Point2dInputBindingControllerCreators.create,
-    ].reduce(function (result, createBindingController) {
-        return result || createBindingController(document, target, params);
-    }, null);
-    if (bc) {
-        return bc;
-    }
-    throw new pane_error_1.PaneError({
-        context: {
-            key: target.key,
-        },
-        type: 'nomatchingcontroller',
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/monitor.ts":
-/*!************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/monitor.ts ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var pane_error_1 = __webpack_require__(/*! ../../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-var BooleanMonitorBindingControllerCreators = __webpack_require__(/*! ./boolean-monitor */ "./src/main/js/controller/binding-creators/boolean-monitor.ts");
-var NumberMonitorBindingControllerCreators = __webpack_require__(/*! ./number-monitor */ "./src/main/js/controller/binding-creators/number-monitor.ts");
-var StringMonitorBindingControllerCreators = __webpack_require__(/*! ./string-monitor */ "./src/main/js/controller/binding-creators/string-monitor.ts");
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (type_util_1.TypeUtil.isEmpty(initialValue)) {
-        throw new pane_error_1.PaneError({
-            context: {
-                key: target.key,
-            },
-            type: 'emptyvalue',
-        });
-    }
-    var bc = [
-        NumberMonitorBindingControllerCreators.create,
-        StringMonitorBindingControllerCreators.create,
-        BooleanMonitorBindingControllerCreators.create,
-    ].reduce(function (result, createBindingController) {
-        return result || createBindingController(document, target, params);
-    }, null);
-    if (bc) {
-        return bc;
-    }
-    throw new pane_error_1.PaneError({
-        context: {
-            key: target.key,
-        },
-        type: 'nomatchingcontroller',
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/number-input.ts":
-/*!*****************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/number-input.ts ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var input_1 = __webpack_require__(/*! ../../binding/input */ "./src/main/js/binding/input.ts");
-var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
-var list_1 = __webpack_require__(/*! ../../constraint/list */ "./src/main/js/constraint/list.ts");
-var range_1 = __webpack_require__(/*! ../../constraint/range */ "./src/main/js/constraint/range.ts");
-var step_1 = __webpack_require__(/*! ../../constraint/step */ "./src/main/js/constraint/step.ts");
-var util_1 = __webpack_require__(/*! ../../constraint/util */ "./src/main/js/constraint/util.ts");
-var NumberConverter = __webpack_require__(/*! ../../converter/number */ "./src/main/js/converter/number.ts");
-var number_1 = __webpack_require__(/*! ../../formatter/number */ "./src/main/js/formatter/number.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-var input_value_1 = __webpack_require__(/*! ../../model/input-value */ "./src/main/js/model/input-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var string_number_1 = __webpack_require__(/*! ../../parser/string-number */ "./src/main/js/parser/string-number.ts");
-var input_binding_1 = __webpack_require__(/*! ../input-binding */ "./src/main/js/controller/input-binding.ts");
-var list_2 = __webpack_require__(/*! ../input/list */ "./src/main/js/controller/input/list.ts");
-var number_text_1 = __webpack_require__(/*! ../input/number-text */ "./src/main/js/controller/input/number-text.ts");
-var slider_text_1 = __webpack_require__(/*! ../input/slider-text */ "./src/main/js/controller/input/slider-text.ts");
-var UiUtil = __webpack_require__(/*! ../ui-util */ "./src/main/js/controller/ui-util.ts");
-function createConstraint(params) {
-    var constraints = [];
-    if ('step' in params && !type_util_1.TypeUtil.isEmpty(params.step)) {
-        constraints.push(new step_1.StepConstraint({
-            step: params.step,
-        }));
-    }
-    if (('max' in params && !type_util_1.TypeUtil.isEmpty(params.max)) ||
-        ('min' in params && !type_util_1.TypeUtil.isEmpty(params.min))) {
-        constraints.push(new range_1.RangeConstraint({
-            max: params.max,
-            min: params.min,
-        }));
-    }
-    if ('options' in params && params.options !== undefined) {
-        constraints.push(new list_1.ListConstraint({
-            options: UiUtil.normalizeInputParamsOptions(params.options, NumberConverter.fromMixed),
-        }));
-    }
-    return new composite_1.CompositeConstraint({
-        constraints: constraints,
-    });
-}
-function createController(document, value) {
-    var c = value.constraint;
-    if (c && util_1.ConstraintUtil.findConstraint(c, list_1.ListConstraint)) {
-        return new list_2.ListInputController(document, {
-            stringifyValue: NumberConverter.toString,
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        });
-    }
-    if (c && util_1.ConstraintUtil.findConstraint(c, range_1.RangeConstraint)) {
-        return new slider_text_1.SliderTextInputController(document, {
-            formatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(value.constraint, value.rawValue)),
-            parser: string_number_1.StringNumberParser,
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        });
-    }
-    return new number_text_1.NumberTextInputController(document, {
-        formatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(value.constraint, value.rawValue)),
-        parser: string_number_1.StringNumberParser,
-        value: value,
-        viewModel: new view_model_1.ViewModel(),
-    });
-}
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'number') {
-        return null;
-    }
-    var value = new input_value_1.InputValue(0, createConstraint(params));
-    var binding = new input_1.InputBinding({
-        reader: NumberConverter.fromMixed,
-        target: target,
-        value: value,
-        writer: function (v) { return v; },
-    });
-    var controller = createController(document, value);
-    return new input_binding_1.InputBindingController(document, {
-        binding: binding,
-        controller: controller,
-        label: params.label || target.key,
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/number-monitor.ts":
-/*!*******************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/number-monitor.ts ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var monitor_1 = __webpack_require__(/*! ../../binding/monitor */ "./src/main/js/binding/monitor.ts");
-var NumberConverter = __webpack_require__(/*! ../../converter/number */ "./src/main/js/converter/number.ts");
-var number_1 = __webpack_require__(/*! ../../formatter/number */ "./src/main/js/formatter/number.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-var monitor_value_1 = __webpack_require__(/*! ../../model/monitor-value */ "./src/main/js/model/monitor-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var monitor_binding_1 = __webpack_require__(/*! ../monitor-binding */ "./src/main/js/controller/monitor-binding.ts");
-var graph_1 = __webpack_require__(/*! ../monitor/graph */ "./src/main/js/controller/monitor/graph.ts");
-var multi_log_1 = __webpack_require__(/*! ../monitor/multi-log */ "./src/main/js/controller/monitor/multi-log.ts");
-var single_log_1 = __webpack_require__(/*! ../monitor/single-log */ "./src/main/js/controller/monitor/single-log.ts");
-var util_1 = __webpack_require__(/*! ./util */ "./src/main/js/controller/binding-creators/util.ts");
-function createFormatter() {
-    // TODO: formatter precision
-    return new number_1.NumberFormatter(2);
-}
-function createTextMonitor(document, target, params) {
-    var value = new monitor_value_1.MonitorValue(type_util_1.TypeUtil.getOrDefault(params.count, 1));
-    var controller = value.totalCount === 1
-        ? new single_log_1.SingleLogMonitorController(document, {
-            formatter: createFormatter(),
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        })
-        : new multi_log_1.MultiLogMonitorController(document, {
-            formatter: createFormatter(),
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        });
-    return new monitor_binding_1.MonitorBindingController(document, {
-        binding: new monitor_1.MonitorBinding({
-            reader: NumberConverter.fromMixed,
-            target: target,
-            ticker: util_1.createTicker(document, params.interval),
-            value: value,
-        }),
-        controller: controller,
-        label: params.label || target.key,
-    });
-}
-function createGraphMonitor(document, target, params) {
-    var value = new monitor_value_1.MonitorValue(type_util_1.TypeUtil.getOrDefault(params.count, 64));
-    var controller = new graph_1.GraphMonitorController(document, {
-        formatter: createFormatter(),
-        maxValue: type_util_1.TypeUtil.getOrDefault('max' in params ? params.max : null, 100),
-        minValue: type_util_1.TypeUtil.getOrDefault('min' in params ? params.min : null, 0),
-        value: value,
-        viewModel: new view_model_1.ViewModel(),
-    });
-    return new monitor_binding_1.MonitorBindingController(document, {
-        binding: new monitor_1.MonitorBinding({
-            reader: NumberConverter.fromMixed,
-            target: target,
-            ticker: util_1.createTicker(document, params.interval),
-            value: value,
-        }),
-        controller: controller,
-        label: params.label || target.key,
-    });
-}
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'number') {
-        return null;
-    }
-    if ('view' in params && params.view === 'graph') {
-        return createGraphMonitor(document, target, params);
-    }
-    return createTextMonitor(document, target, params);
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/point-2d-input.ts":
-/*!*******************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/point-2d-input.ts ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var input_1 = __webpack_require__(/*! ../../binding/input */ "./src/main/js/binding/input.ts");
-var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
-var point_2d_1 = __webpack_require__(/*! ../../constraint/point-2d */ "./src/main/js/constraint/point-2d.ts");
-var range_1 = __webpack_require__(/*! ../../constraint/range */ "./src/main/js/constraint/range.ts");
-var step_1 = __webpack_require__(/*! ../../constraint/step */ "./src/main/js/constraint/step.ts");
-var Point2dConverter = __webpack_require__(/*! ../../converter/point-2d */ "./src/main/js/converter/point-2d.ts");
-var number_1 = __webpack_require__(/*! ../../formatter/number */ "./src/main/js/formatter/number.ts");
-var pane_error_1 = __webpack_require__(/*! ../../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-var input_value_1 = __webpack_require__(/*! ../../model/input-value */ "./src/main/js/model/input-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var any_point_2d_1 = __webpack_require__(/*! ../../parser/any-point-2d */ "./src/main/js/parser/any-point-2d.ts");
-var string_number_1 = __webpack_require__(/*! ../../parser/string-number */ "./src/main/js/parser/string-number.ts");
-var input_binding_1 = __webpack_require__(/*! ../input-binding */ "./src/main/js/controller/input-binding.ts");
-var point_2d_pad_text_1 = __webpack_require__(/*! ../input/point-2d-pad-text */ "./src/main/js/controller/input/point-2d-pad-text.ts");
-var UiUtil = __webpack_require__(/*! ../ui-util */ "./src/main/js/controller/ui-util.ts");
-function createDimensionConstraint(params) {
-    if (!params) {
-        return undefined;
-    }
-    var constraints = [];
-    if (!type_util_1.TypeUtil.isEmpty(params.step)) {
-        constraints.push(new step_1.StepConstraint({
-            step: params.step,
-        }));
-    }
-    if (!type_util_1.TypeUtil.isEmpty(params.max) || !type_util_1.TypeUtil.isEmpty(params.min)) {
-        constraints.push(new range_1.RangeConstraint({
-            max: params.max,
-            min: params.min,
-        }));
-    }
-    return new composite_1.CompositeConstraint({
-        constraints: constraints,
-    });
-}
-function createConstraint(params) {
-    return new point_2d_1.Point2dConstraint({
-        x: createDimensionConstraint('x' in params ? params.x : undefined),
-        y: createDimensionConstraint('y' in params ? params.y : undefined),
-    });
-}
-function createController(document, value, invertsY) {
-    var c = value.constraint;
-    if (!(c instanceof point_2d_1.Point2dConstraint)) {
-        throw pane_error_1.PaneError.shouldNeverHappen();
-    }
-    return new point_2d_pad_text_1.Point2dPadTextInputController(document, {
-        invertsY: invertsY,
-        parser: string_number_1.StringNumberParser,
-        value: value,
-        viewModel: new view_model_1.ViewModel(),
-        xFormatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(c.xConstraint, value.rawValue.x)),
-        yFormatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(c.yConstraint, value.rawValue.y)),
-    });
-}
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    var p = any_point_2d_1.AnyPoint2dParser(initialValue);
-    if (!p) {
-        return null;
-    }
-    var value = new input_value_1.InputValue(p, createConstraint(params));
-    var binding = new input_1.InputBinding({
-        reader: Point2dConverter.fromMixed,
-        target: target,
-        value: value,
-        writer: function (v) { return v.toObject(); },
-    });
-    var yParams = 'y' in params ? params.y : undefined;
-    var invertsY = yParams ? !!yParams.inverted : false;
-    var controller = createController(document, value, invertsY);
-    return new input_binding_1.InputBindingController(document, {
-        binding: binding,
-        controller: controller,
-        label: params.label || target.key,
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/string-input.ts":
-/*!*****************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/string-input.ts ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var input_1 = __webpack_require__(/*! ../../binding/input */ "./src/main/js/binding/input.ts");
-var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
-var list_1 = __webpack_require__(/*! ../../constraint/list */ "./src/main/js/constraint/list.ts");
-var util_1 = __webpack_require__(/*! ../../constraint/util */ "./src/main/js/constraint/util.ts");
-var StringConverter = __webpack_require__(/*! ../../converter/string */ "./src/main/js/converter/string.ts");
-var string_1 = __webpack_require__(/*! ../../formatter/string */ "./src/main/js/formatter/string.ts");
-var input_value_1 = __webpack_require__(/*! ../../model/input-value */ "./src/main/js/model/input-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var input_binding_1 = __webpack_require__(/*! ../input-binding */ "./src/main/js/controller/input-binding.ts");
-var list_2 = __webpack_require__(/*! ../input/list */ "./src/main/js/controller/input/list.ts");
-var text_1 = __webpack_require__(/*! ../input/text */ "./src/main/js/controller/input/text.ts");
-var UiUtil = __webpack_require__(/*! ../ui-util */ "./src/main/js/controller/ui-util.ts");
-function createConstraint(params) {
-    var constraints = [];
-    if ('options' in params && params.options !== undefined) {
-        constraints.push(new list_1.ListConstraint({
-            options: UiUtil.normalizeInputParamsOptions(params.options, StringConverter.fromMixed),
-        }));
-    }
-    return new composite_1.CompositeConstraint({
-        constraints: constraints,
-    });
-}
-function createController(document, value) {
-    var c = value.constraint;
-    if (c && util_1.ConstraintUtil.findConstraint(c, list_1.ListConstraint)) {
-        return new list_2.ListInputController(document, {
-            stringifyValue: StringConverter.toString,
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        });
-    }
-    return new text_1.TextInputController(document, {
-        formatter: new string_1.StringFormatter(),
-        parser: StringConverter.toString,
-        value: value,
-        viewModel: new view_model_1.ViewModel(),
-    });
-}
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'string') {
-        return null;
-    }
-    var value = new input_value_1.InputValue('', createConstraint(params));
-    var binding = new input_1.InputBinding({
-        reader: StringConverter.fromMixed,
-        target: target,
-        value: value,
-        writer: function (v) { return v; },
-    });
-    var controller = createController(document, value);
-    return new input_binding_1.InputBindingController(document, {
-        binding: binding,
-        controller: controller,
-        label: params.label || target.key,
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/string-monitor.ts":
-/*!*******************************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/string-monitor.ts ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
-var monitor_1 = __webpack_require__(/*! ../../binding/monitor */ "./src/main/js/binding/monitor.ts");
-var StringConverter = __webpack_require__(/*! ../../converter/string */ "./src/main/js/converter/string.ts");
-var string_1 = __webpack_require__(/*! ../../formatter/string */ "./src/main/js/formatter/string.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-var monitor_value_1 = __webpack_require__(/*! ../../model/monitor-value */ "./src/main/js/model/monitor-value.ts");
-var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
-var monitor_binding_1 = __webpack_require__(/*! ../monitor-binding */ "./src/main/js/controller/monitor-binding.ts");
-var multi_log_1 = __webpack_require__(/*! ../monitor/multi-log */ "./src/main/js/controller/monitor/multi-log.ts");
-var single_log_1 = __webpack_require__(/*! ../monitor/single-log */ "./src/main/js/controller/monitor/single-log.ts");
-var util_1 = __webpack_require__(/*! ./util */ "./src/main/js/controller/binding-creators/util.ts");
-/**
- * @hidden
- */
-function create(document, target, params) {
-    var initialValue = target.read();
-    if (typeof initialValue !== 'string') {
-        return null;
-    }
-    var value = new monitor_value_1.MonitorValue(type_util_1.TypeUtil.getOrDefault(params.count, 1));
-    var multiline = value.totalCount > 1 || ('multiline' in params && params.multiline);
-    var controller = multiline
-        ? new multi_log_1.MultiLogMonitorController(document, {
-            formatter: new string_1.StringFormatter(),
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        })
-        : new single_log_1.SingleLogMonitorController(document, {
-            formatter: new string_1.StringFormatter(),
-            value: value,
-            viewModel: new view_model_1.ViewModel(),
-        });
-    return new monitor_binding_1.MonitorBindingController(document, {
-        binding: new monitor_1.MonitorBinding({
-            reader: StringConverter.fromMixed,
-            target: target,
-            ticker: util_1.createTicker(document, params.interval),
-            value: value,
-        }),
-        controller: controller,
-        label: params.label || target.key,
-    });
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ "./src/main/js/controller/binding-creators/util.ts":
-/*!*********************************************************!*\
-  !*** ./src/main/js/controller/binding-creators/util.ts ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTicker = void 0;
-var constants_1 = __webpack_require__(/*! ../../misc/constants */ "./src/main/js/misc/constants.ts");
-var interval_1 = __webpack_require__(/*! ../../misc/ticker/interval */ "./src/main/js/misc/ticker/interval.ts");
-var manual_1 = __webpack_require__(/*! ../../misc/ticker/manual */ "./src/main/js/misc/ticker/manual.ts");
-var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
-function createTicker(document, interval) {
-    return interval === 0
-        ? new manual_1.ManualTicker()
-        : new interval_1.IntervalTicker(document, type_util_1.TypeUtil.getOrDefault(interval, constants_1.Constants.monitorDefaultInterval));
-}
-exports.createTicker = createTicker;
 
 
 /***/ }),
@@ -3567,6 +2873,7 @@ var GraphMonitorController = /** @class */ (function () {
         this.view = new graph_1.GraphMonitorView(document, {
             cursor: this.cursor_,
             formatter: config.formatter,
+            lineCount: config.lineCount,
             maxValue: config.maxValue,
             minValue: config.minValue,
             model: this.viewModel,
@@ -3581,7 +2888,7 @@ var GraphMonitorController = /** @class */ (function () {
     GraphMonitorController.prototype.onGraphMouseMove_ = function (e) {
         var bounds = this.view.graphElement.getBoundingClientRect();
         var x = e.offsetX;
-        this.cursor_.index = Math.floor(number_util_1.NumberUtil.map(x, 0, bounds.width, 0, this.value.totalCount));
+        this.cursor_.index = Math.floor(number_util_1.NumberUtil.map(x, 0, bounds.width, 0, this.value.bufferSize));
     };
     return GraphMonitorController;
 }());
@@ -3611,6 +2918,7 @@ var MultiLogMonitorController = /** @class */ (function () {
         this.viewModel = config.viewModel;
         this.view = new multi_log_1.MultiLogMonitorView(document, {
             formatter: config.formatter,
+            lineCount: config.lineCount,
             model: this.viewModel,
             value: this.value,
         });
@@ -4448,7 +3756,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Style = __webpack_require__(/*! ../sass/bundle.scss */ "./src/main/sass/bundle.scss");
-var tweakpane_without_style_1 = __webpack_require__(/*! ./tweakpane-without-style */ "./src/main/js/tweakpane-without-style.ts");
+var plain_tweakpane_1 = __webpack_require__(/*! ./pane/plain-tweakpane */ "./src/main/js/pane/plain-tweakpane.ts");
 function embedDefaultStyleIfNeeded(document) {
     var MARKER = 'tweakpane';
     if (document.querySelector("style[data-for=" + MARKER + "]")) {
@@ -4470,7 +3778,7 @@ var Tweakpane = /** @class */ (function (_super) {
         return _this;
     }
     return Tweakpane;
-}(tweakpane_without_style_1.TweakpaneWithoutStyle));
+}(plain_tweakpane_1.PlainTweakpane));
 exports.default = Tweakpane;
 
 
@@ -4703,7 +4011,10 @@ exports.convertMode = convertMode;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Constants = void 0;
 exports.Constants = {
-    monitorDefaultInterval: 200,
+    monitor: {
+        defaultInterval: 200,
+        defaultLineCount: 3,
+    },
 };
 
 
@@ -4974,6 +4285,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PointerHandler = void 0;
 var DomUtil = __webpack_require__(/*! ./dom-util */ "./src/main/js/misc/dom-util.ts");
 var emitter_1 = __webpack_require__(/*! ./emitter */ "./src/main/js/misc/emitter.ts");
+function computeOffset(ev, elem) {
+    // NOTE: OffsetX/Y should be computed from page and window properties to capture mouse events
+    var win = elem.ownerDocument.defaultView;
+    var rect = elem.getBoundingClientRect();
+    return [
+        ev.pageX - (((win && win.scrollX) || 0) + rect.left),
+        ev.pageY - (((win && win.scrollY) || 0) + rect.top),
+    ];
+}
 /**
  * A utility class to handle both mouse and touch events.
  * @hidden
@@ -5013,7 +4333,7 @@ var PointerHandler = /** @class */ (function () {
         (_a = e.currentTarget) === null || _a === void 0 ? void 0 : _a.focus();
         this.pressed_ = true;
         this.emitter.emit('down', {
-            data: this.computePosition_(e.offsetX, e.offsetY),
+            data: this.computePosition_.apply(this, computeOffset(e, this.element)),
             sender: this,
         });
     };
@@ -5021,10 +4341,8 @@ var PointerHandler = /** @class */ (function () {
         if (!this.pressed_) {
             return;
         }
-        var win = this.document.defaultView;
-        var rect = this.element.getBoundingClientRect();
         this.emitter.emit('move', {
-            data: this.computePosition_(e.pageX - (((win && win.scrollX) || 0) + rect.left), e.pageY - (((win && win.scrollY) || 0) + rect.top)),
+            data: this.computePosition_.apply(this, computeOffset(e, this.element)),
             sender: this,
         });
     };
@@ -5033,10 +4351,8 @@ var PointerHandler = /** @class */ (function () {
             return;
         }
         this.pressed_ = false;
-        var win = this.document.defaultView;
-        var rect = this.element.getBoundingClientRect();
         this.emitter.emit('up', {
-            data: this.computePosition_(e.pageX - (((win && win.scrollX) || 0) + rect.left), e.pageY - (((win && win.scrollY) || 0) + rect.top)),
+            data: this.computePosition_.apply(this, computeOffset(e, this.element)),
             sender: this,
         });
     };
@@ -5303,6 +4619,19 @@ var Color = /** @class */ (function () {
     };
     Color.isColorObject = function (obj) {
         return this.isRgbColorObject(obj);
+    };
+    Color.equals = function (v1, v2) {
+        if (v1.mode_ !== v2.mode_) {
+            return false;
+        }
+        var comps1 = v1.comps_;
+        var comps2 = v2.comps_;
+        for (var i = 0; i < comps1.length; i++) {
+            if (comps1[i] !== comps2[i]) {
+                return false;
+            }
+        }
+        return true;
     };
     Object.defineProperty(Color.prototype, "mode", {
         get: function () {
@@ -5619,14 +4948,12 @@ var emitter_1 = __webpack_require__(/*! ../misc/emitter */ "./src/main/js/misc/e
  * @hidden
  */
 var InputValue = /** @class */ (function () {
-    function InputValue(initialValue, constraint) {
+    function InputValue(initialValue, constraint, equals) {
         this.constraint_ = constraint;
+        this.equals_ = equals || (function (v1, v2) { return v1 === v2; });
         this.emitter = new emitter_1.Emitter();
         this.rawValue_ = initialValue;
     }
-    InputValue.equalsValue = function (v1, v2) {
-        return v1 === v2;
-    };
     Object.defineProperty(InputValue.prototype, "constraint", {
         get: function () {
             return this.constraint_;
@@ -5642,7 +4969,7 @@ var InputValue = /** @class */ (function () {
             var constrainedValue = this.constraint_
                 ? this.constraint_.constrain(rawValue)
                 : rawValue;
-            var changed = !InputValue.equalsValue(this.rawValue_, constrainedValue);
+            var changed = !this.equals_(this.rawValue_, constrainedValue);
             if (changed) {
                 this.rawValue_ = constrainedValue;
                 this.emitter.emit('change', {
@@ -5759,10 +5086,10 @@ var emitter_1 = __webpack_require__(/*! ../misc/emitter */ "./src/main/js/misc/e
  * @hidden
  */
 var MonitorValue = /** @class */ (function () {
-    function MonitorValue(totalCount) {
+    function MonitorValue(bufferSize) {
         this.emitter = new emitter_1.Emitter();
         this.rawValues_ = [];
-        this.totalCount_ = totalCount;
+        this.bufferSize_ = bufferSize;
     }
     Object.defineProperty(MonitorValue.prototype, "rawValues", {
         get: function () {
@@ -5771,17 +5098,17 @@ var MonitorValue = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(MonitorValue.prototype, "totalCount", {
+    Object.defineProperty(MonitorValue.prototype, "bufferSize", {
         get: function () {
-            return this.totalCount_;
+            return this.bufferSize_;
         },
         enumerable: false,
         configurable: true
     });
     MonitorValue.prototype.append = function (rawValue) {
         this.rawValues_.push(rawValue);
-        if (this.rawValues_.length > this.totalCount_) {
-            this.rawValues_.splice(0, this.rawValues_.length - this.totalCount_);
+        if (this.rawValues_.length > this.bufferSize_) {
+            this.rawValues_.splice(0, this.rawValues_.length - this.bufferSize_);
         }
         this.emitter.emit('update', {
             rawValue: rawValue,
@@ -5856,6 +5183,7 @@ exports.PickedColor = PickedColor;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Point2d = void 0;
+var type_util_1 = __webpack_require__(/*! ../misc/type-util */ "./src/main/js/misc/type-util.ts");
 var Point2d = /** @class */ (function () {
     function Point2d(x, y) {
         if (x === void 0) { x = 0; }
@@ -5865,6 +5193,20 @@ var Point2d = /** @class */ (function () {
     }
     Point2d.prototype.getComponents = function () {
         return [this.x, this.y];
+    };
+    Point2d.isObject = function (obj) {
+        if (type_util_1.TypeUtil.isEmpty(obj)) {
+            return false;
+        }
+        var x = obj.x;
+        var y = obj.y;
+        if (typeof x !== 'number' || typeof y !== 'number') {
+            return false;
+        }
+        return true;
+    };
+    Point2d.equals = function (v1, v2) {
+        return v1.x === v2.x && v1.y === v2.y;
     };
     Point2d.prototype.toObject = function () {
         return {
@@ -6176,6 +5518,129 @@ exports.getAll = getAll;
 
 /***/ }),
 
+/***/ "./src/main/js/pane/plain-tweakpane.ts":
+/*!*********************************************!*\
+  !*** ./src/main/js/pane/plain-tweakpane.ts ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PlainTweakpane = void 0;
+var root_1 = __webpack_require__(/*! ../api/root */ "./src/main/js/api/root.ts");
+var root_2 = __webpack_require__(/*! ../controller/root */ "./src/main/js/controller/root.ts");
+var class_name_1 = __webpack_require__(/*! ../misc/class-name */ "./src/main/js/misc/class-name.ts");
+var DomUtil = __webpack_require__(/*! ../misc/dom-util */ "./src/main/js/misc/dom-util.ts");
+var pane_error_1 = __webpack_require__(/*! ../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
+var type_util_1 = __webpack_require__(/*! ../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var view_model_1 = __webpack_require__(/*! ../model/view-model */ "./src/main/js/model/view-model.ts");
+var boolean_1 = __webpack_require__(/*! ../plugin/input-bindings/boolean */ "./src/main/js/plugin/input-bindings/boolean.ts");
+var color_number_1 = __webpack_require__(/*! ../plugin/input-bindings/color-number */ "./src/main/js/plugin/input-bindings/color-number.ts");
+var color_object_1 = __webpack_require__(/*! ../plugin/input-bindings/color-object */ "./src/main/js/plugin/input-bindings/color-object.ts");
+var color_string_1 = __webpack_require__(/*! ../plugin/input-bindings/color-string */ "./src/main/js/plugin/input-bindings/color-string.ts");
+var number_1 = __webpack_require__(/*! ../plugin/input-bindings/number */ "./src/main/js/plugin/input-bindings/number.ts");
+var point_2d_1 = __webpack_require__(/*! ../plugin/input-bindings/point-2d */ "./src/main/js/plugin/input-bindings/point-2d.ts");
+var string_1 = __webpack_require__(/*! ../plugin/input-bindings/string */ "./src/main/js/plugin/input-bindings/string.ts");
+var boolean_2 = __webpack_require__(/*! ../plugin/monitor-bindings/boolean */ "./src/main/js/plugin/monitor-bindings/boolean.ts");
+var number_2 = __webpack_require__(/*! ../plugin/monitor-bindings/number */ "./src/main/js/plugin/monitor-bindings/number.ts");
+var string_2 = __webpack_require__(/*! ../plugin/monitor-bindings/string */ "./src/main/js/plugin/monitor-bindings/string.ts");
+function createDefaultWrapperElement(document) {
+    var elem = document.createElement('div');
+    elem.classList.add(class_name_1.ClassName('dfw')());
+    if (document.body) {
+        document.body.appendChild(elem);
+    }
+    return elem;
+}
+var PlainTweakpane = /** @class */ (function (_super) {
+    __extends(PlainTweakpane, _super);
+    function PlainTweakpane(opt_config) {
+        var _this = this;
+        var config = opt_config || {};
+        var document = type_util_1.TypeUtil.getOrDefault(config.document, DomUtil.getWindowDocument());
+        var rootController = new root_2.RootController(document, {
+            expanded: config.expanded,
+            viewModel: new view_model_1.ViewModel(),
+            title: config.title,
+        });
+        _this = _super.call(this, rootController) || this;
+        _this.containerElem_ =
+            config.container || createDefaultWrapperElement(document);
+        _this.containerElem_.appendChild(_this.element);
+        _this.doc_ = document;
+        _this.usesDefaultWrapper_ = !config.container;
+        return _this;
+    }
+    PlainTweakpane.prototype.dispose = function () {
+        var containerElem = this.containerElem_;
+        if (!containerElem) {
+            throw pane_error_1.PaneError.alreadyDisposed();
+        }
+        if (this.usesDefaultWrapper_) {
+            var parentElem = containerElem.parentElement;
+            if (parentElem) {
+                parentElem.removeChild(containerElem);
+            }
+        }
+        this.containerElem_ = null;
+        this.doc_ = null;
+        _super.prototype.dispose.call(this);
+    };
+    Object.defineProperty(PlainTweakpane.prototype, "document", {
+        get: function () {
+            if (!this.doc_) {
+                throw pane_error_1.PaneError.alreadyDisposed();
+            }
+            return this.doc_;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return PlainTweakpane;
+}(root_1.RootApi));
+exports.PlainTweakpane = PlainTweakpane;
+function registerDefaultPlugins() {
+    [
+        boolean_1.BooleanInputPlugin,
+        color_number_1.NumberColorInputPlugin,
+        color_object_1.ObjectColorInputPlugin,
+        color_string_1.StringColorInputPlugin,
+        number_1.NumberInputPlugin,
+        string_1.StringInputPlugin,
+        point_2d_1.Point2dInputPlugin,
+    ].forEach(function (p) {
+        root_1.RootApi.registerPlugin({
+            type: 'input',
+            plugin: p,
+        });
+    });
+    [number_2.NumberMonitorPlugin, string_2.StringMonitorPlugin, boolean_2.BooleanMonitorPlugin].forEach(function (p) {
+        root_1.RootApi.registerPlugin({
+            type: 'monitor',
+            plugin: p,
+        });
+    });
+}
+registerDefaultPlugins();
+
+
+/***/ }),
+
 /***/ "./src/main/js/parser/any-point-2d.ts":
 /*!********************************************!*\
   !*** ./src/main/js/parser/any-point-2d.ts ***!
@@ -6187,21 +5652,12 @@ exports.getAll = getAll;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnyPoint2dParser = void 0;
-var type_util_1 = __webpack_require__(/*! ../misc/type-util */ "./src/main/js/misc/type-util.ts");
 var point_2d_1 = __webpack_require__(/*! ../model/point-2d */ "./src/main/js/model/point-2d.ts");
 /**
  * @hidden
  */
 exports.AnyPoint2dParser = function (obj) {
-    if (type_util_1.TypeUtil.isEmpty(obj)) {
-        return null;
-    }
-    var x = obj.x;
-    var y = obj.y;
-    if (typeof x !== 'number' || typeof y !== 'number') {
-        return null;
-    }
-    return new point_2d_1.Point2d(x, y);
+    return point_2d_1.Point2d.isObject(obj) ? new point_2d_1.Point2d(obj.x, obj.y) : null;
 };
 
 
@@ -6438,92 +5894,758 @@ exports.StringNumberParser = function (text) {
 
 /***/ }),
 
-/***/ "./src/main/js/tweakpane-without-style.ts":
-/*!************************************************!*\
-  !*** ./src/main/js/tweakpane-without-style.ts ***!
-  \************************************************/
+/***/ "./src/main/js/plugin/input-binding.ts":
+/*!*********************************************!*\
+  !*** ./src/main/js/plugin/input-binding.ts ***!
+  \*********************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TweakpaneWithoutStyle = void 0;
-var root_1 = __webpack_require__(/*! ./api/root */ "./src/main/js/api/root.ts");
-var root_2 = __webpack_require__(/*! ./controller/root */ "./src/main/js/controller/root.ts");
-var class_name_1 = __webpack_require__(/*! ./misc/class-name */ "./src/main/js/misc/class-name.ts");
-var DomUtil = __webpack_require__(/*! ./misc/dom-util */ "./src/main/js/misc/dom-util.ts");
-var pane_error_1 = __webpack_require__(/*! ./misc/pane-error */ "./src/main/js/misc/pane-error.ts");
-var type_util_1 = __webpack_require__(/*! ./misc/type-util */ "./src/main/js/misc/type-util.ts");
-var view_model_1 = __webpack_require__(/*! ./model/view-model */ "./src/main/js/model/view-model.ts");
-function createDefaultWrapperElement(document) {
-    var elem = document.createElement('div');
-    elem.classList.add(class_name_1.ClassName('dfw')());
-    if (document.body) {
-        document.body.appendChild(elem);
+exports.createController = void 0;
+var input_1 = __webpack_require__(/*! ../binding/input */ "./src/main/js/binding/input.ts");
+var input_binding_1 = __webpack_require__(/*! ../controller/input-binding */ "./src/main/js/controller/input-binding.ts");
+var input_value_1 = __webpack_require__(/*! ../model/input-value */ "./src/main/js/model/input-value.ts");
+function createController(plugin, args) {
+    var initialValue = plugin.model.accept(args.target.read(), args.params);
+    if (initialValue === null) {
+        return null;
     }
-    return elem;
-}
-var TweakpaneWithoutStyle = /** @class */ (function (_super) {
-    __extends(TweakpaneWithoutStyle, _super);
-    function TweakpaneWithoutStyle(opt_config) {
-        var _this = this;
-        var config = opt_config || {};
-        var document = type_util_1.TypeUtil.getOrDefault(config.document, DomUtil.getWindowDocument());
-        var rootController = new root_2.RootController(document, {
-            expanded: config.expanded,
-            viewModel: new view_model_1.ViewModel(),
-            title: config.title,
-        });
-        _this = _super.call(this, rootController) || this;
-        _this.containerElem_ =
-            config.container || createDefaultWrapperElement(document);
-        _this.containerElem_.appendChild(_this.element);
-        _this.doc_ = document;
-        _this.usesDefaultWrapper_ = !config.container;
-        return _this;
-    }
-    TweakpaneWithoutStyle.prototype.dispose = function () {
-        var containerElem = this.containerElem_;
-        if (!containerElem) {
-            throw pane_error_1.PaneError.alreadyDisposed();
-        }
-        if (this.usesDefaultWrapper_) {
-            var parentElem = containerElem.parentElement;
-            if (parentElem) {
-                parentElem.removeChild(containerElem);
-            }
-        }
-        this.containerElem_ = null;
-        this.doc_ = null;
-        _super.prototype.dispose.call(this);
+    var valueArgs = {
+        target: args.target,
+        initialValue: initialValue,
+        params: args.params,
     };
-    Object.defineProperty(TweakpaneWithoutStyle.prototype, "document", {
-        get: function () {
-            if (!this.doc_) {
-                throw pane_error_1.PaneError.alreadyDisposed();
-            }
-            return this.doc_;
-        },
-        enumerable: false,
-        configurable: true
+    var reader = plugin.model.reader(valueArgs);
+    var constraint = plugin.model.constraint
+        ? plugin.model.constraint(valueArgs)
+        : undefined;
+    var value = new input_value_1.InputValue(reader(initialValue), constraint, plugin.model.equals);
+    var binding = new input_1.InputBinding({
+        reader: reader,
+        target: args.target,
+        value: value,
+        writer: plugin.model.writer(valueArgs),
     });
-    return TweakpaneWithoutStyle;
-}(root_1.RootApi));
-exports.TweakpaneWithoutStyle = TweakpaneWithoutStyle;
+    return new input_binding_1.InputBindingController(args.document, {
+        binding: binding,
+        controller: plugin.controller({
+            binding: binding,
+            document: args.document,
+            initialValue: initialValue,
+            params: args.params,
+        }),
+        label: args.params.label || args.target.key,
+    });
+}
+exports.createController = createController;
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/input-bindings/boolean.ts":
+/*!******************************************************!*\
+  !*** ./src/main/js/plugin/input-bindings/boolean.ts ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BooleanInputPlugin = void 0;
+var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
+var list_1 = __webpack_require__(/*! ../../constraint/list */ "./src/main/js/constraint/list.ts");
+var util_1 = __webpack_require__(/*! ../../constraint/util */ "./src/main/js/constraint/util.ts");
+var checkbox_1 = __webpack_require__(/*! ../../controller/input/checkbox */ "./src/main/js/controller/input/checkbox.ts");
+var list_2 = __webpack_require__(/*! ../../controller/input/list */ "./src/main/js/controller/input/list.ts");
+var UiUtil = __webpack_require__(/*! ../../controller/ui-util */ "./src/main/js/controller/ui-util.ts");
+var BooleanConverter = __webpack_require__(/*! ../../converter/boolean */ "./src/main/js/converter/boolean.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+function createConstraint(params) {
+    var constraints = [];
+    if ('options' in params && params.options !== undefined) {
+        constraints.push(new list_1.ListConstraint({
+            options: UiUtil.normalizeInputParamsOptions(params.options, BooleanConverter.fromMixed),
+        }));
+    }
+    return new composite_1.CompositeConstraint({
+        constraints: constraints,
+    });
+}
+function createController(document, value) {
+    var c = value.constraint;
+    if (c && util_1.ConstraintUtil.findConstraint(c, list_1.ListConstraint)) {
+        return new list_2.ListInputController(document, {
+            viewModel: new view_model_1.ViewModel(),
+            stringifyValue: BooleanConverter.toString,
+            value: value,
+        });
+    }
+    return new checkbox_1.CheckboxInputController(document, {
+        viewModel: new view_model_1.ViewModel(),
+        value: value,
+    });
+}
+/**
+ * @hidden
+ */
+exports.BooleanInputPlugin = {
+    model: {
+        accept: function (value) { return (typeof value === 'boolean' ? value : null); },
+        reader: function (_args) { return BooleanConverter.fromMixed; },
+        writer: function (_args) { return function (v) { return v; }; },
+        constraint: function (args) { return createConstraint(args.params); },
+    },
+    controller: function (args) {
+        return createController(args.document, args.binding.value);
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/input-bindings/color-number.ts":
+/*!***********************************************************!*\
+  !*** ./src/main/js/plugin/input-bindings/color-number.ts ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NumberColorInputPlugin = void 0;
+var color_swatch_text_1 = __webpack_require__(/*! ../../controller/input/color-swatch-text */ "./src/main/js/controller/input/color-swatch-text.ts");
+var ColorConverter = __webpack_require__(/*! ../../converter/color */ "./src/main/js/converter/color.ts");
+var color_1 = __webpack_require__(/*! ../../formatter/color */ "./src/main/js/formatter/color.ts");
+var color_2 = __webpack_require__(/*! ../../model/color */ "./src/main/js/model/color.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+var StringColorParser = __webpack_require__(/*! ../../parser/string-color */ "./src/main/js/parser/string-color.ts");
+function shouldSupportAlpha(inputParams) {
+    return 'input' in inputParams && inputParams.input === 'color.rgba';
+}
+/**
+ * @hidden
+ */
+exports.NumberColorInputPlugin = {
+    model: {
+        accept: function (value, params) {
+            if (typeof value !== 'number') {
+                return null;
+            }
+            if (!('input' in params)) {
+                return null;
+            }
+            if (params.input !== 'color' &&
+                params.input !== 'color.rgb' &&
+                params.input !== 'color.rgba') {
+                return null;
+            }
+            return value;
+        },
+        reader: function (args) {
+            return shouldSupportAlpha(args.params)
+                ? ColorConverter.fromNumberToRgba
+                : ColorConverter.fromNumberToRgb;
+        },
+        writer: function (args) {
+            return shouldSupportAlpha(args.params)
+                ? ColorConverter.toRgbaNumber
+                : ColorConverter.toRgbNumber;
+        },
+        equals: color_2.Color.equals,
+    },
+    controller: function (args) {
+        var supportsAlpha = shouldSupportAlpha(args.params);
+        var formatter = supportsAlpha
+            ? new color_1.ColorFormatter(ColorConverter.toHexRgbaString)
+            : new color_1.ColorFormatter(ColorConverter.toHexRgbString);
+        return new color_swatch_text_1.ColorSwatchTextInputController(args.document, {
+            formatter: formatter,
+            parser: StringColorParser.CompositeParser,
+            supportsAlpha: supportsAlpha,
+            value: args.binding.value,
+            viewModel: new view_model_1.ViewModel(),
+        });
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/input-bindings/color-object.ts":
+/*!***********************************************************!*\
+  !*** ./src/main/js/plugin/input-bindings/color-object.ts ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ObjectColorInputPlugin = void 0;
+var color_swatch_text_1 = __webpack_require__(/*! ../../controller/input/color-swatch-text */ "./src/main/js/controller/input/color-swatch-text.ts");
+var ColorConverter = __webpack_require__(/*! ../../converter/color */ "./src/main/js/converter/color.ts");
+var color_1 = __webpack_require__(/*! ../../formatter/color */ "./src/main/js/formatter/color.ts");
+var color_2 = __webpack_require__(/*! ../../model/color */ "./src/main/js/model/color.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+var StringColorParser = __webpack_require__(/*! ../../parser/string-color */ "./src/main/js/parser/string-color.ts");
+/**
+ * @hidden
+ */
+exports.ObjectColorInputPlugin = {
+    model: {
+        accept: function (value, _params) { return (color_2.Color.isColorObject(value) ? value : null); },
+        reader: function (_args) { return ColorConverter.fromObject; },
+        writer: function (_args) { return color_2.Color.toRgbaObject; },
+        equals: color_2.Color.equals,
+    },
+    controller: function (args) {
+        var supportsAlpha = color_2.Color.isRgbaColorObject(args.initialValue);
+        var formatter = supportsAlpha
+            ? new color_1.ColorFormatter(ColorConverter.toHexRgbaString)
+            : new color_1.ColorFormatter(ColorConverter.toHexRgbString);
+        return new color_swatch_text_1.ColorSwatchTextInputController(args.document, {
+            viewModel: new view_model_1.ViewModel(),
+            formatter: formatter,
+            parser: StringColorParser.CompositeParser,
+            supportsAlpha: supportsAlpha,
+            value: args.binding.value,
+        });
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/input-bindings/color-string.ts":
+/*!***********************************************************!*\
+  !*** ./src/main/js/plugin/input-bindings/color-string.ts ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StringColorInputPlugin = void 0;
+var color_swatch_text_1 = __webpack_require__(/*! ../../controller/input/color-swatch-text */ "./src/main/js/controller/input/color-swatch-text.ts");
+var ColorConverter = __webpack_require__(/*! ../../converter/color */ "./src/main/js/converter/color.ts");
+var color_1 = __webpack_require__(/*! ../../formatter/color */ "./src/main/js/formatter/color.ts");
+var pane_error_1 = __webpack_require__(/*! ../../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
+var color_2 = __webpack_require__(/*! ../../model/color */ "./src/main/js/model/color.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+var StringColorParser = __webpack_require__(/*! ../../parser/string-color */ "./src/main/js/parser/string-color.ts");
+/**
+ * @hidden
+ */
+exports.StringColorInputPlugin = {
+    model: {
+        accept: function (value, params) {
+            if (typeof value !== 'string') {
+                return null;
+            }
+            if ('input' in params && params.input === 'string') {
+                return null;
+            }
+            var notation = StringColorParser.getNotation(value);
+            if (!notation) {
+                return null;
+            }
+            return value;
+        },
+        reader: function (_args) { return ColorConverter.fromString; },
+        writer: function (args) {
+            var notation = StringColorParser.getNotation(args.initialValue);
+            if (!notation) {
+                throw pane_error_1.PaneError.shouldNeverHappen();
+            }
+            return ColorConverter.getStringifier(notation);
+        },
+        equals: color_2.Color.equals,
+    },
+    controller: function (args) {
+        var notation = StringColorParser.getNotation(args.initialValue);
+        if (!notation) {
+            throw pane_error_1.PaneError.shouldNeverHappen();
+        }
+        return new color_swatch_text_1.ColorSwatchTextInputController(args.document, {
+            formatter: new color_1.ColorFormatter(args.binding.writer),
+            parser: StringColorParser.CompositeParser,
+            supportsAlpha: StringColorParser.hasAlphaComponent(notation),
+            value: args.binding.value,
+            viewModel: new view_model_1.ViewModel(),
+        });
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/input-bindings/number.ts":
+/*!*****************************************************!*\
+  !*** ./src/main/js/plugin/input-bindings/number.ts ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NumberInputPlugin = void 0;
+var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
+var list_1 = __webpack_require__(/*! ../../constraint/list */ "./src/main/js/constraint/list.ts");
+var range_1 = __webpack_require__(/*! ../../constraint/range */ "./src/main/js/constraint/range.ts");
+var step_1 = __webpack_require__(/*! ../../constraint/step */ "./src/main/js/constraint/step.ts");
+var util_1 = __webpack_require__(/*! ../../constraint/util */ "./src/main/js/constraint/util.ts");
+var list_2 = __webpack_require__(/*! ../../controller/input/list */ "./src/main/js/controller/input/list.ts");
+var number_text_1 = __webpack_require__(/*! ../../controller/input/number-text */ "./src/main/js/controller/input/number-text.ts");
+var slider_text_1 = __webpack_require__(/*! ../../controller/input/slider-text */ "./src/main/js/controller/input/slider-text.ts");
+var UiUtil = __webpack_require__(/*! ../../controller/ui-util */ "./src/main/js/controller/ui-util.ts");
+var NumberConverter = __webpack_require__(/*! ../../converter/number */ "./src/main/js/converter/number.ts");
+var number_1 = __webpack_require__(/*! ../../formatter/number */ "./src/main/js/formatter/number.ts");
+var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+var string_number_1 = __webpack_require__(/*! ../../parser/string-number */ "./src/main/js/parser/string-number.ts");
+function createConstraint(params) {
+    var constraints = [];
+    if ('step' in params && !type_util_1.TypeUtil.isEmpty(params.step)) {
+        constraints.push(new step_1.StepConstraint({
+            step: params.step,
+        }));
+    }
+    if (('max' in params && !type_util_1.TypeUtil.isEmpty(params.max)) ||
+        ('min' in params && !type_util_1.TypeUtil.isEmpty(params.min))) {
+        constraints.push(new range_1.RangeConstraint({
+            max: params.max,
+            min: params.min,
+        }));
+    }
+    if ('options' in params && params.options !== undefined) {
+        constraints.push(new list_1.ListConstraint({
+            options: UiUtil.normalizeInputParamsOptions(params.options, NumberConverter.fromMixed),
+        }));
+    }
+    return new composite_1.CompositeConstraint({
+        constraints: constraints,
+    });
+}
+function createController(document, value) {
+    var c = value.constraint;
+    if (c && util_1.ConstraintUtil.findConstraint(c, list_1.ListConstraint)) {
+        return new list_2.ListInputController(document, {
+            stringifyValue: NumberConverter.toString,
+            value: value,
+            viewModel: new view_model_1.ViewModel(),
+        });
+    }
+    if (c && util_1.ConstraintUtil.findConstraint(c, range_1.RangeConstraint)) {
+        return new slider_text_1.SliderTextInputController(document, {
+            formatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(value.constraint, value.rawValue)),
+            parser: string_number_1.StringNumberParser,
+            value: value,
+            viewModel: new view_model_1.ViewModel(),
+        });
+    }
+    return new number_text_1.NumberTextInputController(document, {
+        formatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(value.constraint, value.rawValue)),
+        parser: string_number_1.StringNumberParser,
+        value: value,
+        viewModel: new view_model_1.ViewModel(),
+    });
+}
+/**
+ * @hidden
+ */
+exports.NumberInputPlugin = {
+    model: {
+        accept: function (value) { return (typeof value === 'number' ? value : null); },
+        reader: function (_args) { return NumberConverter.fromMixed; },
+        writer: function (_args) { return function (v) { return v; }; },
+        constraint: function (args) { return createConstraint(args.params); },
+    },
+    controller: function (args) {
+        return createController(args.document, args.binding.value);
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/input-bindings/point-2d.ts":
+/*!*******************************************************!*\
+  !*** ./src/main/js/plugin/input-bindings/point-2d.ts ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Point2dInputPlugin = void 0;
+var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
+var point_2d_1 = __webpack_require__(/*! ../../constraint/point-2d */ "./src/main/js/constraint/point-2d.ts");
+var range_1 = __webpack_require__(/*! ../../constraint/range */ "./src/main/js/constraint/range.ts");
+var step_1 = __webpack_require__(/*! ../../constraint/step */ "./src/main/js/constraint/step.ts");
+var point_2d_pad_text_1 = __webpack_require__(/*! ../../controller/input/point-2d-pad-text */ "./src/main/js/controller/input/point-2d-pad-text.ts");
+var UiUtil = __webpack_require__(/*! ../../controller/ui-util */ "./src/main/js/controller/ui-util.ts");
+var Point2dConverter = __webpack_require__(/*! ../../converter/point-2d */ "./src/main/js/converter/point-2d.ts");
+var number_1 = __webpack_require__(/*! ../../formatter/number */ "./src/main/js/formatter/number.ts");
+var pane_error_1 = __webpack_require__(/*! ../../misc/pane-error */ "./src/main/js/misc/pane-error.ts");
+var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var point_2d_2 = __webpack_require__(/*! ../../model/point-2d */ "./src/main/js/model/point-2d.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+var string_number_1 = __webpack_require__(/*! ../../parser/string-number */ "./src/main/js/parser/string-number.ts");
+function createDimensionConstraint(params) {
+    if (!params) {
+        return undefined;
+    }
+    var constraints = [];
+    if (!type_util_1.TypeUtil.isEmpty(params.step)) {
+        constraints.push(new step_1.StepConstraint({
+            step: params.step,
+        }));
+    }
+    if (!type_util_1.TypeUtil.isEmpty(params.max) || !type_util_1.TypeUtil.isEmpty(params.min)) {
+        constraints.push(new range_1.RangeConstraint({
+            max: params.max,
+            min: params.min,
+        }));
+    }
+    return new composite_1.CompositeConstraint({
+        constraints: constraints,
+    });
+}
+function createConstraint(params) {
+    return new point_2d_1.Point2dConstraint({
+        x: createDimensionConstraint('x' in params ? params.x : undefined),
+        y: createDimensionConstraint('y' in params ? params.y : undefined),
+    });
+}
+function createController(document, value, invertsY) {
+    var c = value.constraint;
+    if (!(c instanceof point_2d_1.Point2dConstraint)) {
+        throw pane_error_1.PaneError.shouldNeverHappen();
+    }
+    return new point_2d_pad_text_1.Point2dPadTextInputController(document, {
+        invertsY: invertsY,
+        parser: string_number_1.StringNumberParser,
+        value: value,
+        viewModel: new view_model_1.ViewModel(),
+        xFormatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(c.xConstraint, value.rawValue.x)),
+        yFormatter: new number_1.NumberFormatter(UiUtil.getSuitableDecimalDigits(c.yConstraint, value.rawValue.y)),
+    });
+}
+/**
+ * @hidden
+ */
+exports.Point2dInputPlugin = {
+    model: {
+        accept: function (value, _params) { return (point_2d_2.Point2d.isObject(value) ? value : null); },
+        reader: function (_args) { return Point2dConverter.fromMixed; },
+        writer: function (_args) { return function (v) { return v.toObject(); }; },
+        constraint: function (args) { return createConstraint(args.params); },
+        equals: point_2d_2.Point2d.equals,
+    },
+    controller: function (args) {
+        var yParams = 'y' in args.params ? args.params.y : undefined;
+        var invertsY = yParams ? !!yParams.inverted : false;
+        return createController(args.document, args.binding.value, invertsY);
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/input-bindings/string.ts":
+/*!*****************************************************!*\
+  !*** ./src/main/js/plugin/input-bindings/string.ts ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StringInputPlugin = void 0;
+var composite_1 = __webpack_require__(/*! ../../constraint/composite */ "./src/main/js/constraint/composite.ts");
+var list_1 = __webpack_require__(/*! ../../constraint/list */ "./src/main/js/constraint/list.ts");
+var util_1 = __webpack_require__(/*! ../../constraint/util */ "./src/main/js/constraint/util.ts");
+var list_2 = __webpack_require__(/*! ../../controller/input/list */ "./src/main/js/controller/input/list.ts");
+var text_1 = __webpack_require__(/*! ../../controller/input/text */ "./src/main/js/controller/input/text.ts");
+var UiUtil = __webpack_require__(/*! ../../controller/ui-util */ "./src/main/js/controller/ui-util.ts");
+var StringConverter = __webpack_require__(/*! ../../converter/string */ "./src/main/js/converter/string.ts");
+var string_1 = __webpack_require__(/*! ../../formatter/string */ "./src/main/js/formatter/string.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+function createConstraint(params) {
+    var constraints = [];
+    if ('options' in params && params.options !== undefined) {
+        constraints.push(new list_1.ListConstraint({
+            options: UiUtil.normalizeInputParamsOptions(params.options, StringConverter.fromMixed),
+        }));
+    }
+    return new composite_1.CompositeConstraint({
+        constraints: constraints,
+    });
+}
+function createController(document, value) {
+    var c = value.constraint;
+    if (c && util_1.ConstraintUtil.findConstraint(c, list_1.ListConstraint)) {
+        return new list_2.ListInputController(document, {
+            stringifyValue: StringConverter.toString,
+            value: value,
+            viewModel: new view_model_1.ViewModel(),
+        });
+    }
+    return new text_1.TextInputController(document, {
+        formatter: new string_1.StringFormatter(),
+        parser: StringConverter.toString,
+        value: value,
+        viewModel: new view_model_1.ViewModel(),
+    });
+}
+/**
+ * @hidden
+ */
+exports.StringInputPlugin = {
+    model: {
+        accept: function (value, _params) { return (typeof value === 'string' ? value : null); },
+        reader: function (_args) { return StringConverter.fromMixed; },
+        writer: function (_args) { return function (v) { return v; }; },
+        constraint: function (args) { return createConstraint(args.params); },
+    },
+    controller: function (params) {
+        return createController(params.document, params.binding.value);
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/monitor-binding.ts":
+/*!***********************************************!*\
+  !*** ./src/main/js/plugin/monitor-binding.ts ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createController = void 0;
+var monitor_1 = __webpack_require__(/*! ../binding/monitor */ "./src/main/js/binding/monitor.ts");
+var monitor_binding_1 = __webpack_require__(/*! ../controller/monitor-binding */ "./src/main/js/controller/monitor-binding.ts");
+var constants_1 = __webpack_require__(/*! ../misc/constants */ "./src/main/js/misc/constants.ts");
+var interval_1 = __webpack_require__(/*! ../misc/ticker/interval */ "./src/main/js/misc/ticker/interval.ts");
+var manual_1 = __webpack_require__(/*! ../misc/ticker/manual */ "./src/main/js/misc/ticker/manual.ts");
+var type_util_1 = __webpack_require__(/*! ../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var monitor_value_1 = __webpack_require__(/*! ../model/monitor-value */ "./src/main/js/model/monitor-value.ts");
+function createTicker(document, interval) {
+    return interval === 0
+        ? new manual_1.ManualTicker()
+        : new interval_1.IntervalTicker(document, type_util_1.TypeUtil.getOrDefault(interval, constants_1.Constants.monitor.defaultInterval));
+}
+function createController(plugin, args) {
+    var initialValue = plugin.model.accept(args.target.read(), args.params);
+    if (initialValue === null) {
+        return null;
+    }
+    var valueArgs = {
+        target: args.target,
+        initialValue: initialValue,
+        params: args.params,
+    };
+    var reader = plugin.model.reader(valueArgs);
+    var bufferSize = type_util_1.TypeUtil.getOrDefault(type_util_1.TypeUtil.getOrDefault(args.params.bufferSize, args.params.count), plugin.model.defaultBufferSize(args.params));
+    var value = new monitor_value_1.MonitorValue(bufferSize);
+    var binding = new monitor_1.MonitorBinding({
+        reader: reader,
+        target: args.target,
+        ticker: createTicker(args.document, args.params.interval),
+        value: value,
+    });
+    return new monitor_binding_1.MonitorBindingController(args.document, {
+        binding: binding,
+        controller: plugin.controller({
+            binding: binding,
+            document: args.document,
+            params: args.params,
+        }),
+        label: args.params.label || args.target.key,
+    });
+}
+exports.createController = createController;
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/monitor-bindings/boolean.ts":
+/*!********************************************************!*\
+  !*** ./src/main/js/plugin/monitor-bindings/boolean.ts ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BooleanMonitorPlugin = void 0;
+var multi_log_1 = __webpack_require__(/*! ../../controller/monitor/multi-log */ "./src/main/js/controller/monitor/multi-log.ts");
+var single_log_1 = __webpack_require__(/*! ../../controller/monitor/single-log */ "./src/main/js/controller/monitor/single-log.ts");
+var BooleanConverter = __webpack_require__(/*! ../../converter/boolean */ "./src/main/js/converter/boolean.ts");
+var boolean_1 = __webpack_require__(/*! ../../formatter/boolean */ "./src/main/js/formatter/boolean.ts");
+var constants_1 = __webpack_require__(/*! ../../misc/constants */ "./src/main/js/misc/constants.ts");
+var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+/**
+ * @hidden
+ */
+exports.BooleanMonitorPlugin = {
+    model: {
+        accept: function (value, _params) { return (typeof value === 'boolean' ? value : null); },
+        defaultBufferSize: function (_params) { return 1; },
+        reader: function (_args) { return BooleanConverter.fromMixed; },
+    },
+    controller: function (args) {
+        if (args.binding.value.bufferSize === 1) {
+            return new single_log_1.SingleLogMonitorController(args.document, {
+                viewModel: new view_model_1.ViewModel(),
+                formatter: new boolean_1.BooleanFormatter(),
+                value: args.binding.value,
+            });
+        }
+        return new multi_log_1.MultiLogMonitorController(args.document, {
+            viewModel: new view_model_1.ViewModel(),
+            formatter: new boolean_1.BooleanFormatter(),
+            lineCount: type_util_1.TypeUtil.getOrDefault(args.params.lineCount, constants_1.Constants.monitor.defaultLineCount),
+            value: args.binding.value,
+        });
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/monitor-bindings/number.ts":
+/*!*******************************************************!*\
+  !*** ./src/main/js/plugin/monitor-bindings/number.ts ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NumberMonitorPlugin = void 0;
+var graph_1 = __webpack_require__(/*! ../../controller/monitor/graph */ "./src/main/js/controller/monitor/graph.ts");
+var multi_log_1 = __webpack_require__(/*! ../../controller/monitor/multi-log */ "./src/main/js/controller/monitor/multi-log.ts");
+var single_log_1 = __webpack_require__(/*! ../../controller/monitor/single-log */ "./src/main/js/controller/monitor/single-log.ts");
+var NumberConverter = __webpack_require__(/*! ../../converter/number */ "./src/main/js/converter/number.ts");
+var number_1 = __webpack_require__(/*! ../../formatter/number */ "./src/main/js/formatter/number.ts");
+var constants_1 = __webpack_require__(/*! ../../misc/constants */ "./src/main/js/misc/constants.ts");
+var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+function createFormatter() {
+    // TODO: formatter precision
+    return new number_1.NumberFormatter(2);
+}
+function createTextMonitor(document, binding, params) {
+    if (binding.value.bufferSize === 1) {
+        return new single_log_1.SingleLogMonitorController(document, {
+            formatter: createFormatter(),
+            value: binding.value,
+            viewModel: new view_model_1.ViewModel(),
+        });
+    }
+    return new multi_log_1.MultiLogMonitorController(document, {
+        formatter: createFormatter(),
+        lineCount: type_util_1.TypeUtil.getOrDefault(params.lineCount, constants_1.Constants.monitor.defaultLineCount),
+        value: binding.value,
+        viewModel: new view_model_1.ViewModel(),
+    });
+}
+function createGraphMonitor(document, binding, params) {
+    return new graph_1.GraphMonitorController(document, {
+        formatter: createFormatter(),
+        lineCount: type_util_1.TypeUtil.getOrDefault(params.lineCount, constants_1.Constants.monitor.defaultLineCount),
+        maxValue: type_util_1.TypeUtil.getOrDefault('max' in params ? params.max : null, 100),
+        minValue: type_util_1.TypeUtil.getOrDefault('min' in params ? params.min : null, 0),
+        value: binding.value,
+        viewModel: new view_model_1.ViewModel(),
+    });
+}
+function shouldShowGraph(params) {
+    return 'view' in params && params.view === 'graph';
+}
+/**
+ * @hidden
+ */
+exports.NumberMonitorPlugin = {
+    model: {
+        accept: function (value, _params) { return (typeof value === 'number' ? value : null); },
+        defaultBufferSize: function (params) { return (shouldShowGraph(params) ? 64 : 1); },
+        reader: function (_args) { return NumberConverter.fromMixed; },
+    },
+    controller: function (args) {
+        if (shouldShowGraph(args.params)) {
+            return createGraphMonitor(args.document, args.binding, args.params);
+        }
+        return createTextMonitor(args.document, args.binding, args.params);
+    },
+};
+
+
+/***/ }),
+
+/***/ "./src/main/js/plugin/monitor-bindings/string.ts":
+/*!*******************************************************!*\
+  !*** ./src/main/js/plugin/monitor-bindings/string.ts ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StringMonitorPlugin = void 0;
+var multi_log_1 = __webpack_require__(/*! ../../controller/monitor/multi-log */ "./src/main/js/controller/monitor/multi-log.ts");
+var single_log_1 = __webpack_require__(/*! ../../controller/monitor/single-log */ "./src/main/js/controller/monitor/single-log.ts");
+var StringConverter = __webpack_require__(/*! ../../converter/string */ "./src/main/js/converter/string.ts");
+var string_1 = __webpack_require__(/*! ../../formatter/string */ "./src/main/js/formatter/string.ts");
+var constants_1 = __webpack_require__(/*! ../../misc/constants */ "./src/main/js/misc/constants.ts");
+var type_util_1 = __webpack_require__(/*! ../../misc/type-util */ "./src/main/js/misc/type-util.ts");
+var view_model_1 = __webpack_require__(/*! ../../model/view-model */ "./src/main/js/model/view-model.ts");
+/**
+ * @hidden
+ */
+exports.StringMonitorPlugin = {
+    model: {
+        accept: function (value, _params) { return (typeof value === 'string' ? value : null); },
+        defaultBufferSize: function (_params) { return 1; },
+        reader: function (_args) { return StringConverter.fromMixed; },
+    },
+    controller: function (args) {
+        var value = args.binding.value;
+        var multiline = value.bufferSize > 1 ||
+            ('multiline' in args.params && args.params.multiline);
+        if (multiline) {
+            return new multi_log_1.MultiLogMonitorController(args.document, {
+                formatter: new string_1.StringFormatter(),
+                lineCount: type_util_1.TypeUtil.getOrDefault(args.params.lineCount, constants_1.Constants.monitor.defaultLineCount),
+                value: value,
+                viewModel: new view_model_1.ViewModel(),
+            });
+        }
+        return new single_log_1.SingleLogMonitorController(args.document, {
+            formatter: new string_1.StringFormatter(),
+            value: value,
+            viewModel: new view_model_1.ViewModel(),
+        });
+    },
+};
 
 
 /***/ }),
@@ -8247,6 +8369,7 @@ var GraphMonitorView = /** @class */ (function (_super) {
         _this.cursor_.emitter.on('change', _this.onCursorChange_);
         var svgElem = document.createElementNS(SVG_NS, 'svg');
         svgElem.classList.add(className('g'));
+        svgElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
         _this.element.appendChild(svgElem);
         _this.svgElem_ = svgElem;
         var lineElem = document.createElementNS(SVG_NS, 'polyline');
@@ -8283,7 +8406,7 @@ var GraphMonitorView = /** @class */ (function (_super) {
         }
         var bounds = this.svgElem_.getBoundingClientRect();
         // Graph
-        var maxIndex = this.value.totalCount - 1;
+        var maxIndex = this.value.bufferSize - 1;
         var min = this.minValue_;
         var max = this.maxValue_;
         this.lineElem_.setAttributeNS(null, 'points', this.value.rawValues
@@ -8360,6 +8483,7 @@ var MultiLogMonitorView = /** @class */ (function (_super) {
         _this.element.classList.add(className());
         var textareaElem = document.createElement('textarea');
         textareaElem.classList.add(className('i'));
+        textareaElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
         textareaElem.readOnly = true;
         _this.element.appendChild(textareaElem);
         _this.textareaElem_ = textareaElem;
@@ -8722,7 +8846,7 @@ exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loa
 
 
 // module
-exports.push([module.i, ".tp-fldv_t,.tp-rotv_t{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:24px;line-height:24px;overflow:hidden;padding-left:30px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:'';display:block;height:6px;left:12px;margin:auto;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-btnv{padding:0 4px}.tp-btnv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}.tp-btnv_b:hover{background-color:var(--button-background-color-hover)}.tp-btnv_b:focus{background-color:var(--button-background-color-focus)}.tp-btnv_b:active{background-color:var(--button-background-color-active)}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-ckbiv_l{display:block;position:relative}.tp-ckbiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background:red;left:0;opacity:0;position:absolute;top:0}.tp-ckbiv_m{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:20px;position:relative;width:20px}.tp-ckbiv_m::before{background-color:var(--input-foreground-color);border-radius:2px;bottom:4px;content:'';display:block;left:4px;opacity:0;position:absolute;right:4px;top:4px}.tp-ckbiv_i:hover+.tp-ckbiv_m{background-color:var(--input-background-color-hover)}.tp-ckbiv_i:focus+.tp-ckbiv_m{background-color:var(--input-background-color-focus)}.tp-ckbiv_i:active+.tp-ckbiv_m{background-color:var(--input-background-color-active)}.tp-ckbiv_i:checked+.tp-ckbiv_m::before{opacity:1}.tp-cctxtsiv{display:flex;width:100%}.tp-cctxtsiv_m{margin-right:4px;position:relative}.tp-cctxtsiv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:20px;line-height:20px;padding:0 18px 0 4px}.tp-cctxtsiv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsiv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsiv_ms:active{background-color:var(--input-background-color-active)}.tp-cctxtsiv_mm{border-color:var(--label-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-cctxtsiv_w{display:flex;flex:1}.tp-cctxtsiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:20px;line-height:20px;min-width:0;width:100%;border-radius:0;flex:1;padding:0 4px}.tp-cctxtsiv_i:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsiv_i:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsiv_i:active{background-color:var(--input-background-color-active)}.tp-cctxtsiv_i:first-child{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-cctxtsiv_i:last-child{border-bottom-right-radius:2px;border-top-right-radius:2px}.tp-cctxtsiv_i+.tp-cctxtsiv_i{margin-left:2px}.tp-clpiv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpiv.tp-clpiv-expanded{display:block;visibility:visible}.tp-clpiv_h,.tp-clpiv_ap{margin-left:6px;margin-right:6px}.tp-clpiv_h{margin-top:4px}.tp-clpiv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpiv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpiv_a:before{background-color:var(--separator-color);content:'';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpiv_ap{flex:3}.tp-clpiv_at{flex:1;margin-left:4px}.tp-svpiv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpiv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpiv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpiv:focus .tp-svpiv_m{border-color:#fff}.tp-hpliv{cursor:pointer;height:20px;outline:none;position:relative}.tp-hpliv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hpliv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hpliv:focus .tp-hpliv_m{border-color:#fff}.tp-apliv{cursor:pointer;height:20px;outline:none;position:relative}.tp-apliv_b{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;background-color:#fff;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-apliv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-apliv_m{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;background-color:#fff;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-apliv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-apliv:focus .tp-apliv_p{border-color:#fff}.tp-lstiv{display:block;padding:0;position:relative}.tp-lstiv_s{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;height:20px;line-height:20px;padding:0 4px;width:100%}.tp-lstiv_s:hover{background-color:var(--button-background-color-hover)}.tp-lstiv_s:focus{background-color:var(--button-background-color-focus)}.tp-lstiv_s:active{background-color:var(--button-background-color-active)}.tp-lstiv_m{border-color:var(--button-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-p2dpadiv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px 4px 4px 28px;position:relative;visibility:hidden;z-index:1000}.tp-p2dpadiv.tp-p2dpadiv-expanded{display:block;visibility:visible}.tp-p2dpadiv_p{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:20px;line-height:20px;min-width:0;width:100%;cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadiv_p:hover{background-color:var(--input-background-color-hover)}.tp-p2dpadiv_p:focus{background-color:var(--input-background-color-focus)}.tp-p2dpadiv_p:active{background-color:var(--input-background-color-active)}.tp-p2dpadiv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadiv_ax{stroke:var(--input-guide-color)}.tp-p2dpadiv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadiv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtiv{display:flex;position:relative}.tp-p2dpadtxtiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:20px;position:relative;width:20px}.tp-p2dpadtxtiv_b:hover{background-color:var(--button-background-color-hover)}.tp-p2dpadtxtiv_b:focus{background-color:var(--button-background-color-focus)}.tp-p2dpadtxtiv_b:active{background-color:var(--button-background-color-active)}.tp-p2dpadtxtiv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtiv_p{left:-4px;position:absolute;right:-4px;top:20px}.tp-p2dpadtxtiv_t{margin-left:4px}.tp-p2dtxtiv{display:flex}.tp-p2dtxtiv_w{align-items:center;display:flex}.tp-p2dtxtiv_w+.tp-p2dtxtiv_w{margin-left:2px}.tp-p2dtxtiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:20px;line-height:20px;min-width:0;width:100%;padding:0 4px;width:100%}.tp-p2dtxtiv_i:hover{background-color:var(--input-background-color-hover)}.tp-p2dtxtiv_i:focus{background-color:var(--input-background-color-focus)}.tp-p2dtxtiv_i:active{background-color:var(--input-background-color-active)}.tp-p2dtxtiv_w:nth-child(1) .tp-p2dtxtiv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p2dtxtiv_w:nth-child(2) .tp-p2dtxtiv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-sldiv{display:block;padding:0}.tp-sldiv_o{box-sizing:border-box;cursor:pointer;height:20px;margin:0 6px;outline:none;position:relative}.tp-sldiv_o::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:'';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldiv_i{height:100%;left:0;position:absolute;top:0}.tp-sldiv_i::before{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:'';display:block;height:12px;margin:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldiv_o:hover .tp-sldiv_i::before{background-color:var(--button-background-color-hover)}.tp-sldiv_o:focus .tp-sldiv_i::before{background-color:var(--button-background-color-focus)}.tp-sldiv_o:active .tp-sldiv_i::before{background-color:var(--button-background-color-active)}.tp-txtiv{display:block;padding:0}.tp-txtiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:20px;line-height:20px;min-width:0;width:100%;padding:0 4px}.tp-txtiv_i:hover{background-color:var(--input-background-color-hover)}.tp-txtiv_i:focus{background-color:var(--input-background-color-focus)}.tp-txtiv_i:active{background-color:var(--input-background-color-active)}.tp-cswiv{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;background-color:#fff;border-radius:2px}.tp-cswiv_sw{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:20px;line-height:20px;min-width:0;width:100%}.tp-cswiv_sw:hover{background-color:var(--input-background-color-hover)}.tp-cswiv_sw:focus{background-color:var(--input-background-color-focus)}.tp-cswiv_sw:active{background-color:var(--input-background-color-active)}.tp-cswiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:20px;left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:20px}.tp-cswiv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:'';display:block;left:0;position:absolute;right:0;top:0}.tp-cswiv_p{left:-4px;position:absolute;right:-4px;top:20px}.tp-cswtxtiv{display:flex;position:relative}.tp-cswtxtiv_s{flex-grow:0;flex-shrink:0;width:20px}.tp-cswtxtiv_t{flex:1;margin-left:4px}.tp-sldtxtiv{display:flex}.tp-sldtxtiv_s{flex:2}.tp-sldtxtiv_t{flex:1;margin-left:4px}.tp-lblv{align-items:center;display:flex;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:160px}.tp-grpmv{display:block;padding:0;position:relative}.tp-grpmv_g{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:20px;width:100%;display:block;height:60px}.tp-grpmv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grpmv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grpmv_t.tp-grpmv_t-valid{visibility:visible}.tp-grpmv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:'';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-sglmv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:20px;width:100%;padding:0 4px}.tp-mllmv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:20px;width:100%;display:block;height:60px;line-height:20px;padding:0 4px;resize:none;white-space:pre}.tp-cswmv_sw{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:20px;width:100%}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.15));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.35));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.25));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(47,49,55,0.5));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.8));--monitor-background-color: var(--tp-monitor-background-color, rgba(24,24,27,0.5));--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, rgba(24,24,27,0.3));background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-v.tp-v-hidden{display:none}\n", ""]);
+exports.push([module.i, ".tp-fldv_t,.tp-rotv_t{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:'';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-btnv{padding:0 4px}.tp-btnv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}.tp-btnv_b:hover{background-color:var(--button-background-color-hover)}.tp-btnv_b:focus{background-color:var(--button-background-color-focus)}.tp-btnv_b:active{background-color:var(--button-background-color-active)}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-ckbiv_l{display:block;position:relative}.tp-ckbiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background:red;left:0;opacity:0;position:absolute;top:0}.tp-ckbiv_m{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbiv_m::before{background-color:var(--input-foreground-color);border-radius:2px;bottom:4px;content:'';display:block;left:4px;opacity:0;position:absolute;right:4px;top:4px}.tp-ckbiv_i:hover+.tp-ckbiv_m{background-color:var(--input-background-color-hover)}.tp-ckbiv_i:focus+.tp-ckbiv_m{background-color:var(--input-background-color-focus)}.tp-ckbiv_i:active+.tp-ckbiv_m{background-color:var(--input-background-color-active)}.tp-ckbiv_i:checked+.tp-ckbiv_m::before{opacity:1}.tp-cctxtsiv{display:flex;width:100%}.tp-cctxtsiv_m{margin-right:4px;position:relative}.tp-cctxtsiv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cctxtsiv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsiv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsiv_ms:active{background-color:var(--input-background-color-active)}.tp-cctxtsiv_mm{border-color:var(--label-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-cctxtsiv_w{display:flex;flex:1}.tp-cctxtsiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;border-radius:0;flex:1;padding:0 4px}.tp-cctxtsiv_i:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsiv_i:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsiv_i:active{background-color:var(--input-background-color-active)}.tp-cctxtsiv_i:first-child{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-cctxtsiv_i:last-child{border-bottom-right-radius:2px;border-top-right-radius:2px}.tp-cctxtsiv_i+.tp-cctxtsiv_i{margin-left:2px}.tp-clpiv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpiv.tp-clpiv-expanded{display:block;visibility:visible}.tp-clpiv_h,.tp-clpiv_ap{margin-left:6px;margin-right:6px}.tp-clpiv_h{margin-top:4px}.tp-clpiv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpiv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpiv_a:before{background-color:var(--separator-color);content:'';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpiv_ap{align-items:center;display:flex;flex:3}.tp-clpiv_at{flex:1;margin-left:4px}.tp-svpiv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpiv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpiv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpiv:focus .tp-svpiv_m{border-color:#fff}.tp-hpliv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hpliv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hpliv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hpliv:focus .tp-hpliv_m{border-color:#fff}.tp-apliv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-apliv_b{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;background-color:#fff;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-apliv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-apliv_m{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;background-color:#fff;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-apliv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-apliv:focus .tp-apliv_p{border-color:#fff}.tp-lstiv{display:block;padding:0;position:relative}.tp-lstiv_s{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px;width:100%}.tp-lstiv_s:hover{background-color:var(--button-background-color-hover)}.tp-lstiv_s:focus{background-color:var(--button-background-color-focus)}.tp-lstiv_s:active{background-color:var(--button-background-color-active)}.tp-lstiv_m{border-color:var(--button-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-p2dpadiv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px 4px 4px calc(4px * 2 + var(--unit-size));position:relative;visibility:hidden;z-index:1000}.tp-p2dpadiv.tp-p2dpadiv-expanded{display:block;visibility:visible}.tp-p2dpadiv_p{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadiv_p:hover{background-color:var(--input-background-color-hover)}.tp-p2dpadiv_p:focus{background-color:var(--input-background-color-focus)}.tp-p2dpadiv_p:active{background-color:var(--input-background-color-active)}.tp-p2dpadiv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadiv_ax{stroke:var(--input-guide-color)}.tp-p2dpadiv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadiv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtiv{display:flex;position:relative}.tp-p2dpadtxtiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtiv_b:hover{background-color:var(--button-background-color-hover)}.tp-p2dpadtxtiv_b:focus{background-color:var(--button-background-color-focus)}.tp-p2dpadtxtiv_b:active{background-color:var(--button-background-color-active)}.tp-p2dpadtxtiv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtiv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtiv_t{margin-left:4px}.tp-p2dtxtiv{display:flex}.tp-p2dtxtiv_w{align-items:center;display:flex}.tp-p2dtxtiv_w+.tp-p2dtxtiv_w{margin-left:2px}.tp-p2dtxtiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;padding:0 4px;width:100%}.tp-p2dtxtiv_i:hover{background-color:var(--input-background-color-hover)}.tp-p2dtxtiv_i:focus{background-color:var(--input-background-color-focus)}.tp-p2dtxtiv_i:active{background-color:var(--input-background-color-active)}.tp-p2dtxtiv_w:nth-child(1) .tp-p2dtxtiv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p2dtxtiv_w:nth-child(2) .tp-p2dtxtiv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-sldiv{display:block;padding:0}.tp-sldiv_o{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldiv_o::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:'';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldiv_i{height:100%;left:0;position:absolute;top:0}.tp-sldiv_i::before{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:'';display:block;height:12px;margin:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldiv_o:hover .tp-sldiv_i::before{background-color:var(--button-background-color-hover)}.tp-sldiv_o:focus .tp-sldiv_i::before{background-color:var(--button-background-color-focus)}.tp-sldiv_o:active .tp-sldiv_i::before{background-color:var(--button-background-color-active)}.tp-txtiv{display:block;padding:0}.tp-txtiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;padding:0 4px}.tp-txtiv_i:hover{background-color:var(--input-background-color-hover)}.tp-txtiv_i:focus{background-color:var(--input-background-color-focus)}.tp-txtiv_i:active{background-color:var(--input-background-color-active)}.tp-cswiv{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;background-color:#fff;border-radius:2px}.tp-cswiv_sw{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cswiv_sw:hover{background-color:var(--input-background-color-hover)}.tp-cswiv_sw:focus{background-color:var(--input-background-color-focus)}.tp-cswiv_sw:active{background-color:var(--input-background-color-active)}.tp-cswiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-cswiv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:'';display:block;left:0;position:absolute;right:0;top:0}.tp-cswiv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-cswtxtiv{display:flex;position:relative}.tp-cswtxtiv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-cswtxtiv_t{flex:1;margin-left:4px}.tp-sldtxtiv{display:flex}.tp-sldtxtiv_s{flex:2}.tp-sldtxtiv_t{flex:1;margin-left:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:160px}.tp-grpmv{display:block;padding:0;position:relative}.tp-grpmv_g{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%;display:block;height:calc(var(--unit-size) * 3)}.tp-grpmv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grpmv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grpmv_t.tp-grpmv_t-valid{visibility:visible}.tp-grpmv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:'';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-sglmv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%;padding:0 4px}.tp-mllmv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%;display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-cswmv_sw{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(47,49,55,0.5));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, #26272c);--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, #26272c);background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-v.tp-v-hidden{display:none}\n", ""]);
 
 // exports
 

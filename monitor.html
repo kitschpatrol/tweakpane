@@ -79,6 +79,9 @@
 					<a class="submenuItem_anchor" href="monitor.html#multiline">Multiline</a>
 				</li>
 				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="monitor.html#buffersize">Buffer size</a>
+				</li>
+				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="monitor.html#interval">Interval</a>
 				</li>
 				<li class="submenuItem">
@@ -157,7 +160,7 @@
 				<div class="main_innerLayout">
 					
 <h2 id="multiline">Multiline</h2>
-<p><code>multiline</code> option provides multiline log components.</p>
+<p><code>multiline</code> option provides a multiline log component. <code>lineCount</code> can change the number of display lines.</p>
 
 <div class="main_mediaLayout">
 	<div class="demo">
@@ -165,6 +168,7 @@
 			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
 pane.addMonitor(PARAMS, 'wave', {
   <strong>multiline</strong>: true,
+  <strong>lineCount</strong>: 5,
 });</code></pre></div>
 		</div>
 		<div class="demo_resultLayout">
@@ -174,15 +178,15 @@ pane.addMonitor(PARAMS, 'wave', {
 </div>
 
 
-<h2 id="count">Count</h2>
-<p>You can use <code>count</code> option to change a buffer size.</p>
+<h2 id="buffersize">Buffer size</h2>
+<p>You can use <code>bufferSize</code> option to change the buffer size.</p>
 
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
 			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
 pane.addMonitor(PARAMS, 'wave', {
-  <strong>count</strong>: 10,
+  <strong>bufferSize</strong>: 10,
 });</code></pre></div>
 		</div>
 		<div class="demo_resultLayout">
@@ -190,6 +194,8 @@ pane.addMonitor(PARAMS, 'wave', {
 		</div>
 	</div>
 </div>
+
+<p>(NOTE: previously <code>count</code>, still supported yet but will be removed in a future update)</p>
 
 
 <h2 id="interval">Interval</h2>
