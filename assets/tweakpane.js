@@ -1,4 +1,4 @@
-/*! Tweakpane 1.5.9 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 1.6.0 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -32,6 +32,32 @@
             for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
                 r[k] = a[j];
         return r;
+    }
+
+    var Plugins = {
+        inputs: [],
+        monitors: [],
+    };
+    function getAllPlugins() {
+        return __spreadArrays(Plugins.inputs, Plugins.monitors);
+    }
+
+    function forceCast(v) {
+        return v;
+    }
+    function isEmpty(value) {
+        return value === null || value === undefined;
+    }
+    function deepEqualsArray(a1, a2) {
+        if (a1.length !== a2.length) {
+            return false;
+        }
+        for (var i = 0; i < a1.length; i++) {
+            if (a1[i] !== a2[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -88,27 +114,6 @@
         return Button;
     }());
 
-    var PREFIX = 'tp';
-    var TYPE_TO_POSTFIX_MAP = {
-        '': 'v',
-        input: 'iv',
-        monitor: 'mv',
-    };
-    function ClassName(viewName, opt_viewType) {
-        var viewType = opt_viewType || '';
-        var postfix = TYPE_TO_POSTFIX_MAP[viewType];
-        return function (opt_elementName, opt_modifier) {
-            return [
-                PREFIX,
-                '-',
-                viewName,
-                postfix,
-                opt_elementName ? "_" + opt_elementName : '',
-                opt_modifier ? "-" + opt_modifier : '',
-            ].join('');
-        };
-    }
-
     function disposeElement(elem) {
         if (elem && elem.parentElement) {
             elem.parentElement.removeChild(elem);
@@ -116,93 +121,31 @@
         return null;
     }
 
-    function createMessage(config) {
-        if (config.type === 'alreadydisposed') {
-            return 'View has been already disposed';
-        }
-        if (config.type === 'emptyvalue') {
-            return "Value is empty for " + config.context.key;
-        }
-        if (config.type === 'invalidparams') {
-            return "Invalid parameters for " + config.context.name;
-        }
-        if (config.type === 'nomatchingcontroller') {
-            return "No matching controller for " + config.context.key;
-        }
-        if (config.type === 'shouldneverhappen') {
-            return 'This error should never happen';
-        }
-        return 'Unexpected error';
+    var PREFIX = 'tp';
+    function ClassName(viewName) {
+        return function (opt_elementName, opt_modifier) {
+            return [
+                PREFIX,
+                '-',
+                viewName,
+                'v',
+                opt_elementName ? "_" + opt_elementName : '',
+                opt_modifier ? "-" + opt_modifier : '',
+            ].join('');
+        };
     }
-    var PaneError = /** @class */ (function () {
-        function PaneError(config) {
-            this.message = createMessage(config);
-            this.name = this.constructor.name;
-            this.stack = new Error(this.message).stack;
-            this.type = config.type;
-        }
-        PaneError.alreadyDisposed = function () {
-            return new PaneError({ type: 'alreadydisposed' });
-        };
-        PaneError.shouldNeverHappen = function () {
-            return new PaneError({ type: 'shouldneverhappen' });
-        };
-        return PaneError;
-    }());
-    PaneError.prototype = Object.create(Error.prototype);
-    PaneError.prototype.constructor = PaneError;
 
-    function getAll() {
+    function getAllBladePositions() {
         return ['first', 'last'];
     }
 
     var className = ClassName('');
-    /**
-     * @hidden
-     */
-    var View = /** @class */ (function () {
-        function View(document, config) {
-            this.onChange_ = this.onChange_.bind(this);
-            this.onDispose_ = this.onDispose_.bind(this);
-            this.model_ = config.model;
-            this.model_.emitter.on('change', this.onChange_);
-            this.model_.emitter.on('dispose', this.onDispose_);
-            this.doc_ = document;
-            this.elem_ = this.doc_.createElement('div');
-            this.elem_.classList.add(className());
-        }
-        Object.defineProperty(View.prototype, "document", {
-            get: function () {
-                if (!this.doc_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.doc_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(View.prototype, "element", {
-            get: function () {
-                if (!this.elem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.elem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        View.prototype.onDispose_ = function () {
-            this.doc_ = null;
-            this.elem_ = disposeElement(this.elem_);
-        };
-        View.prototype.onChange_ = function (ev) {
-            var elem = this.elem_;
-            if (!elem) {
-                throw PaneError.alreadyDisposed();
-            }
+    function setUpBladeView(view, model) {
+        var elem = view.element;
+        model.emitter.on('change', function (ev) {
             if (ev.propertyName === 'hidden') {
                 var hiddenClass = className(undefined, 'hidden');
-                if (this.model_.hidden) {
+                if (model.hidden) {
                     elem.classList.add(hiddenClass);
                 }
                 else {
@@ -210,63 +153,53 @@
                 }
             }
             else if (ev.propertyName === 'positions') {
-                getAll().forEach(function (pos) {
+                getAllBladePositions().forEach(function (pos) {
                     elem.classList.remove(className(undefined, pos));
                 });
-                this.model_.positions.forEach(function (pos) {
+                model.positions.forEach(function (pos) {
                     elem.classList.add(className(undefined, pos));
                 });
             }
-        };
-        return View;
-    }());
+        });
+        model.emitter.on('dispose', function () {
+            if (view.onDispose) {
+                view.onDispose();
+            }
+            disposeElement(elem);
+        });
+    }
 
     var className$1 = ClassName('btn');
     /**
      * @hidden
      */
-    var ButtonView = /** @class */ (function (_super) {
-        __extends(ButtonView, _super);
-        function ButtonView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.button = config.button;
-            _this.element.classList.add(className$1());
-            var buttonElem = document.createElement('button');
+    var ButtonView = /** @class */ (function () {
+        function ButtonView(doc, config) {
+            this.button = config.button;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$1());
+            var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$1('b'));
-            buttonElem.textContent = _this.button.title;
-            _this.element.appendChild(buttonElem);
-            _this.buttonElem_ = buttonElem;
-            config.model.emitter.on('dispose', function () {
-                _this.buttonElem_ = disposeElement(_this.buttonElem_);
-            });
-            return _this;
+            buttonElem.textContent = this.button.title;
+            this.element.appendChild(buttonElem);
+            this.buttonElement = buttonElem;
         }
-        Object.defineProperty(ButtonView.prototype, "buttonElement", {
-            get: function () {
-                if (!this.buttonElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.buttonElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
         return ButtonView;
-    }(View));
+    }());
 
     /**
      * @hidden
      */
     var ButtonController = /** @class */ (function () {
-        function ButtonController(document, config) {
+        function ButtonController(doc, config) {
             this.onButtonClick_ = this.onButtonClick_.bind(this);
             this.button = new Button(config.title);
-            this.viewModel = config.viewModel;
-            this.view = new ButtonView(document, {
+            this.blade = config.blade;
+            this.view = new ButtonView(doc, {
                 button: this.button,
-                model: this.viewModel,
             });
             this.view.buttonElement.addEventListener('click', this.onButtonClick_);
+            setUpBladeView(this.view, this.blade);
         }
         ButtonController.prototype.onButtonClick_ = function () {
             this.button.click();
@@ -274,28 +207,173 @@
         return ButtonController;
     }());
 
-    var TypeUtil = {
-        forceCast: function (v) {
-            return v;
-        },
-        isEmpty: function (value) {
-            return value === null || value === undefined;
-        },
-        getOrDefault: function (value, defaultValue) {
-            return !TypeUtil.isEmpty(value) ? value : defaultValue;
-        },
-        deepEqualsArray: function (a1, a2) {
-            if (a1.length !== a2.length) {
+    var className$2 = ClassName('lbl');
+    function createLabelNode(doc, label) {
+        var frag = doc.createDocumentFragment();
+        var lineNodes = label.split('\n').map(function (line) {
+            return doc.createTextNode(line);
+        });
+        lineNodes.forEach(function (lineNode, index) {
+            if (index > 0) {
+                frag.appendChild(doc.createElement('br'));
+            }
+            frag.appendChild(lineNode);
+        });
+        return frag;
+    }
+    /**
+     * @hidden
+     */
+    var LabeledView = /** @class */ (function () {
+        function LabeledView(doc, config) {
+            this.label = config.label;
+            this.elem_ = doc.createElement('div');
+            this.elem_.classList.add(className$2());
+            var labelElem = doc.createElement('div');
+            labelElem.classList.add(className$2('l'));
+            labelElem.appendChild(createLabelNode(doc, this.label));
+            this.elem_.appendChild(labelElem);
+            var viewElem = doc.createElement('div');
+            viewElem.classList.add(className$2('v'));
+            viewElem.appendChild(config.view.element);
+            this.elem_.appendChild(viewElem);
+        }
+        Object.defineProperty(LabeledView.prototype, "element", {
+            get: function () {
+                return this.elem_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return LabeledView;
+    }());
+
+    /**
+     * @hidden
+     */
+    var InputBindingController = /** @class */ (function () {
+        function InputBindingController(doc, config) {
+            this.binding = config.binding;
+            this.controller = config.controller;
+            this.view = new LabeledView(doc, {
+                label: config.label,
+                view: this.controller.view,
+            });
+            this.blade = config.blade;
+            setUpBladeView(this.view, this.blade);
+        }
+        return InputBindingController;
+    }());
+
+    /**
+     * @hidden
+     */
+    var MonitorBindingController = /** @class */ (function () {
+        function MonitorBindingController(doc, config) {
+            var _this = this;
+            this.binding = config.binding;
+            this.controller = config.controller;
+            this.view = new LabeledView(doc, {
+                label: config.label,
+                view: this.controller.view,
+            });
+            this.blade = config.blade;
+            this.blade.emitter.on('dispose', function () {
+                _this.binding.dispose();
+            });
+            setUpBladeView(this.view, this.blade);
+        }
+        return MonitorBindingController;
+    }());
+
+    /**
+     * @hidden
+     */
+    var Disposable = /** @class */ (function () {
+        function Disposable() {
+            this.emitter = new Emitter();
+            this.disposed_ = false;
+        }
+        Object.defineProperty(Disposable.prototype, "disposed", {
+            get: function () {
+                return this.disposed_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Disposable.prototype.dispose = function () {
+            if (this.disposed_) {
                 return false;
             }
-            for (var i = 0; i < a1.length; i++) {
-                if (a1[i] !== a2[i]) {
-                    return false;
-                }
-            }
+            this.disposed_ = true;
+            this.emitter.emit('dispose', {
+                sender: this,
+            });
             return true;
-        },
-    };
+        };
+        return Disposable;
+    }());
+
+    var Blade = /** @class */ (function () {
+        function Blade() {
+            this.onDispose_ = this.onDispose_.bind(this);
+            this.emitter = new Emitter();
+            this.positions_ = [];
+            this.hidden_ = false;
+            this.disposable_ = new Disposable();
+            this.disposable_.emitter.on('dispose', this.onDispose_);
+        }
+        Object.defineProperty(Blade.prototype, "hidden", {
+            get: function () {
+                return this.hidden_;
+            },
+            set: function (hidden) {
+                if (this.hidden_ === hidden) {
+                    return;
+                }
+                this.hidden_ = hidden;
+                this.emitter.emit('change', {
+                    propertyName: 'hidden',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Blade.prototype, "positions", {
+            get: function () {
+                return this.positions_;
+            },
+            set: function (positions) {
+                if (deepEqualsArray(positions, this.positions_)) {
+                    return;
+                }
+                this.positions_ = positions;
+                this.emitter.emit('change', {
+                    propertyName: 'positions',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Blade.prototype, "disposed", {
+            get: function () {
+                return this.disposable_.disposed;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Blade.prototype.dispose = function () {
+            this.disposable_.dispose();
+        };
+        Blade.prototype.onDispose_ = function () {
+            this.emitter.emit('dispose', {
+                sender: this,
+            });
+        };
+        return Blade;
+    }());
 
     var SVG_NS = 'http://www.w3.org/2000/svg';
     function forceReflow(element) {
@@ -307,14 +385,14 @@
         callback();
         element.style.transition = t;
     }
-    function supportsTouch(document) {
-        return document.ontouchstart !== undefined;
+    function supportsTouch(doc) {
+        return doc.ontouchstart !== undefined;
     }
     function getGlobalObject() {
         return new Function('return this')();
     }
     function getWindowDocument() {
-        var globalObj = TypeUtil.forceCast(getGlobalObject());
+        var globalObj = forceCast(getGlobalObject());
         return globalObj.document;
     }
     function isBrowser() {
@@ -337,7 +415,7 @@
     }
     function findNextTarget(ev) {
         if (ev.relatedTarget) {
-            return TypeUtil.forceCast(ev.relatedTarget);
+            return forceCast(ev.relatedTarget);
         }
         // Workaround for Firefox
         if ('explicitOriginalTarget' in ev) {
@@ -451,7 +529,8 @@
         });
         Object.defineProperty(Folder.prototype, "styleExpanded", {
             get: function () {
-                return TypeUtil.getOrDefault(this.temporaryExpanded, this.expanded);
+                var _a;
+                return (_a = this.temporaryExpanded) !== null && _a !== void 0 ? _a : this.expanded;
             },
             enumerable: false,
             configurable: true
@@ -461,7 +540,7 @@
                 if (!this.styleExpanded) {
                     return '0';
                 }
-                if (this.shouldFixHeight && !TypeUtil.isEmpty(this.expandedHeight)) {
+                if (this.shouldFixHeight && !isEmpty(this.expandedHeight)) {
                     return this.expandedHeight + "px";
                 }
                 return 'auto';
@@ -472,91 +551,39 @@
         return Folder;
     }());
 
-    var className$2 = ClassName('lbl');
-    function createLabelNode(document, label) {
-        var frag = document.createDocumentFragment();
-        var lineNodes = label.split('\n').map(function (line) {
-            return document.createTextNode(line);
-        });
-        lineNodes.forEach(function (lineNode, index) {
-            if (index > 0) {
-                frag.appendChild(document.createElement('br'));
+    function updateAllItemsPositions(bladeRack) {
+        var visibleItems = bladeRack.items.filter(function (bc) { return !bc.blade.hidden; });
+        var firstVisibleItem = visibleItems[0];
+        var lastVisibleItem = visibleItems[visibleItems.length - 1];
+        bladeRack.items.forEach(function (bc) {
+            var ps = [];
+            if (bc === firstVisibleItem) {
+                ps.push('first');
             }
-            frag.appendChild(lineNode);
+            if (bc === lastVisibleItem) {
+                ps.push('last');
+            }
+            bc.blade.positions = ps;
         });
-        return frag;
     }
     /**
      * @hidden
      */
-    var LabeledView = /** @class */ (function (_super) {
-        __extends(LabeledView, _super);
-        function LabeledView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.label = config.label;
-            _this.element.classList.add(className$2());
-            var labelElem = document.createElement('div');
-            labelElem.classList.add(className$2('l'));
-            labelElem.appendChild(createLabelNode(document, _this.label));
-            _this.element.appendChild(labelElem);
-            var viewElem = document.createElement('div');
-            viewElem.classList.add(className$2('v'));
-            viewElem.appendChild(config.view.element);
-            _this.element.appendChild(viewElem);
-            return _this;
-        }
-        return LabeledView;
-    }(View));
-
-    /**
-     * @hidden
-     */
-    var InputBindingController = /** @class */ (function () {
-        function InputBindingController(document, config) {
-            this.binding = config.binding;
-            this.controller = config.controller;
-            this.view = new LabeledView(document, {
-                model: this.controller.viewModel,
-                label: config.label,
-                view: this.controller.view,
-            });
-        }
-        Object.defineProperty(InputBindingController.prototype, "viewModel", {
-            get: function () {
-                return this.controller.viewModel;
-            },
-            enumerable: false,
-            configurable: true
+    function computeExpandedFolderHeight(folder, containerElement) {
+        var height = 0;
+        disableTransitionTemporarily(containerElement, function () {
+            // Expand folder temporarily
+            folder.expandedHeight = null;
+            folder.temporaryExpanded = true;
+            forceReflow(containerElement);
+            // Compute height
+            height = containerElement.clientHeight;
+            // Restore expanded
+            folder.temporaryExpanded = null;
+            forceReflow(containerElement);
         });
-        return InputBindingController;
-    }());
-
-    /**
-     * @hidden
-     */
-    var MonitorBindingController = /** @class */ (function () {
-        function MonitorBindingController(document, config) {
-            var _this = this;
-            this.binding = config.binding;
-            this.controller = config.controller;
-            this.view = new LabeledView(document, {
-                label: config.label,
-                model: this.viewModel,
-                view: this.controller.view,
-            });
-            this.viewModel.emitter.on('dispose', function () {
-                _this.binding.dispose();
-            });
-        }
-        Object.defineProperty(MonitorBindingController.prototype, "viewModel", {
-            get: function () {
-                return this.controller.viewModel;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return MonitorBindingController;
-    }());
+        return height;
+    }
 
     /**
      * @hidden
@@ -598,8 +625,8 @@
     /**
      * @hidden
      */
-    var UiContainer = /** @class */ (function () {
-        function UiContainer() {
+    var BladeRack = /** @class */ (function () {
+        function BladeRack() {
             this.onItemFolderFold_ = this.onItemFolderFold_.bind(this);
             this.onListItemLayout_ = this.onListItemLayout_.bind(this);
             this.onSubitemLayout_ = this.onSubitemLayout_.bind(this);
@@ -611,85 +638,96 @@
             this.onListItemDispose_ = this.onListItemDispose_.bind(this);
             this.onListRemove_ = this.onListRemove_.bind(this);
             this.onItemMonitorUpdate_ = this.onItemMonitorUpdate_.bind(this);
-            this.ucList_ = new List();
+            this.blades_ = new List();
             this.emitter = new Emitter();
-            this.ucList_.emitter.on('add', this.onListAdd_);
-            this.ucList_.emitter.on('remove', this.onListRemove_);
+            this.blades_.emitter.on('add', this.onListAdd_);
+            this.blades_.emitter.on('remove', this.onListRemove_);
         }
-        Object.defineProperty(UiContainer.prototype, "items", {
+        Object.defineProperty(BladeRack.prototype, "items", {
             get: function () {
-                return this.ucList_.items;
+                return this.blades_.items;
             },
             enumerable: false,
             configurable: true
         });
-        UiContainer.prototype.add = function (uc, opt_index) {
-            this.ucList_.add(uc, opt_index);
+        BladeRack.prototype.add = function (bc, opt_index) {
+            this.blades_.add(bc, opt_index);
         };
-        UiContainer.prototype.onListAdd_ = function (ev) {
-            var uc = ev.item;
+        BladeRack.prototype.find = function (controllerClass) {
+            return this.items.reduce(function (results, bc) {
+                if (bc instanceof FolderController) {
+                    results.push.apply(results, bc.bladeRack.find(controllerClass));
+                }
+                if (bc instanceof controllerClass) {
+                    results.push(bc);
+                }
+                return results;
+            }, []);
+        };
+        BladeRack.prototype.onListAdd_ = function (ev) {
+            var bc = ev.item;
             this.emitter.emit('add', {
+                blade: bc,
                 index: ev.index,
                 sender: this,
-                uiController: uc,
             });
-            uc.viewModel.emitter.on('dispose', this.onListItemDispose_);
-            uc.viewModel.emitter.on('change', this.onListItemLayout_);
-            if (uc instanceof InputBindingController) {
-                var emitter = uc.binding.emitter;
+            bc.blade.emitter.on('dispose', this.onListItemDispose_);
+            bc.blade.emitter.on('change', this.onListItemLayout_);
+            if (bc instanceof InputBindingController) {
+                var emitter = bc.binding.emitter;
                 // TODO: Find more type-safe way
                 emitter.on('change', this.onItemInputChange_);
             }
-            else if (uc instanceof MonitorBindingController) {
-                var emitter = uc.binding.emitter;
+            else if (bc instanceof MonitorBindingController) {
+                var emitter = bc.binding.emitter;
                 // TODO: Find more type-safe way
                 emitter.on('update', this.onItemMonitorUpdate_);
             }
-            else if (uc instanceof FolderController) {
-                uc.folder.emitter.on('change', this.onItemFolderFold_);
-                var emitter = uc.uiContainer.emitter;
+            else if (bc instanceof FolderController) {
+                bc.folder.emitter.on('change', this.onItemFolderFold_);
+                var emitter = bc.bladeRack.emitter;
                 emitter.on('itemfold', this.onSubitemFolderFold_);
                 emitter.on('itemlayout', this.onSubitemLayout_);
                 emitter.on('inputchange', this.onSubitemInputChange_);
                 emitter.on('monitorupdate', this.onSubitemMonitorUpdate_);
             }
         };
-        UiContainer.prototype.onListRemove_ = function (_) {
+        BladeRack.prototype.onListRemove_ = function (_) {
             this.emitter.emit('remove', {
                 sender: this,
             });
         };
-        UiContainer.prototype.onListItemLayout_ = function (ev) {
+        BladeRack.prototype.onListItemLayout_ = function (ev) {
             if (ev.propertyName === 'hidden' || ev.propertyName === 'positions') {
                 this.emitter.emit('itemlayout', {
                     sender: this,
                 });
             }
         };
-        UiContainer.prototype.onListItemDispose_ = function (_) {
+        BladeRack.prototype.onListItemDispose_ = function (_) {
             var _this = this;
-            var disposedUcs = this.ucList_.items.filter(function (uc) {
-                return uc.viewModel.disposed;
+            var disposedUcs = this.blades_.items.filter(function (bc) {
+                return bc.blade.disposed;
             });
-            disposedUcs.forEach(function (uc) {
-                _this.ucList_.remove(uc);
+            disposedUcs.forEach(function (bc) {
+                _this.blades_.remove(bc);
             });
         };
-        UiContainer.prototype.onItemInputChange_ = function (ev) {
+        BladeRack.prototype.onItemInputChange_ = function (ev) {
             this.emitter.emit('inputchange', {
                 inputBinding: ev.sender,
                 sender: this,
                 value: ev.rawValue,
             });
         };
-        UiContainer.prototype.onItemMonitorUpdate_ = function (ev) {
+        BladeRack.prototype.onItemMonitorUpdate_ = function (ev) {
             this.emitter.emit('monitorupdate', {
                 monitorBinding: ev.sender,
                 sender: this,
                 value: ev.rawValue,
             });
         };
-        UiContainer.prototype.onItemFolderFold_ = function (ev) {
+        BladeRack.prototype.onItemFolderFold_ = function (ev) {
             if (ev.propertyName !== 'expanded') {
                 return;
             }
@@ -698,90 +736,60 @@
                 sender: this,
             });
         };
-        UiContainer.prototype.onSubitemLayout_ = function (_) {
+        BladeRack.prototype.onSubitemLayout_ = function (_) {
             this.emitter.emit('itemlayout', {
                 sender: this,
             });
         };
-        UiContainer.prototype.onSubitemInputChange_ = function (ev) {
+        BladeRack.prototype.onSubitemInputChange_ = function (ev) {
             this.emitter.emit('inputchange', {
                 inputBinding: ev.inputBinding,
                 sender: this,
                 value: ev.value,
             });
         };
-        UiContainer.prototype.onSubitemMonitorUpdate_ = function (ev) {
+        BladeRack.prototype.onSubitemMonitorUpdate_ = function (ev) {
             this.emitter.emit('monitorupdate', {
                 monitorBinding: ev.monitorBinding,
                 sender: this,
                 value: ev.value,
             });
         };
-        UiContainer.prototype.onSubitemFolderFold_ = function (ev) {
+        BladeRack.prototype.onSubitemFolderFold_ = function (ev) {
             this.emitter.emit('itemfold', {
                 expanded: ev.expanded,
                 sender: this,
             });
         };
-        return UiContainer;
+        return BladeRack;
     }());
 
     var className$3 = ClassName('fld');
     /**
      * @hidden
      */
-    var FolderView = /** @class */ (function (_super) {
-        __extends(FolderView, _super);
-        function FolderView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onFolderChange_ = _this.onFolderChange_.bind(_this);
-            _this.folder_ = config.folder;
-            _this.folder_.emitter.on('change', _this.onFolderChange_);
-            _this.element.classList.add(className$3());
-            var titleElem = document.createElement('button');
+    var FolderView = /** @class */ (function () {
+        function FolderView(doc, config) {
+            this.onFolderChange_ = this.onFolderChange_.bind(this);
+            this.folder_ = config.folder;
+            this.folder_.emitter.on('change', this.onFolderChange_);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$3());
+            var titleElem = doc.createElement('button');
             titleElem.classList.add(className$3('t'));
-            titleElem.textContent = _this.folder_.title;
-            _this.element.appendChild(titleElem);
-            _this.titleElem_ = titleElem;
-            var markElem = document.createElement('div');
+            titleElem.textContent = this.folder_.title;
+            this.element.appendChild(titleElem);
+            this.titleElement = titleElem;
+            var markElem = doc.createElement('div');
             markElem.classList.add(className$3('m'));
-            _this.titleElem_.appendChild(markElem);
-            var containerElem = document.createElement('div');
+            this.titleElement.appendChild(markElem);
+            var containerElem = doc.createElement('div');
             containerElem.classList.add(className$3('c'));
-            _this.element.appendChild(containerElem);
-            _this.containerElem_ = containerElem;
-            _this.applyModel_();
-            config.model.emitter.on('dispose', function () {
-                _this.containerElem_ = disposeElement(_this.containerElem_);
-                _this.titleElem_ = disposeElement(_this.titleElem_);
-            });
-            return _this;
+            this.element.appendChild(containerElem);
+            this.containerElement = containerElem;
+            this.applyModel_();
         }
-        Object.defineProperty(FolderView.prototype, "titleElement", {
-            get: function () {
-                if (!this.titleElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.titleElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(FolderView.prototype, "containerElement", {
-            get: function () {
-                if (!this.containerElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.containerElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
         FolderView.prototype.applyModel_ = function () {
-            var containerElem = this.containerElem_;
-            if (!containerElem) {
-                throw PaneError.alreadyDisposed();
-            }
             var expanded = this.folder_.styleExpanded;
             var expandedClass = className$3(undefined, 'expanded');
             if (expanded) {
@@ -790,73 +798,40 @@
             else {
                 this.element.classList.remove(expandedClass);
             }
-            containerElem.style.height = this.folder_.styleHeight;
+            this.containerElement.style.height = this.folder_.styleHeight;
         };
         FolderView.prototype.onFolderChange_ = function () {
             this.applyModel_();
         };
         return FolderView;
-    }(View));
-
-    function updateAllItemsPositions(uiContainer) {
-        var visibleItems = uiContainer.items.filter(function (uc) { return !uc.viewModel.hidden; });
-        var firstVisibleItem = visibleItems[0];
-        var lastVisibleItem = visibleItems[visibleItems.length - 1];
-        uiContainer.items.forEach(function (uc) {
-            var ps = [];
-            if (uc === firstVisibleItem) {
-                ps.push('first');
-            }
-            if (uc === lastVisibleItem) {
-                ps.push('last');
-            }
-            uc.viewModel.positions = ps;
-        });
-    }
-    /**
-     * @hidden
-     */
-    function computeExpandedFolderHeight(folder, containerElement) {
-        var height = 0;
-        disableTransitionTemporarily(containerElement, function () {
-            // Expand folder temporarily
-            folder.expandedHeight = null;
-            folder.temporaryExpanded = true;
-            forceReflow(containerElement);
-            // Compute height
-            height = containerElement.clientHeight;
-            // Restore expanded
-            folder.temporaryExpanded = null;
-            forceReflow(containerElement);
-        });
-        return height;
-    }
+    }());
 
     /**
      * @hidden
      */
     var FolderController = /** @class */ (function () {
-        function FolderController(document, config) {
+        function FolderController(doc, config) {
+            var _a;
             this.onContainerTransitionEnd_ = this.onContainerTransitionEnd_.bind(this);
             this.onFolderBeforeChange_ = this.onFolderBeforeChange_.bind(this);
             this.onTitleClick_ = this.onTitleClick_.bind(this);
-            this.onUiContainerAdd_ = this.onUiContainerAdd_.bind(this);
-            this.onUiContainerItemLayout_ = this.onUiContainerItemLayout_.bind(this);
-            this.onUiContainerRemove_ = this.onUiContainerRemove_.bind(this);
-            this.viewModel = config.viewModel;
-            this.folder = new Folder(config.title, TypeUtil.getOrDefault(config.expanded, true));
+            this.onRackAdd_ = this.onRackAdd_.bind(this);
+            this.onRackItemLayout_ = this.onRackItemLayout_.bind(this);
+            this.onRackRemove_ = this.onRackRemove_.bind(this);
+            this.blade = config.blade;
+            this.folder = new Folder(config.title, (_a = config.expanded) !== null && _a !== void 0 ? _a : true);
             this.folder.emitter.on('beforechange', this.onFolderBeforeChange_);
-            this.ucList_ = new UiContainer();
-            this.ucList_.emitter.on('add', this.onUiContainerAdd_);
-            this.ucList_.emitter.on('itemlayout', this.onUiContainerItemLayout_);
-            this.ucList_.emitter.on('remove', this.onUiContainerRemove_);
-            this.doc_ = document;
+            this.rack_ = new BladeRack();
+            this.rack_.emitter.on('add', this.onRackAdd_);
+            this.rack_.emitter.on('itemlayout', this.onRackItemLayout_);
+            this.rack_.emitter.on('remove', this.onRackRemove_);
+            this.doc_ = doc;
             this.view = new FolderView(this.doc_, {
                 folder: this.folder,
-                model: this.viewModel,
             });
             this.view.titleElement.addEventListener('click', this.onTitleClick_);
             this.view.containerElement.addEventListener('transitionend', this.onContainerTransitionEnd_);
+            setUpBladeView(this.view, this.blade);
         }
         Object.defineProperty(FolderController.prototype, "document", {
             get: function () {
@@ -865,9 +840,9 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(FolderController.prototype, "uiContainer", {
+        Object.defineProperty(FolderController.prototype, "bladeRack", {
             get: function () {
-                return this.ucList_;
+                return this.rack_;
             },
             enumerable: false,
             configurable: true
@@ -876,7 +851,7 @@
             if (ev.propertyName !== 'expanded') {
                 return;
             }
-            if (TypeUtil.isEmpty(this.folder.expandedHeight)) {
+            if (isEmpty(this.folder.expandedHeight)) {
                 this.folder.expandedHeight = computeExpandedFolderHeight(this.folder, this.view.containerElement);
             }
             this.folder.shouldFixHeight = true;
@@ -885,18 +860,18 @@
         FolderController.prototype.onTitleClick_ = function () {
             this.folder.expanded = !this.folder.expanded;
         };
-        FolderController.prototype.applyUiContainerChange_ = function () {
-            updateAllItemsPositions(this.uiContainer);
+        FolderController.prototype.applyRackChange_ = function () {
+            updateAllItemsPositions(this.bladeRack);
         };
-        FolderController.prototype.onUiContainerAdd_ = function (ev) {
-            insertElementAt(this.view.containerElement, ev.uiController.view.element, ev.index);
-            this.applyUiContainerChange_();
+        FolderController.prototype.onRackAdd_ = function (ev) {
+            insertElementAt(this.view.containerElement, ev.blade.view.element, ev.index);
+            this.applyRackChange_();
         };
-        FolderController.prototype.onUiContainerRemove_ = function (_) {
-            this.applyUiContainerChange_();
+        FolderController.prototype.onRackRemove_ = function (_) {
+            this.applyRackChange_();
         };
-        FolderController.prototype.onUiContainerItemLayout_ = function (_) {
-            this.applyUiContainerChange_();
+        FolderController.prototype.onRackItemLayout_ = function (_) {
+            this.applyRackChange_();
         };
         FolderController.prototype.onContainerTransitionEnd_ = function (ev) {
             if (ev.propertyName !== 'height') {
@@ -912,319 +887,28 @@
     /**
      * @hidden
      */
-    var SeparatorView = /** @class */ (function (_super) {
-        __extends(SeparatorView, _super);
-        function SeparatorView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.element.classList.add(className$4());
-            var hrElem = document.createElement('hr');
+    var SeparatorView = /** @class */ (function () {
+        function SeparatorView(doc) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$4());
+            var hrElem = doc.createElement('hr');
             hrElem.classList.add(className$4('r'));
-            _this.element.appendChild(hrElem);
-            return _this;
+            this.element.appendChild(hrElem);
         }
         return SeparatorView;
-    }(View));
+    }());
 
     /**
      * @hidden
      */
     var SeparatorController = /** @class */ (function () {
-        function SeparatorController(document, config) {
-            this.viewModel = config.viewModel;
-            this.view = new SeparatorView(document, {
-                model: this.viewModel,
-            });
+        function SeparatorController(doc, config) {
+            this.blade = config.blade;
+            this.view = new SeparatorView(doc);
+            setUpBladeView(this.view, this.blade);
         }
         return SeparatorController;
     }());
-
-    var Point2d = /** @class */ (function () {
-        function Point2d(x, y) {
-            if (x === void 0) { x = 0; }
-            if (y === void 0) { y = 0; }
-            this.x = x;
-            this.y = y;
-        }
-        Point2d.prototype.getComponents = function () {
-            return [this.x, this.y];
-        };
-        Point2d.isObject = function (obj) {
-            if (TypeUtil.isEmpty(obj)) {
-                return false;
-            }
-            var x = obj.x;
-            var y = obj.y;
-            if (typeof x !== 'number' || typeof y !== 'number') {
-                return false;
-            }
-            return true;
-        };
-        Point2d.equals = function (v1, v2) {
-            return v1.x === v2.x && v1.y === v2.y;
-        };
-        Point2d.prototype.toObject = function () {
-            return {
-                x: this.x,
-                y: this.y,
-            };
-        };
-        return Point2d;
-    }());
-
-    /**
-     * @hidden
-     */
-    var Point2dConstraint = /** @class */ (function () {
-        function Point2dConstraint(config) {
-            this.xConstraint = config.x;
-            this.yConstraint = config.y;
-        }
-        Point2dConstraint.prototype.constrain = function (value) {
-            return new Point2d(this.xConstraint ? this.xConstraint.constrain(value.x) : value.x, this.yConstraint ? this.yConstraint.constrain(value.y) : value.y);
-        };
-        return Point2dConstraint;
-    }());
-
-    /**
-     * @hidden
-     */
-    var RangeConstraint = /** @class */ (function () {
-        function RangeConstraint(config) {
-            this.maxValue = config.max;
-            this.minValue = config.min;
-        }
-        RangeConstraint.prototype.constrain = function (value) {
-            var result = value;
-            if (!TypeUtil.isEmpty(this.minValue)) {
-                result = Math.max(result, this.minValue);
-            }
-            if (!TypeUtil.isEmpty(this.maxValue)) {
-                result = Math.min(result, this.maxValue);
-            }
-            return result;
-        };
-        return RangeConstraint;
-    }());
-
-    /**
-     * @hidden
-     */
-    var StepConstraint = /** @class */ (function () {
-        function StepConstraint(config) {
-            this.step = config.step;
-        }
-        StepConstraint.prototype.constrain = function (value) {
-            var r = value < 0
-                ? -Math.round(-value / this.step)
-                : Math.round(value / this.step);
-            return r * this.step;
-        };
-        return StepConstraint;
-    }());
-
-    /**
-     * @hidden
-     */
-    var CompositeConstraint = /** @class */ (function () {
-        function CompositeConstraint(config) {
-            this.constraints_ = config.constraints;
-        }
-        Object.defineProperty(CompositeConstraint.prototype, "constraints", {
-            get: function () {
-                return this.constraints_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        CompositeConstraint.prototype.constrain = function (value) {
-            return this.constraints_.reduce(function (result, c) {
-                return c.constrain(result);
-            }, value);
-        };
-        return CompositeConstraint;
-    }());
-
-    /**
-     * @hidden
-     */
-    var ConstraintUtil = {
-        findConstraint: function (c, constraintClass) {
-            if (c instanceof constraintClass) {
-                return c;
-            }
-            if (c instanceof CompositeConstraint) {
-                var result = c.constraints.reduce(function (tmpResult, sc) {
-                    if (tmpResult) {
-                        return tmpResult;
-                    }
-                    return sc instanceof constraintClass ? sc : null;
-                }, null);
-                if (result) {
-                    return result;
-                }
-            }
-            return null;
-        },
-    };
-
-    var NumberUtil = {
-        map: function (value, start1, end1, start2, end2) {
-            var p = (value - start1) / (end1 - start1);
-            return start2 + p * (end2 - start2);
-        },
-        getDecimalDigits: function (value) {
-            var text = String(value.toFixed(10));
-            var frac = text.split('.')[1];
-            return frac.replace(/0+$/, '').length;
-        },
-        constrain: function (value, min, max) {
-            return Math.min(Math.max(value, min), max);
-        },
-        loop: function (value, max) {
-            return ((value % max) + max) % max;
-        },
-    };
-
-    /**
-     * @hidden
-     */
-    function normalizeInputParamsOptions(options, convert) {
-        if (Array.isArray(options)) {
-            return options.map(function (item) {
-                return {
-                    text: item.text,
-                    value: convert(item.value),
-                };
-            });
-        }
-        var textToValueMap = options;
-        var texts = Object.keys(textToValueMap);
-        return texts.reduce(function (result, text) {
-            return result.concat({
-                text: text,
-                value: convert(textToValueMap[text]),
-            });
-        }, []);
-    }
-    /**
-     * @hidden
-     */
-    function findControllers(uiControllers, controllerClass) {
-        return uiControllers.reduce(function (results, uc) {
-            if (uc instanceof FolderController) {
-                // eslint-disable-next-line no-use-before-define
-                results.push.apply(results, findControllers(uc.uiContainer.items, controllerClass));
-            }
-            if (uc instanceof controllerClass) {
-                results.push(uc);
-            }
-            return results;
-        }, []);
-    }
-    function findStep(constraint) {
-        var c = constraint
-            ? ConstraintUtil.findConstraint(constraint, StepConstraint)
-            : null;
-        if (!c) {
-            return null;
-        }
-        return c.step;
-    }
-    /**
-     * @hidden
-     */
-    function getStepForTextInput(constraint) {
-        var step = findStep(constraint);
-        return TypeUtil.getOrDefault(step, 1);
-    }
-    /**
-     * @hidden
-     */
-    function getStepForKey(baseStep, keys) {
-        var step = baseStep * (keys.altKey ? 0.1 : 1) * (keys.shiftKey ? 10 : 1);
-        if (keys.upKey) {
-            return +step;
-        }
-        else if (keys.downKey) {
-            return -step;
-        }
-        return 0;
-    }
-    /**
-     * @hidden
-     */
-    function getVerticalStepKeys(ev) {
-        return {
-            altKey: ev.altKey,
-            downKey: ev.keyCode === 40,
-            shiftKey: ev.shiftKey,
-            upKey: ev.keyCode === 38,
-        };
-    }
-    /**
-     * @hidden
-     */
-    function getHorizontalStepKeys(ev) {
-        return {
-            altKey: ev.altKey,
-            downKey: ev.keyCode === 37,
-            shiftKey: ev.shiftKey,
-            upKey: ev.keyCode === 39,
-        };
-    }
-    /**
-     * @hidden
-     */
-    function isVerticalArrowKey(keyCode) {
-        return keyCode === 38 || keyCode === 40;
-    }
-    /**
-     * @hidden
-     */
-    function isArrowKey(keyCode) {
-        return isVerticalArrowKey(keyCode) || keyCode === 37 || keyCode === 39;
-    }
-    /**
-     * @hidden
-     */
-    function getSuitableDecimalDigits(constraint, rawValue) {
-        var sc = constraint && ConstraintUtil.findConstraint(constraint, StepConstraint);
-        if (sc) {
-            return NumberUtil.getDecimalDigits(sc.step);
-        }
-        return Math.max(NumberUtil.getDecimalDigits(rawValue), 2);
-    }
-    /**
-     * @hidden
-     */
-    function getSuitableMaxDimensionValue(constraint, rawValue) {
-        var rc = constraint && ConstraintUtil.findConstraint(constraint, RangeConstraint);
-        if (rc) {
-            return Math.max(Math.abs(rc.minValue || 0), Math.abs(rc.maxValue || 0));
-        }
-        var step = getStepForTextInput(constraint);
-        return Math.max(Math.abs(step) * 10, Math.abs(rawValue) * 10);
-    }
-    /**
-     * @hidden
-     */
-    function getSuitableMaxValueForPoint2dPad(constraint, rawValue) {
-        var xc = constraint instanceof Point2dConstraint
-            ? constraint.xConstraint
-            : undefined;
-        var yc = constraint instanceof Point2dConstraint
-            ? constraint.yConstraint
-            : undefined;
-        var xr = getSuitableMaxDimensionValue(xc, rawValue.x);
-        var yr = getSuitableMaxDimensionValue(yc, rawValue.y);
-        return Math.max(xr, yr);
-    }
-    /**
-     * @hidden
-     */
-    function getBaseStepForColor(forAlpha) {
-        return forAlpha ? 0.1 : 1;
-    }
 
     /**
      * @hidden
@@ -1233,7 +917,7 @@
         function Target(object, key, opt_id) {
             this.obj_ = object;
             this.key_ = key;
-            this.presetKey_ = TypeUtil.getOrDefault(opt_id, key);
+            this.presetKey_ = opt_id !== null && opt_id !== void 0 ? opt_id : key;
         }
         Object.defineProperty(Target.prototype, "key", {
             get: function () {
@@ -1258,95 +942,6 @@
         return Target;
     }());
 
-    /**
-     * @hidden
-     */
-    var Disposable = /** @class */ (function () {
-        function Disposable() {
-            this.emitter = new Emitter();
-            this.disposed_ = false;
-        }
-        Object.defineProperty(Disposable.prototype, "disposed", {
-            get: function () {
-                return this.disposed_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Disposable.prototype.dispose = function () {
-            if (this.disposed_) {
-                return false;
-            }
-            this.disposed_ = true;
-            this.emitter.emit('dispose', {
-                sender: this,
-            });
-            return true;
-        };
-        return Disposable;
-    }());
-
-    var ViewModel = /** @class */ (function () {
-        function ViewModel() {
-            this.onDispose_ = this.onDispose_.bind(this);
-            this.emitter = new Emitter();
-            this.positions_ = [];
-            this.hidden_ = false;
-            this.disposable_ = new Disposable();
-            this.disposable_.emitter.on('dispose', this.onDispose_);
-        }
-        Object.defineProperty(ViewModel.prototype, "hidden", {
-            get: function () {
-                return this.hidden_;
-            },
-            set: function (hidden) {
-                if (this.hidden_ === hidden) {
-                    return;
-                }
-                this.hidden_ = hidden;
-                this.emitter.emit('change', {
-                    propertyName: 'hidden',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(ViewModel.prototype, "positions", {
-            get: function () {
-                return this.positions_;
-            },
-            set: function (positions) {
-                if (TypeUtil.deepEqualsArray(positions, this.positions_)) {
-                    return;
-                }
-                this.positions_ = positions;
-                this.emitter.emit('change', {
-                    propertyName: 'positions',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(ViewModel.prototype, "disposed", {
-            get: function () {
-                return this.disposable_.disposed;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        ViewModel.prototype.dispose = function () {
-            this.disposable_.dispose();
-        };
-        ViewModel.prototype.onDispose_ = function () {
-            this.emitter.emit('dispose', {
-                sender: this,
-            });
-        };
-        return ViewModel;
-    }());
-
     var ButtonApi = /** @class */ (function () {
         /**
          * @hidden
@@ -1356,20 +951,21 @@
         }
         Object.defineProperty(ButtonApi.prototype, "hidden", {
             get: function () {
-                return this.controller.viewModel.hidden;
+                return this.controller.blade.hidden;
             },
             set: function (hidden) {
-                this.controller.viewModel.hidden = hidden;
+                this.controller.blade.hidden = hidden;
             },
             enumerable: false,
             configurable: true
         });
         ButtonApi.prototype.dispose = function () {
-            this.controller.viewModel.dispose();
+            this.controller.blade.dispose();
         };
         ButtonApi.prototype.on = function (eventName, handler) {
             var emitter = this.controller.button.emitter;
-            emitter.on(eventName, handler.bind(this));
+            // TODO: Type-safe
+            emitter.on(eventName, forceCast(handler.bind(this)));
             return this;
         };
         return ButtonApi;
@@ -1378,7 +974,7 @@
     /**
      * @hidden
      */
-    function input(_a) {
+    function handleInputBinding(_a) {
         var binding = _a.binding, eventName = _a.eventName, handler = _a.handler;
         if (eventName === 'change') {
             var emitter = binding.emitter;
@@ -1390,7 +986,7 @@
     /**
      * @hidden
      */
-    function monitor(_a) {
+    function handleMonitorBinding(_a) {
         var binding = _a.binding, eventName = _a.eventName, handler = _a.handler;
         if (eventName === 'update') {
             var emitter = binding.emitter;
@@ -1402,23 +998,23 @@
     /**
      * @hidden
      */
-    function folder(_a) {
-        var eventName = _a.eventName, folder = _a.folder, handler = _a.handler, uiContainer = _a.uiContainer;
+    function handleFolder(_a) {
+        var bladeRack = _a.bladeRack, eventName = _a.eventName, folder = _a.folder, handler = _a.handler;
         if (eventName === 'change') {
-            var emitter = uiContainer.emitter;
+            var emitter = bladeRack.emitter;
             emitter.on('inputchange', function (ev) {
                 // TODO: Find more type-safe way
                 handler(ev.inputBinding.getValueToWrite(ev.value));
             });
         }
         if (eventName === 'update') {
-            var emitter = uiContainer.emitter;
+            var emitter = bladeRack.emitter;
             emitter.on('monitorupdate', function (ev) {
                 handler(ev.monitorBinding.target.read());
             });
         }
         if (eventName === 'fold') {
-            uiContainer.emitter.on('itemfold', function (ev) {
+            bladeRack.emitter.on('itemfold', function (ev) {
                 handler(ev.expanded);
             });
             folder === null || folder === void 0 ? void 0 : folder.emitter.on('change', function (ev) {
@@ -1433,7 +1029,7 @@
     /**
      * The API for the input binding between the parameter and the pane.
      * @param In The type internal Tweakpane.
-     * @param Ex The type externalTweakpane (= parameter object).
+     * @param Ex The type external Tweakpane (= parameter object).
      */
     var InputBindingApi = /** @class */ (function () {
         /**
@@ -1444,22 +1040,23 @@
         }
         Object.defineProperty(InputBindingApi.prototype, "hidden", {
             get: function () {
-                return this.controller.viewModel.hidden;
+                return this.controller.blade.hidden;
             },
             set: function (hidden) {
-                this.controller.viewModel.hidden = hidden;
+                this.controller.blade.hidden = hidden;
             },
             enumerable: false,
             configurable: true
         });
         InputBindingApi.prototype.dispose = function () {
-            this.controller.viewModel.dispose();
+            this.controller.blade.dispose();
         };
         InputBindingApi.prototype.on = function (eventName, handler) {
-            input({
+            handleInputBinding({
                 binding: this.controller.binding,
                 eventName: eventName,
-                handler: handler.bind(this),
+                // TODO: Type-safe
+                handler: forceCast(handler.bind(this)),
             });
             return this;
         };
@@ -1468,6 +1065,42 @@
         };
         return InputBindingApi;
     }());
+
+    function createMessage(config) {
+        if (config.type === 'alreadydisposed') {
+            return 'View has been already disposed';
+        }
+        if (config.type === 'emptyvalue') {
+            return "Value is empty for " + config.context.key;
+        }
+        if (config.type === 'invalidparams') {
+            return "Invalid parameters for " + config.context.name;
+        }
+        if (config.type === 'nomatchingcontroller') {
+            return "No matching controller for " + config.context.key;
+        }
+        if (config.type === 'shouldneverhappen') {
+            return 'This error should never happen';
+        }
+        return 'Unexpected error';
+    }
+    var PaneError = /** @class */ (function () {
+        function PaneError(config) {
+            this.message = createMessage(config);
+            this.name = this.constructor.name;
+            this.stack = new Error(this.message).stack;
+            this.type = config.type;
+        }
+        PaneError.alreadyDisposed = function () {
+            return new PaneError({ type: 'alreadydisposed' });
+        };
+        PaneError.shouldNeverHappen = function () {
+            return new PaneError({ type: 'shouldneverhappen' });
+        };
+        return PaneError;
+    }());
+    PaneError.prototype = Object.create(Error.prototype);
+    PaneError.prototype.constructor = PaneError;
 
     /**
      * @hidden
@@ -1508,21 +1141,22 @@
     /**
      * @hidden
      */
-    var InputValue = /** @class */ (function () {
-        function InputValue(initialValue, constraint, equals) {
-            this.constraint_ = constraint;
-            this.equals_ = equals || (function (v1, v2) { return v1 === v2; });
+    var Value = /** @class */ (function () {
+        function Value(initialValue, config) {
+            var _a;
+            this.constraint_ = config === null || config === void 0 ? void 0 : config.constraint;
+            this.equals_ = (_a = config === null || config === void 0 ? void 0 : config.equals) !== null && _a !== void 0 ? _a : (function (v1, v2) { return v1 === v2; });
             this.emitter = new Emitter();
             this.rawValue_ = initialValue;
         }
-        Object.defineProperty(InputValue.prototype, "constraint", {
+        Object.defineProperty(Value.prototype, "constraint", {
             get: function () {
                 return this.constraint_;
             },
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(InputValue.prototype, "rawValue", {
+        Object.defineProperty(Value.prototype, "rawValue", {
             get: function () {
                 return this.rawValue_;
             },
@@ -1542,11 +1176,11 @@
             enumerable: false,
             configurable: true
         });
-        return InputValue;
+        return Value;
     }());
 
     function createController(plugin, args) {
-        var initialValue = plugin.model.accept(args.target.read(), args.params);
+        var initialValue = plugin.binding.accept(args.target.read(), args.params);
         if (initialValue === null) {
             return null;
         }
@@ -1555,40 +1189,40 @@
             initialValue: initialValue,
             params: args.params,
         };
-        var reader = plugin.model.reader(valueArgs);
-        var constraint = plugin.model.constraint
-            ? plugin.model.constraint(valueArgs)
+        var reader = plugin.binding.reader(valueArgs);
+        var constraint = plugin.binding.constraint
+            ? plugin.binding.constraint(valueArgs)
             : undefined;
-        var value = new InputValue(reader(initialValue), constraint, plugin.model.equals);
+        var value = new Value(reader(initialValue), {
+            constraint: constraint,
+            equals: plugin.binding.equals,
+        });
         var binding = new InputBinding({
             reader: reader,
             target: args.target,
             value: value,
-            writer: plugin.model.writer(valueArgs),
+            writer: plugin.binding.writer(valueArgs),
+        });
+        var controller = plugin.controller({
+            binding: binding,
+            document: args.document,
+            initialValue: initialValue,
+            params: args.params,
         });
         return new InputBindingController(args.document, {
             binding: binding,
-            controller: plugin.controller({
-                binding: binding,
-                document: args.document,
-                initialValue: initialValue,
-                params: args.params,
-            }),
+            controller: controller,
             label: args.params.label || args.target.key,
+            blade: new Blade(),
         });
     }
-
-    var Plugins = {
-        inputs: [],
-        monitors: [],
-    };
 
     /**
      * @hidden
      */
-    function create(document, target, params) {
+    function createInputBindingController(document, target, params) {
         var initialValue = target.read();
-        if (TypeUtil.isEmpty(initialValue)) {
+        if (isEmpty(initialValue)) {
             throw new PaneError({
                 context: {
                     key: target.key,
@@ -1627,22 +1261,23 @@
         }
         Object.defineProperty(MonitorBindingApi.prototype, "hidden", {
             get: function () {
-                return this.controller.viewModel.hidden;
+                return this.controller.blade.hidden;
             },
             set: function (hidden) {
-                this.controller.viewModel.hidden = hidden;
+                this.controller.blade.hidden = hidden;
             },
             enumerable: false,
             configurable: true
         });
         MonitorBindingApi.prototype.dispose = function () {
-            this.controller.viewModel.dispose();
+            this.controller.blade.dispose();
         };
         MonitorBindingApi.prototype.on = function (eventName, handler) {
-            monitor({
+            handleMonitorBinding({
                 binding: this.controller.binding,
                 eventName: eventName,
-                handler: handler.bind(this),
+                // TODO: Type-safe
+                handler: forceCast(handler.bind(this)),
             });
             return this;
         };
@@ -1652,18 +1287,54 @@
         return MonitorBindingApi;
     }());
 
+    var Constants = {
+        monitor: {
+            defaultInterval: 200,
+            defaultLineCount: 3,
+        },
+    };
+
+    function fillBuffer(buffer, bufferSize) {
+        while (buffer.length < bufferSize) {
+            buffer.push(undefined);
+        }
+    }
+    /**
+     * @hidden
+     */
+    function initializeBuffer(initialValue, bufferSize) {
+        var buffer = [initialValue];
+        fillBuffer(buffer, bufferSize);
+        return new Value(buffer);
+    }
+    function createTrimmedBuffer(buffer) {
+        var index = buffer.indexOf(undefined);
+        return forceCast(index < 0 ? buffer : buffer.slice(0, index));
+    }
+    /**
+     * @hidden
+     */
+    function createPushedBuffer(buffer, newValue) {
+        var newBuffer = __spreadArrays(createTrimmedBuffer(buffer), [newValue]);
+        if (newBuffer.length > buffer.length) {
+            newBuffer.splice(0, newBuffer.length - buffer.length);
+        }
+        else {
+            fillBuffer(newBuffer, buffer.length);
+        }
+        return newBuffer;
+    }
+
     /**
      * @hidden
      */
     var MonitorBinding = /** @class */ (function () {
         function MonitorBinding(config) {
             this.onTick_ = this.onTick_.bind(this);
-            this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.reader_ = config.reader;
             this.target = config.target;
             this.emitter = new Emitter();
             this.value = config.value;
-            this.value.emitter.on('update', this.onValueUpdate_);
             this.ticker = config.ticker;
             this.ticker.emitter.on('tick', this.onTick_);
             this.read();
@@ -1673,39 +1344,34 @@
         };
         MonitorBinding.prototype.read = function () {
             var targetValue = this.target.read();
-            if (targetValue !== undefined) {
-                this.value.append(this.reader_(targetValue));
+            if (targetValue === undefined) {
+                return;
             }
+            var buffer = this.value.rawValue;
+            var newValue = this.reader_(targetValue);
+            this.value.rawValue = createPushedBuffer(buffer, newValue);
+            this.emitter.emit('update', {
+                rawValue: newValue,
+                sender: this,
+            });
         };
         MonitorBinding.prototype.onTick_ = function (_) {
             this.read();
         };
-        MonitorBinding.prototype.onValueUpdate_ = function (ev) {
-            this.emitter.emit('update', {
-                rawValue: ev.rawValue,
-                sender: this,
-            });
-        };
         return MonitorBinding;
     }());
-
-    var Constants = {
-        monitor: {
-            defaultInterval: 200,
-            defaultLineCount: 3,
-        },
-    };
 
     /**
      * @hidden
      */
     var IntervalTicker = /** @class */ (function () {
-        function IntervalTicker(document, interval) {
+        function IntervalTicker(doc, interval) {
             var _this = this;
+            this.id_ = null;
             this.onTick_ = this.onTick_.bind(this);
             // this.onWindowBlur_ = this.onWindowBlur_.bind(this);
             // this.onWindowFocus_ = this.onWindowFocus_.bind(this);
-            this.doc_ = document;
+            this.doc_ = doc;
             this.emitter = new Emitter();
             if (interval <= 0) {
                 this.id_ = null;
@@ -1760,49 +1426,14 @@
         return ManualTicker;
     }());
 
-    /**
-     * @hidden
-     */
-    var MonitorValue = /** @class */ (function () {
-        function MonitorValue(bufferSize) {
-            this.emitter = new Emitter();
-            this.rawValues_ = [];
-            this.bufferSize_ = bufferSize;
-        }
-        Object.defineProperty(MonitorValue.prototype, "rawValues", {
-            get: function () {
-                return this.rawValues_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(MonitorValue.prototype, "bufferSize", {
-            get: function () {
-                return this.bufferSize_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        MonitorValue.prototype.append = function (rawValue) {
-            this.rawValues_.push(rawValue);
-            if (this.rawValues_.length > this.bufferSize_) {
-                this.rawValues_.splice(0, this.rawValues_.length - this.bufferSize_);
-            }
-            this.emitter.emit('update', {
-                rawValue: rawValue,
-                sender: this,
-            });
-        };
-        return MonitorValue;
-    }());
-
     function createTicker(document, interval) {
         return interval === 0
             ? new ManualTicker()
-            : new IntervalTicker(document, TypeUtil.getOrDefault(interval, Constants.monitor.defaultInterval));
+            : new IntervalTicker(document, interval !== null && interval !== void 0 ? interval : Constants.monitor.defaultInterval);
     }
     function createController$1(plugin, args) {
-        var initialValue = plugin.model.accept(args.target.read(), args.params);
+        var _a, _b, _c;
+        var initialValue = plugin.binding.accept(args.target.read(), args.params);
         if (initialValue === null) {
             return null;
         }
@@ -1811,14 +1442,14 @@
             initialValue: initialValue,
             params: args.params,
         };
-        var reader = plugin.model.reader(valueArgs);
-        var bufferSize = TypeUtil.getOrDefault(TypeUtil.getOrDefault(args.params.bufferSize, args.params.count), plugin.model.defaultBufferSize(args.params));
-        var value = new MonitorValue(bufferSize);
+        var reader = plugin.binding.reader(valueArgs);
+        var bufferSize = (_c = (_b = (_a = args.params.bufferSize) !== null && _a !== void 0 ? _a : args.params.count) !== null && _b !== void 0 ? _b : (plugin.binding.defaultBufferSize &&
+            plugin.binding.defaultBufferSize(args.params))) !== null && _c !== void 0 ? _c : 1;
         var binding = new MonitorBinding({
             reader: reader,
             target: args.target,
             ticker: createTicker(args.document, args.params.interval),
-            value: value,
+            value: initializeBuffer(reader(initialValue), bufferSize),
         });
         return new MonitorBindingController(args.document, {
             binding: binding,
@@ -1828,15 +1459,16 @@
                 params: args.params,
             }),
             label: args.params.label || args.target.key,
+            blade: new Blade(),
         });
     }
 
     /**
      * @hidden
      */
-    function create$1(document, target, params) {
+    function createMonitorBindingController(document, target, params) {
         var initialValue = target.read();
-        if (TypeUtil.isEmpty(initialValue)) {
+        if (isEmpty(initialValue)) {
             throw new PaneError({
                 context: {
                     key: target.key,
@@ -1872,16 +1504,16 @@
         }
         Object.defineProperty(SeparatorApi.prototype, "hidden", {
             get: function () {
-                return this.controller.viewModel.hidden;
+                return this.controller.blade.hidden;
             },
             set: function (hidden) {
-                this.controller.viewModel.hidden = hidden;
+                this.controller.blade.hidden = hidden;
             },
             enumerable: false,
             configurable: true
         });
         SeparatorApi.prototype.dispose = function () {
-            this.controller.viewModel.dispose();
+            this.controller.blade.dispose();
         };
         return SeparatorApi;
     }());
@@ -1905,53 +1537,54 @@
         });
         Object.defineProperty(FolderApi.prototype, "hidden", {
             get: function () {
-                return this.controller.viewModel.hidden;
+                return this.controller.blade.hidden;
             },
             set: function (hidden) {
-                this.controller.viewModel.hidden = hidden;
+                this.controller.blade.hidden = hidden;
             },
             enumerable: false,
             configurable: true
         });
         FolderApi.prototype.dispose = function () {
-            this.controller.viewModel.dispose();
+            this.controller.blade.dispose();
         };
         FolderApi.prototype.addInput = function (object, key, opt_params) {
             var params = opt_params || {};
-            var uc = create(this.controller.document, new Target(object, key, params.presetKey), params);
-            this.controller.uiContainer.add(uc, params.index);
-            return new InputBindingApi(uc);
+            var bc = createInputBindingController(this.controller.document, new Target(object, key, params.presetKey), params);
+            this.controller.bladeRack.add(bc, params.index);
+            return new InputBindingApi(forceCast(bc));
         };
         FolderApi.prototype.addMonitor = function (object, key, opt_params) {
             var params = opt_params || {};
-            var uc = create$1(this.controller.document, new Target(object, key), params);
-            this.controller.uiContainer.add(uc, params.index);
-            return new MonitorBindingApi(uc);
+            var bc = createMonitorBindingController(this.controller.document, new Target(object, key), params);
+            this.controller.bladeRack.add(bc, params.index);
+            return new MonitorBindingApi(forceCast(bc));
         };
         FolderApi.prototype.addFolder = function (params) {
-            var uc = new FolderController(this.controller.document, __assign(__assign({}, params), { viewModel: new ViewModel() }));
-            this.controller.uiContainer.add(uc, params.index);
-            return new FolderApi(uc);
+            var bc = new FolderController(this.controller.document, __assign(__assign({}, params), { blade: new Blade() }));
+            this.controller.bladeRack.add(bc, params.index);
+            return new FolderApi(bc);
         };
         FolderApi.prototype.addButton = function (params) {
-            var uc = new ButtonController(this.controller.document, __assign(__assign({}, params), { viewModel: new ViewModel() }));
-            this.controller.uiContainer.add(uc, params.index);
-            return new ButtonApi(uc);
+            var bc = new ButtonController(this.controller.document, __assign(__assign({}, params), { blade: new Blade() }));
+            this.controller.bladeRack.add(bc, params.index);
+            return new ButtonApi(bc);
         };
         FolderApi.prototype.addSeparator = function (opt_params) {
             var params = opt_params || {};
-            var uc = new SeparatorController(this.controller.document, {
-                viewModel: new ViewModel(),
+            var bc = new SeparatorController(this.controller.document, {
+                blade: new Blade(),
             });
-            this.controller.uiContainer.add(uc, params.index);
-            return new SeparatorApi(uc);
+            this.controller.bladeRack.add(bc, params.index);
+            return new SeparatorApi(bc);
         };
         FolderApi.prototype.on = function (eventName, handler) {
-            folder({
+            handleFolder({
                 eventName: eventName,
                 folder: this.controller.folder,
-                handler: handler.bind(this),
-                uiContainer: this.controller.uiContainer,
+                // TODO: Type-safe
+                handler: forceCast(handler.bind(this)),
+                bladeRack: this.controller.bladeRack,
             });
             return this;
         };
@@ -1961,7 +1594,7 @@
     /**
      * @hidden
      */
-    function exportJson(targets) {
+    function exportPresetJson(targets) {
         return targets.reduce(function (result, target) {
             var _a;
             return Object.assign(result, (_a = {},
@@ -1972,7 +1605,7 @@
     /**
      * @hidden
      */
-    function importJson(targets, preset) {
+    function importPresetJson(targets, preset) {
         targets.forEach(function (target) {
             var value = preset[target.presetKey];
             if (value !== undefined) {
@@ -2003,10 +1636,10 @@
          */
         RootApi.registerPlugin = function (r) {
             if (r.type === 'input') {
-                Plugins.inputs.push(r.plugin);
+                Plugins.inputs.unshift(r.plugin);
             }
             else if (r.type === 'monitor') {
-                Plugins.monitors.push(r.plugin);
+                Plugins.monitors.unshift(r.plugin);
             }
         };
         Object.defineProperty(RootApi.prototype, "element", {
@@ -2032,56 +1665,58 @@
         });
         Object.defineProperty(RootApi.prototype, "hidden", {
             get: function () {
-                return this.controller.viewModel.hidden;
+                return this.controller.blade.hidden;
             },
             set: function (hidden) {
-                this.controller.viewModel.hidden = hidden;
+                this.controller.blade.hidden = hidden;
             },
             enumerable: false,
             configurable: true
         });
         RootApi.prototype.dispose = function () {
-            this.controller.viewModel.dispose();
+            this.controller.blade.dispose();
         };
         RootApi.prototype.addInput = function (object, key, opt_params) {
             var params = opt_params || {};
-            var uc = create(this.controller.document, new Target(object, key, params.presetKey), params);
-            this.controller.uiContainer.add(uc, params.index);
-            return new InputBindingApi(uc);
+            var bc = createInputBindingController(this.controller.document, new Target(object, key, params.presetKey), params);
+            this.controller.bladeRack.add(bc, params.index);
+            return new InputBindingApi(forceCast(bc));
         };
         RootApi.prototype.addMonitor = function (object, key, opt_params) {
             var params = opt_params || {};
-            var uc = create$1(this.controller.document, new Target(object, key), params);
-            this.controller.uiContainer.add(uc, params.index);
-            return new MonitorBindingApi(uc);
+            var bc = createMonitorBindingController(this.controller.document, new Target(object, key), params);
+            this.controller.bladeRack.add(bc, params.index);
+            return new MonitorBindingApi(forceCast(bc));
         };
         RootApi.prototype.addButton = function (params) {
-            var uc = new ButtonController(this.controller.document, __assign(__assign({}, params), { viewModel: new ViewModel() }));
-            this.controller.uiContainer.add(uc, params.index);
-            return new ButtonApi(uc);
+            var bc = new ButtonController(this.controller.document, __assign(__assign({}, params), { blade: new Blade() }));
+            this.controller.bladeRack.add(bc, params.index);
+            return new ButtonApi(bc);
         };
         RootApi.prototype.addFolder = function (params) {
-            var uc = new FolderController(this.controller.document, __assign(__assign({}, params), { viewModel: new ViewModel() }));
-            this.controller.uiContainer.add(uc, params.index);
-            return new FolderApi(uc);
+            var bc = new FolderController(this.controller.document, __assign(__assign({}, params), { blade: new Blade() }));
+            this.controller.bladeRack.add(bc, params.index);
+            return new FolderApi(bc);
         };
         RootApi.prototype.addSeparator = function (opt_params) {
             var params = opt_params || {};
-            var uc = new SeparatorController(this.controller.document, {
-                viewModel: new ViewModel(),
+            var bc = new SeparatorController(this.controller.document, {
+                blade: new Blade(),
             });
-            this.controller.uiContainer.add(uc, params.index);
-            return new SeparatorApi(uc);
+            this.controller.bladeRack.add(bc, params.index);
+            return new SeparatorApi(bc);
         };
         /**
          * Import a preset of all inputs.
          * @param preset The preset object to import.
          */
         RootApi.prototype.importPreset = function (preset) {
-            var targets = findControllers(this.controller.uiContainer.items, InputBindingController).map(function (ibc) {
+            var targets = this.controller.bladeRack
+                .find(InputBindingController)
+                .map(function (ibc) {
                 return ibc.binding.target;
             });
-            importJson(targets, preset);
+            importPresetJson(targets, preset);
             this.refresh();
         };
         /**
@@ -2089,10 +1724,12 @@
          * @return The exported preset object.
          */
         RootApi.prototype.exportPreset = function () {
-            var targets = findControllers(this.controller.uiContainer.items, InputBindingController).map(function (ibc) {
+            var targets = this.controller.bladeRack
+                .find(InputBindingController)
+                .map(function (ibc) {
                 return ibc.binding.target;
             });
-            return exportJson(targets);
+            return exportPresetJson(targets);
         };
         /**
          * Adds a global event listener. It handles all events of child inputs/monitors.
@@ -2100,11 +1737,12 @@
          * @return The API object itself.
          */
         RootApi.prototype.on = function (eventName, handler) {
-            folder({
+            handleFolder({
                 eventName: eventName,
                 folder: this.controller.folder,
-                handler: handler.bind(this),
-                uiContainer: this.controller.uiContainer,
+                // TODO: Type-safe
+                handler: forceCast(handler.bind(this)),
+                bladeRack: this.controller.bladeRack,
             });
             return this;
         };
@@ -2113,11 +1751,11 @@
          */
         RootApi.prototype.refresh = function () {
             // Force-read all input bindings
-            findControllers(this.controller.uiContainer.items, InputBindingController).forEach(function (ibc) {
+            this.controller.bladeRack.find(InputBindingController).forEach(function (ibc) {
                 ibc.binding.read();
             });
             // Force-read all monitor bindings
-            findControllers(this.controller.uiContainer.items, MonitorBindingController).forEach(function (mbc) {
+            this.controller.bladeRack.find(MonitorBindingController).forEach(function (mbc) {
                 mbc.binding.read();
             });
         };
@@ -2128,38 +1766,32 @@
     /**
      * @hidden
      */
-    var RootView = /** @class */ (function (_super) {
-        __extends(RootView, _super);
-        function RootView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onFolderChange_ = _this.onFolderChange_.bind(_this);
-            _this.folder_ = config.folder;
-            if (_this.folder_) {
-                _this.folder_.emitter.on('change', _this.onFolderChange_);
+    var RootView = /** @class */ (function () {
+        function RootView(doc, config) {
+            this.titleElem_ = null;
+            this.onFolderChange_ = this.onFolderChange_.bind(this);
+            this.folder_ = config.folder;
+            if (this.folder_) {
+                this.folder_.emitter.on('change', this.onFolderChange_);
             }
-            _this.element.classList.add(className$5());
-            var folder = _this.folder_;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$5());
+            var folder = this.folder_;
             if (folder) {
-                var titleElem = document.createElement('button');
+                var titleElem = doc.createElement('button');
                 titleElem.classList.add(className$5('t'));
                 titleElem.textContent = folder.title;
-                _this.element.appendChild(titleElem);
-                var markElem = document.createElement('div');
+                this.element.appendChild(titleElem);
+                var markElem = doc.createElement('div');
                 markElem.classList.add(className$5('m'));
                 titleElem.appendChild(markElem);
-                _this.titleElem_ = titleElem;
+                this.titleElem_ = titleElem;
             }
-            var containerElem = document.createElement('div');
+            var containerElem = doc.createElement('div');
             containerElem.classList.add(className$5('c'));
-            _this.element.appendChild(containerElem);
-            _this.containerElem_ = containerElem;
-            _this.applyModel_();
-            config.model.emitter.on('dispose', function () {
-                _this.containerElem_ = disposeElement(_this.containerElem_);
-                _this.folder_ = null;
-                _this.titleElem_ = disposeElement(_this.titleElem_);
-            });
-            return _this;
+            this.element.appendChild(containerElem);
+            this.containerElement = containerElem;
+            this.applyModel_();
         }
         Object.defineProperty(RootView.prototype, "titleElement", {
             get: function () {
@@ -2168,21 +1800,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(RootView.prototype, "containerElement", {
-            get: function () {
-                if (!this.containerElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.containerElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
         RootView.prototype.applyModel_ = function () {
-            var containerElem = this.containerElem_;
-            if (!containerElem) {
-                throw PaneError.alreadyDisposed();
-            }
             var expanded = this.folder_ ? this.folder_.styleExpanded : true;
             var expandedClass = className$5(undefined, 'expanded');
             if (expanded) {
@@ -2191,7 +1809,7 @@
             else {
                 this.element.classList.remove(expandedClass);
             }
-            containerElem.style.height = this.folder_
+            this.containerElement.style.height = this.folder_
                 ? this.folder_.styleHeight
                 : 'auto';
         };
@@ -2199,54 +1817,48 @@
             this.applyModel_();
         };
         return RootView;
-    }(View));
+    }());
 
     function createFolder(config) {
+        var _a;
         if (!config.title) {
             return null;
         }
-        return new Folder(config.title, TypeUtil.getOrDefault(config.expanded, true));
+        return new Folder(config.title, (_a = config.expanded) !== null && _a !== void 0 ? _a : true);
     }
     /**
      * @hidden
      */
     var RootController = /** @class */ (function () {
-        function RootController(document, config) {
+        function RootController(doc, config) {
             this.onContainerTransitionEnd_ = this.onContainerTransitionEnd_.bind(this);
             this.onFolderBeforeChange_ = this.onFolderBeforeChange_.bind(this);
             this.onTitleClick_ = this.onTitleClick_.bind(this);
-            this.onUiContainerAdd_ = this.onUiContainerAdd_.bind(this);
-            this.onUiContainerItemLayout_ = this.onUiContainerItemLayout_.bind(this);
-            this.onUiContainerRemove_ = this.onUiContainerRemove_.bind(this);
+            this.onRackAdd_ = this.onRackAdd_.bind(this);
+            this.onRackItemLayout_ = this.onRackItemLayout_.bind(this);
+            this.onRackRemove_ = this.onRackRemove_.bind(this);
             this.folder = createFolder(config);
             if (this.folder) {
                 this.folder.emitter.on('beforechange', this.onFolderBeforeChange_);
             }
-            this.ucList_ = new UiContainer();
-            this.ucList_.emitter.on('add', this.onUiContainerAdd_);
-            this.ucList_.emitter.on('itemlayout', this.onUiContainerItemLayout_);
-            this.ucList_.emitter.on('remove', this.onUiContainerRemove_);
-            this.doc_ = document;
-            this.viewModel = config.viewModel;
+            this.bladeRack = new BladeRack();
+            this.bladeRack.emitter.on('add', this.onRackAdd_);
+            this.bladeRack.emitter.on('itemlayout', this.onRackItemLayout_);
+            this.bladeRack.emitter.on('remove', this.onRackRemove_);
+            this.doc_ = doc;
+            this.blade = config.blade;
             this.view = new RootView(this.doc_, {
                 folder: this.folder,
-                model: this.viewModel,
             });
             if (this.view.titleElement) {
                 this.view.titleElement.addEventListener('click', this.onTitleClick_);
             }
             this.view.containerElement.addEventListener('transitionend', this.onContainerTransitionEnd_);
+            setUpBladeView(this.view, this.blade);
         }
         Object.defineProperty(RootController.prototype, "document", {
             get: function () {
                 return this.doc_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(RootController.prototype, "uiContainer", {
-            get: function () {
-                return this.ucList_;
             },
             enumerable: false,
             configurable: true
@@ -2259,24 +1871,24 @@
             if (!folder) {
                 return;
             }
-            if (TypeUtil.isEmpty(folder.expandedHeight)) {
+            if (isEmpty(folder.expandedHeight)) {
                 folder.expandedHeight = computeExpandedFolderHeight(folder, this.view.containerElement);
             }
             folder.shouldFixHeight = true;
             forceReflow(this.view.containerElement);
         };
-        RootController.prototype.applyUiContainerChange_ = function () {
-            updateAllItemsPositions(this.uiContainer);
+        RootController.prototype.applyRackChange_ = function () {
+            updateAllItemsPositions(this.bladeRack);
         };
-        RootController.prototype.onUiContainerAdd_ = function (ev) {
-            insertElementAt(this.view.containerElement, ev.uiController.view.element, ev.index);
-            this.applyUiContainerChange_();
+        RootController.prototype.onRackAdd_ = function (ev) {
+            insertElementAt(this.view.containerElement, ev.blade.view.element, ev.index);
+            this.applyRackChange_();
         };
-        RootController.prototype.onUiContainerRemove_ = function (_) {
-            this.applyUiContainerChange_();
+        RootController.prototype.onRackRemove_ = function (_) {
+            this.applyRackChange_();
         };
-        RootController.prototype.onUiContainerItemLayout_ = function (_) {
-            this.applyUiContainerChange_();
+        RootController.prototype.onRackItemLayout_ = function (_) {
+            this.applyRackChange_();
         };
         RootController.prototype.onTitleClick_ = function () {
             if (this.folder) {
@@ -2294,6 +1906,45 @@
         };
         return RootController;
     }());
+
+    /**
+     * @hidden
+     */
+    var CompositeConstraint = /** @class */ (function () {
+        function CompositeConstraint(config) {
+            this.constraints_ = config.constraints;
+        }
+        Object.defineProperty(CompositeConstraint.prototype, "constraints", {
+            get: function () {
+                return this.constraints_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        CompositeConstraint.prototype.constrain = function (value) {
+            return this.constraints_.reduce(function (result, c) {
+                return c.constrain(result);
+            }, value);
+        };
+        return CompositeConstraint;
+    }());
+    function findConstraint(c, constraintClass) {
+        if (c instanceof constraintClass) {
+            return c;
+        }
+        if (c instanceof CompositeConstraint) {
+            var result = c.constraints.reduce(function (tmpResult, sc) {
+                if (tmpResult) {
+                    return tmpResult;
+                }
+                return sc instanceof constraintClass ? sc : null;
+            }, null);
+            if (result) {
+                return result;
+            }
+        }
+        return null;
+    }
 
     /**
      * @hidden
@@ -2322,225 +1973,265 @@
         return ListConstraint;
     }());
 
-    var className$6 = ClassName('ckb', 'input');
     /**
      * @hidden
      */
-    var CheckboxInputView = /** @class */ (function (_super) {
-        __extends(CheckboxInputView, _super);
-        function CheckboxInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.element.classList.add(className$6());
-            var labelElem = document.createElement('label');
-            labelElem.classList.add(className$6('l'));
-            _this.element.appendChild(labelElem);
-            var inputElem = document.createElement('input');
-            inputElem.classList.add(className$6('i'));
-            inputElem.type = 'checkbox';
-            labelElem.appendChild(inputElem);
-            _this.inputElem_ = inputElem;
-            var markElem = document.createElement('div');
-            markElem.classList.add(className$6('m'));
-            labelElem.appendChild(markElem);
-            config.value.emitter.on('change', _this.onValueChange_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.inputElem_ = disposeElement(_this.inputElem_);
-            });
-            return _this;
+    function boolFromUnknown(value) {
+        if (value === 'false') {
+            return false;
         }
-        Object.defineProperty(CheckboxInputView.prototype, "inputElement", {
-            get: function () {
-                if (!this.inputElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.inputElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        CheckboxInputView.prototype.update = function () {
-            if (!this.inputElem_) {
-                throw PaneError.alreadyDisposed();
-            }
-            this.inputElem_.checked = this.value.rawValue;
-        };
-        CheckboxInputView.prototype.onValueChange_ = function () {
-            this.update();
-        };
-        return CheckboxInputView;
-    }(View));
+        return !!value;
+    }
 
     /**
      * @hidden
      */
-    var CheckboxInputController = /** @class */ (function () {
-        function CheckboxInputController(document, config) {
-            this.onInputChange_ = this.onInputChange_.bind(this);
-            this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.view = new CheckboxInputView(document, {
-                model: this.viewModel,
-                value: this.value,
-            });
-            this.view.inputElement.addEventListener('change', this.onInputChange_);
+    function boolToString(value) {
+        return String(value);
+    }
+    /**
+     * @hidden
+     */
+    var BooleanFormatter = /** @class */ (function () {
+        function BooleanFormatter() {
         }
-        CheckboxInputController.prototype.onInputChange_ = function (e) {
-            var inputElem = TypeUtil.forceCast(e.currentTarget);
-            this.value.rawValue = inputElem.checked;
-            this.view.update();
+        BooleanFormatter.prototype.format = function (value) {
+            return boolToString(value);
         };
-        return CheckboxInputController;
+        return BooleanFormatter;
     }());
 
-    var className$7 = ClassName('lst', 'input');
     /**
      * @hidden
      */
-    var ListInputView = /** @class */ (function (_super) {
-        __extends(ListInputView, _super);
-        function ListInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.element.classList.add(className$7());
-            _this.stringifyValue_ = config.stringifyValue;
-            var selectElem = document.createElement('select');
-            selectElem.classList.add(className$7('s'));
-            config.options.forEach(function (item, index) {
-                var optionElem = document.createElement('option');
-                optionElem.dataset.index = String(index);
-                optionElem.textContent = item.text;
-                optionElem.value = _this.stringifyValue_(item.value);
-                selectElem.appendChild(optionElem);
-            });
-            _this.element.appendChild(selectElem);
-            _this.selectElem_ = selectElem;
-            var markElem = document.createElement('div');
-            markElem.classList.add(className$7('m'));
-            _this.element.appendChild(markElem);
-            config.value.emitter.on('change', _this.onValueChange_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.selectElem_ = disposeElement(_this.selectElem_);
-            });
-            return _this;
+    var StepConstraint = /** @class */ (function () {
+        function StepConstraint(config) {
+            this.step = config.step;
         }
-        Object.defineProperty(ListInputView.prototype, "selectElement", {
-            get: function () {
-                if (!this.selectElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.selectElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        ListInputView.prototype.update = function () {
-            if (!this.selectElem_) {
-                throw PaneError.alreadyDisposed();
-            }
-            this.selectElem_.value = this.stringifyValue_(this.value.rawValue);
+        StepConstraint.prototype.constrain = function (value) {
+            var r = value < 0
+                ? -Math.round(-value / this.step)
+                : Math.round(value / this.step);
+            return r * this.step;
         };
-        ListInputView.prototype.onValueChange_ = function () {
-            this.update();
-        };
-        return ListInputView;
-    }(View));
+        return StepConstraint;
+    }());
 
-    function findListItems(value) {
-        var c = value.constraint
-            ? ConstraintUtil.findConstraint(value.constraint, ListConstraint)
+    function mapRange(value, start1, end1, start2, end2) {
+        var p = (value - start1) / (end1 - start1);
+        return start2 + p * (end2 - start2);
+    }
+    function getDecimalDigits(value) {
+        var text = String(value.toFixed(10));
+        var frac = text.split('.')[1];
+        return frac.replace(/0+$/, '').length;
+    }
+    function constrainRange(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+    function loopRange(value, max) {
+        return ((value % max) + max) % max;
+    }
+
+    /**
+     * @hidden
+     */
+    function normalizeInputParamsOptions(options, convert) {
+        if (Array.isArray(options)) {
+            return options.map(function (item) {
+                return {
+                    text: item.text,
+                    value: convert(item.value),
+                };
+            });
+        }
+        var textToValueMap = options;
+        var texts = Object.keys(textToValueMap);
+        return texts.reduce(function (result, text) {
+            return result.concat({
+                text: text,
+                value: convert(textToValueMap[text]),
+            });
+        }, []);
+    }
+    /**
+     * @hidden
+     */
+    function findListItems(constraint) {
+        var c = constraint
+            ? findConstraint(constraint, ListConstraint)
             : null;
         if (!c) {
             return null;
         }
         return c.options;
     }
+    function findStep(constraint) {
+        var c = constraint ? findConstraint(constraint, StepConstraint) : null;
+        if (!c) {
+            return null;
+        }
+        return c.step;
+    }
     /**
      * @hidden
      */
-    var ListInputController = /** @class */ (function () {
-        function ListInputController(document, config) {
-            this.onSelectChange_ = this.onSelectChange_.bind(this);
-            this.value_ = config.value;
-            this.listItems_ = findListItems(this.value_) || [];
-            this.viewModel = config.viewModel;
-            this.view_ = new ListInputView(document, {
-                model: this.viewModel,
-                options: this.listItems_,
-                stringifyValue: config.stringifyValue,
-                value: this.value_,
-            });
-            this.view_.selectElement.addEventListener('change', this.onSelectChange_);
+    function getSuitableDecimalDigits(constraint, rawValue) {
+        var sc = constraint && findConstraint(constraint, StepConstraint);
+        if (sc) {
+            return getDecimalDigits(sc.step);
         }
-        Object.defineProperty(ListInputController.prototype, "value", {
-            get: function () {
-                return this.value_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(ListInputController.prototype, "view", {
-            get: function () {
-                return this.view_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        ListInputController.prototype.onSelectChange_ = function (e) {
-            var selectElem = TypeUtil.forceCast(e.currentTarget);
-            var optElem = selectElem.selectedOptions.item(0);
-            if (!optElem) {
-                return;
-            }
-            var itemIndex = Number(optElem.dataset.index);
-            this.value_.rawValue = this.listItems_[itemIndex].value;
-            this.view_.update();
+        return Math.max(getDecimalDigits(rawValue), 2);
+    }
+    /**
+     * @hidden
+     */
+    function getBaseStep(constraint) {
+        var step = findStep(constraint);
+        return step !== null && step !== void 0 ? step : 1;
+    }
+
+    var className$6 = ClassName('lst');
+    /**
+     * @hidden
+     */
+    var ListView = /** @class */ (function () {
+        function ListView(doc, config) {
+            var _this = this;
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$6());
+            this.stringifyValue_ = config.stringifyValue;
+            var selectElem = doc.createElement('select');
+            selectElem.classList.add(className$6('s'));
+            config.options.forEach(function (item, index) {
+                var optionElem = doc.createElement('option');
+                optionElem.dataset.index = String(index);
+                optionElem.textContent = item.text;
+                optionElem.value = _this.stringifyValue_(item.value);
+                selectElem.appendChild(optionElem);
+            });
+            this.element.appendChild(selectElem);
+            this.selectElement = selectElem;
+            var markElem = doc.createElement('div');
+            markElem.classList.add(className$6('m'));
+            this.element.appendChild(markElem);
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
+        }
+        ListView.prototype.update = function () {
+            this.selectElement.value = this.stringifyValue_(this.value.rawValue);
         };
-        return ListInputController;
+        ListView.prototype.onValueChange_ = function () {
+            this.update();
+        };
+        return ListView;
     }());
 
     /**
      * @hidden
      */
-    function fromMixed(value) {
-        if (value === 'false') {
-            return false;
+    var ListController = /** @class */ (function () {
+        function ListController(doc, config) {
+            this.onSelectChange_ = this.onSelectChange_.bind(this);
+            this.value = config.value;
+            this.listItems_ = config.listItems;
+            this.view = new ListView(doc, {
+                options: this.listItems_,
+                stringifyValue: config.stringifyValue,
+                value: this.value,
+            });
+            this.view.selectElement.addEventListener('change', this.onSelectChange_);
         }
-        return !!value;
-    }
+        ListController.prototype.onSelectChange_ = function (e) {
+            var selectElem = forceCast(e.currentTarget);
+            var optElem = selectElem.selectedOptions.item(0);
+            if (!optElem) {
+                return;
+            }
+            var itemIndex = Number(optElem.dataset.index);
+            this.value.rawValue = this.listItems_[itemIndex].value;
+            this.view.update();
+        };
+        return ListController;
+    }());
+
+    var className$7 = ClassName('ckb');
     /**
      * @hidden
      */
-    function toString(value) {
-        return String(value);
-    }
+    var CheckboxView = /** @class */ (function () {
+        function CheckboxView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$7());
+            var labelElem = doc.createElement('label');
+            labelElem.classList.add(className$7('l'));
+            this.element.appendChild(labelElem);
+            var inputElem = doc.createElement('input');
+            inputElem.classList.add(className$7('i'));
+            inputElem.type = 'checkbox';
+            labelElem.appendChild(inputElem);
+            this.inputElement = inputElem;
+            var markElem = doc.createElement('div');
+            markElem.classList.add(className$7('m'));
+            labelElem.appendChild(markElem);
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
+        }
+        CheckboxView.prototype.update = function () {
+            this.inputElement.checked = this.value.rawValue;
+        };
+        CheckboxView.prototype.onValueChange_ = function () {
+            this.update();
+        };
+        return CheckboxView;
+    }());
+
+    /**
+     * @hidden
+     */
+    var CheckboxController = /** @class */ (function () {
+        function CheckboxController(doc, config) {
+            this.onInputChange_ = this.onInputChange_.bind(this);
+            this.value = config.value;
+            this.view = new CheckboxView(doc, {
+                value: this.value,
+            });
+            this.view.inputElement.addEventListener('change', this.onInputChange_);
+        }
+        CheckboxController.prototype.onInputChange_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
+            this.value.rawValue = inputElem.checked;
+            this.view.update();
+        };
+        return CheckboxController;
+    }());
 
     function createConstraint(params) {
         var constraints = [];
         if ('options' in params && params.options !== undefined) {
             constraints.push(new ListConstraint({
-                options: normalizeInputParamsOptions(params.options, fromMixed),
+                options: normalizeInputParamsOptions(params.options, boolFromUnknown),
             }));
         }
         return new CompositeConstraint({
             constraints: constraints,
         });
     }
-    function createController$2(document, value) {
+    function createController$2(doc, value) {
+        var _a;
         var c = value.constraint;
-        if (c && ConstraintUtil.findConstraint(c, ListConstraint)) {
-            return new ListInputController(document, {
-                viewModel: new ViewModel(),
-                stringifyValue: toString,
+        if (c && findConstraint(c, ListConstraint)) {
+            return new ListController(doc, {
+                listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                stringifyValue: boolToString,
                 value: value,
             });
         }
-        return new CheckboxInputController(document, {
-            viewModel: new ViewModel(),
+        return new CheckboxController(doc, {
             value: value,
         });
     }
@@ -2548,123 +2239,22 @@
      * @hidden
      */
     var BooleanInputPlugin = {
-        model: {
+        id: 'input-bool',
+        binding: {
             accept: function (value) { return (typeof value === 'boolean' ? value : null); },
-            reader: function (_args) { return fromMixed; },
-            writer: function (_args) { return function (v) { return v; }; },
             constraint: function (args) { return createConstraint(args.params); },
+            reader: function (_args) { return boolFromUnknown; },
+            writer: function (_args) { return function (v) { return v; }; },
         },
         controller: function (args) {
             return createController$2(args.document, args.binding.value);
         },
     };
 
-    var className$8 = ClassName('cswtxt', 'input');
-    /**
-     * @hidden
-     */
-    var ColorSwatchTextInputView = /** @class */ (function (_super) {
-        __extends(ColorSwatchTextInputView, _super);
-        function ColorSwatchTextInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.element.classList.add(className$8());
-            var swatchElem = document.createElement('div');
-            swatchElem.classList.add(className$8('s'));
-            _this.swatchInputView_ = config.swatchInputView;
-            swatchElem.appendChild(_this.swatchInputView_.element);
-            _this.element.appendChild(swatchElem);
-            var textElem = document.createElement('div');
-            textElem.classList.add(className$8('t'));
-            _this.textInputView = config.textInputView;
-            textElem.appendChild(_this.textInputView.element);
-            _this.element.appendChild(textElem);
-            return _this;
-        }
-        Object.defineProperty(ColorSwatchTextInputView.prototype, "value", {
-            get: function () {
-                return this.textInputView.value;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        ColorSwatchTextInputView.prototype.update = function () {
-            this.swatchInputView_.update();
-            this.textInputView.update();
-        };
-        return ColorSwatchTextInputView;
-    }(View));
-
-    var PickedColor = /** @class */ (function () {
-        function PickedColor(value) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.mode_ = 'rgb';
-            this.value = value;
-            this.value.emitter.on('change', this.onValueChange_);
-            this.emitter = new Emitter();
-        }
-        Object.defineProperty(PickedColor.prototype, "mode", {
-            get: function () {
-                return this.mode_;
-            },
-            set: function (mode) {
-                if (this.mode_ === mode) {
-                    return;
-                }
-                this.mode_ = mode;
-                this.emitter.emit('change', {
-                    propertyName: 'mode',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        PickedColor.prototype.onValueChange_ = function () {
-            this.emitter.emit('change', {
-                propertyName: 'value',
-                sender: this,
-            });
-        };
-        return PickedColor;
-    }());
-
-    /**
-     * @hidden
-     */
-    var NumberFormatter = /** @class */ (function () {
-        function NumberFormatter(digits) {
-            this.digits_ = digits;
-        }
-        Object.defineProperty(NumberFormatter.prototype, "digits", {
-            get: function () {
-                return this.digits_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        NumberFormatter.prototype.format = function (value) {
-            return value.toFixed(Math.max(Math.min(this.digits_, 20), 0));
-        };
-        return NumberFormatter;
-    }());
-
-    var innerFormatter = new NumberFormatter(0);
-    /**
-     * @hidden
-     */
-    var PercentageFormatter = /** @class */ (function () {
-        function PercentageFormatter() {
-        }
-        PercentageFormatter.prototype.format = function (value) {
-            return innerFormatter.format(value) + '%';
-        };
-        return PercentageFormatter;
-    }());
-
     function rgbToHsl(r, g, b) {
-        var rp = NumberUtil.constrain(r / 255, 0, 1);
-        var gp = NumberUtil.constrain(g / 255, 0, 1);
-        var bp = NumberUtil.constrain(b / 255, 0, 1);
+        var rp = constrainRange(r / 255, 0, 1);
+        var gp = constrainRange(g / 255, 0, 1);
+        var bp = constrainRange(b / 255, 0, 1);
         var cmax = Math.max(rp, gp, bp);
         var cmin = Math.min(rp, gp, bp);
         var c = cmax - cmin;
@@ -2689,8 +2279,8 @@
     function hslToRgb(h, s, l) {
         var _a, _b, _c, _d, _e, _f;
         var hp = ((h % 360) + 360) % 360;
-        var sp = NumberUtil.constrain(s / 100, 0, 1);
-        var lp = NumberUtil.constrain(l / 100, 0, 1);
+        var sp = constrainRange(s / 100, 0, 1);
+        var lp = constrainRange(l / 100, 0, 1);
         var c = (1 - Math.abs(2 * lp - 1)) * sp;
         var x = c * (1 - Math.abs(((hp / 60) % 2) - 1));
         var m = lp - c / 2;
@@ -2716,9 +2306,9 @@
         return [(rp + m) * 255, (gp + m) * 255, (bp + m) * 255];
     }
     function rgbToHsv(r, g, b) {
-        var rp = NumberUtil.constrain(r / 255, 0, 1);
-        var gp = NumberUtil.constrain(g / 255, 0, 1);
-        var bp = NumberUtil.constrain(b / 255, 0, 1);
+        var rp = constrainRange(r / 255, 0, 1);
+        var gp = constrainRange(g / 255, 0, 1);
+        var bp = constrainRange(b / 255, 0, 1);
         var cmax = Math.max(rp, gp, bp);
         var cmin = Math.min(rp, gp, bp);
         var d = cmax - cmin;
@@ -2744,9 +2334,9 @@
      */
     function hsvToRgb(h, s, v) {
         var _a, _b, _c, _d, _e, _f;
-        var hp = NumberUtil.loop(h, 360);
-        var sp = NumberUtil.constrain(s / 100, 0, 1);
-        var vp = NumberUtil.constrain(v / 100, 0, 1);
+        var hp = loopRange(h, 360);
+        var sp = constrainRange(s / 100, 0, 1);
+        var vp = constrainRange(v / 100, 0, 1);
         var c = vp * sp;
         var x = c * (1 - Math.abs(((hp / 60) % 2) - 1));
         var m = vp - c;
@@ -2774,13 +2364,13 @@
     /**
      * @hidden
      */
-    function withoutAlpha(comps) {
+    function removeAlphaComponent(comps) {
         return [comps[0], comps[1], comps[2]];
     }
     /**
      * @hidden
      */
-    function withAlpha(comps, alpha) {
+    function appendAlphaComponent(comps, alpha) {
         return [comps[0], comps[1], comps[2], alpha];
     }
     var MODE_CONVERTER_MAP = {
@@ -2809,39 +2399,42 @@
     /**
      * @hidden
      */
-    function convertMode(components, fromMode, toMode) {
+    function convertColorMode(components, fromMode, toMode) {
         var _a;
         return (_a = MODE_CONVERTER_MAP[fromMode])[toMode].apply(_a, components);
     }
 
     var CONSTRAINT_MAP = {
         hsl: function (comps) {
+            var _a;
             return [
-                NumberUtil.loop(comps[0], 360),
-                NumberUtil.constrain(comps[1], 0, 100),
-                NumberUtil.constrain(comps[2], 0, 100),
-                NumberUtil.constrain(TypeUtil.getOrDefault(comps[3], 1), 0, 1),
+                loopRange(comps[0], 360),
+                constrainRange(comps[1], 0, 100),
+                constrainRange(comps[2], 0, 100),
+                constrainRange((_a = comps[3]) !== null && _a !== void 0 ? _a : 1, 0, 1),
             ];
         },
         hsv: function (comps) {
+            var _a;
             return [
-                NumberUtil.loop(comps[0], 360),
-                NumberUtil.constrain(comps[1], 0, 100),
-                NumberUtil.constrain(comps[2], 0, 100),
-                NumberUtil.constrain(TypeUtil.getOrDefault(comps[3], 1), 0, 1),
+                loopRange(comps[0], 360),
+                constrainRange(comps[1], 0, 100),
+                constrainRange(comps[2], 0, 100),
+                constrainRange((_a = comps[3]) !== null && _a !== void 0 ? _a : 1, 0, 1),
             ];
         },
         rgb: function (comps) {
+            var _a;
             return [
-                NumberUtil.constrain(comps[0], 0, 255),
-                NumberUtil.constrain(comps[1], 0, 255),
-                NumberUtil.constrain(comps[2], 0, 255),
-                NumberUtil.constrain(TypeUtil.getOrDefault(comps[3], 1), 0, 1),
+                constrainRange(comps[0], 0, 255),
+                constrainRange(comps[1], 0, 255),
+                constrainRange(comps[2], 0, 255),
+                constrainRange((_a = comps[3]) !== null && _a !== void 0 ? _a : 1, 0, 1),
             ];
         },
     };
     function isRgbColorComponent(obj, key) {
-        if (typeof obj !== 'object' || TypeUtil.isEmpty(obj)) {
+        if (typeof obj !== 'object' || isEmpty(obj)) {
             return false;
         }
         return key in obj && typeof obj[key] === 'number';
@@ -2854,6 +2447,9 @@
             this.mode_ = mode;
             this.comps_ = CONSTRAINT_MAP[mode](comps);
         }
+        Color.black = function () {
+            return new Color([0, 0, 0], 'rgb');
+        };
         Color.fromObject = function (obj) {
             var comps = 'a' in obj ? [obj.r, obj.g, obj.b, obj.a] : [obj.r, obj.g, obj.b];
             return new Color(comps, 'rgb');
@@ -2893,7 +2489,7 @@
             configurable: true
         });
         Color.prototype.getComponents = function (opt_mode) {
-            return withAlpha(convertMode(withoutAlpha(this.comps_), this.mode_, opt_mode || this.mode_), this.comps_[3]);
+            return appendAlphaComponent(convertColorMode(removeAlphaComponent(this.comps_), this.mode_, opt_mode || this.mode_), this.comps_[3]);
         };
         Color.prototype.toRgbaObject = function () {
             var rgbComps = this.getComponents('rgb');
@@ -2923,9 +2519,33 @@
             (num >> 24) & 0xff,
             (num >> 16) & 0xff,
             (num >> 8) & 0xff,
-            NumberUtil.map(num & 0xff, 0, 255, 0, 1),
+            mapRange(num & 0xff, 0, 255, 0, 1),
         ], 'rgb');
     };
+    /**
+     * @hidden
+     */
+    function colorFromNumberToRgb(value) {
+        if (typeof value === 'number') {
+            var cv = RgbParser(value);
+            if (cv) {
+                return cv;
+            }
+        }
+        return Color.black();
+    }
+    /**
+     * @hidden
+     */
+    function colorFromNumberToRgba(value) {
+        if (typeof value === 'number') {
+            var cv = RgbaParser(value);
+            if (cv) {
+                return cv;
+            }
+        }
+        return Color.black();
+    }
 
     function parseCssNumberOrPercentage(text, maxValue) {
         var m = text.match(/^(.+)%$/);
@@ -3040,7 +2660,7 @@
                     parseInt(mRrggbb[1] + mRrggbb[1], 16),
                     parseInt(mRrggbb[2] + mRrggbb[2], 16),
                     parseInt(mRrggbb[3] + mRrggbb[3], 16),
-                    NumberUtil.map(parseInt(mRrggbb[4] + mRrggbb[4], 16), 0, 255, 0, 1),
+                    mapRange(parseInt(mRrggbb[4] + mRrggbb[4], 16), 0, 255, 0, 1),
                 ], 'rgb');
             }
             var mRgb = text.match(/^#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
@@ -3049,7 +2669,7 @@
                     parseInt(mRgb[1], 16),
                     parseInt(mRgb[2], 16),
                     parseInt(mRgb[3], 16),
-                    NumberUtil.map(parseInt(mRgb[4], 16), 0, 255, 0, 1),
+                    mapRange(parseInt(mRgb[4], 16), 0, 255, 0, 1),
                 ], 'rgb');
             }
             return null;
@@ -3058,7 +2678,7 @@
     /**
      * @hidden
      */
-    function getNotation(text) {
+    function getColorNotation(text) {
         var notations = Object.keys(NOTATION_TO_PARSER_MAP);
         return notations.reduce(function (result, notation) {
             if (result) {
@@ -3071,8 +2691,8 @@
     /**
      * @hidden
      */
-    var CompositeParser = function (text) {
-        var notation = getNotation(text);
+    var CompositeColorParser = function (text) {
+        var notation = getColorNotation(text);
         return notation ? NOTATION_TO_PARSER_MAP[notation](text) : null;
     };
     function hasAlphaComponent(notation) {
@@ -3080,64 +2700,79 @@
             notation === 'func.rgba' ||
             notation === 'hex.rgba');
     }
-
-    function createEmptyColor() {
-        return new Color([0, 0, 0], 'rgb');
-    }
     /**
      * @hidden
      */
-    function fromString(value) {
+    function colorFromString(value) {
         if (typeof value === 'string') {
-            var cv = CompositeParser(value);
+            var cv = CompositeColorParser(value);
             if (cv) {
                 return cv;
             }
         }
-        return createEmptyColor();
+        return Color.black();
+    }
+
+    /**
+     * @hidden
+     */
+    function numberToString(value) {
+        return String(value);
     }
     /**
      * @hidden
      */
-    function fromObject(value) {
-        if (Color.isColorObject(value)) {
-            return Color.fromObject(value);
+    var NumberFormatter = /** @class */ (function () {
+        function NumberFormatter(digits) {
+            this.digits_ = digits;
         }
-        return createEmptyColor();
-    }
+        Object.defineProperty(NumberFormatter.prototype, "digits", {
+            get: function () {
+                return this.digits_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        NumberFormatter.prototype.format = function (value) {
+            return value.toFixed(Math.max(Math.min(this.digits_, 20), 0));
+        };
+        return NumberFormatter;
+    }());
+
+    var innerFormatter = new NumberFormatter(0);
     /**
      * @hidden
      */
-    function fromNumberToRgb(value) {
-        if (typeof value === 'number') {
-            var cv = RgbParser(value);
-            if (cv) {
-                return cv;
-            }
+    var PercentageFormatter = /** @class */ (function () {
+        function PercentageFormatter() {
         }
-        return createEmptyColor();
-    }
+        PercentageFormatter.prototype.format = function (value) {
+            return innerFormatter.format(value) + '%';
+        };
+        return PercentageFormatter;
+    }());
+
     /**
      * @hidden
      */
-    function fromNumberToRgba(value) {
-        if (typeof value === 'number') {
-            var cv = RgbaParser(value);
-            if (cv) {
-                return cv;
-            }
+    var ColorFormatter = /** @class */ (function () {
+        function ColorFormatter(stringifier) {
+            this.stringifier_ = stringifier;
         }
-        return createEmptyColor();
-    }
+        ColorFormatter.prototype.format = function (value) {
+            return this.stringifier_(value);
+        };
+        return ColorFormatter;
+    }());
     function zerofill(comp) {
-        var hex = NumberUtil.constrain(Math.floor(comp), 0, 255).toString(16);
+        var hex = constrainRange(Math.floor(comp), 0, 255).toString(16);
         return hex.length === 1 ? "0" + hex : hex;
     }
     /**
      * @hidden
      */
-    function toHexRgbString(value) {
-        var hexes = withoutAlpha(value.getComponents('rgb'))
+    function colorToHexRgbString(value) {
+        var hexes = removeAlphaComponent(value.getComponents('rgb'))
             .map(zerofill)
             .join('');
         return "#" + hexes;
@@ -3145,7 +2780,7 @@
     /**
      * @hidden
      */
-    function toHexRgbaString(value) {
+    function colorToHexRgbaString(value) {
         var rgbaComps = value.getComponents('rgb');
         var hexes = [rgbaComps[0], rgbaComps[1], rgbaComps[2], rgbaComps[3] * 255]
             .map(zerofill)
@@ -3155,15 +2790,17 @@
     /**
      * @hidden
      */
-    function toFunctionalRgbString(value) {
+    function colorToFunctionalRgbString(value) {
         var formatter = new NumberFormatter(0);
-        var comps = withoutAlpha(value.getComponents('rgb')).map(function (comp) { return formatter.format(comp); });
+        var comps = removeAlphaComponent(value.getComponents('rgb')).map(function (comp) {
+            return formatter.format(comp);
+        });
         return "rgb(" + comps.join(', ') + ")";
     }
     /**
      * @hidden
      */
-    function toFunctionalRgbaString(value) {
+    function colorToFunctionalRgbaString(value) {
         var aFormatter = new NumberFormatter(2);
         var rgbFormatter = new NumberFormatter(0);
         var comps = value.getComponents('rgb').map(function (comp, index) {
@@ -3175,19 +2812,19 @@
     /**
      * @hidden
      */
-    function toFunctionalHslString(value) {
+    function colorToFunctionalHslString(value) {
         var formatters = [
             new NumberFormatter(0),
             new PercentageFormatter(),
             new PercentageFormatter(),
         ];
-        var comps = withoutAlpha(value.getComponents('hsl')).map(function (comp, index) { return formatters[index].format(comp); });
+        var comps = removeAlphaComponent(value.getComponents('hsl')).map(function (comp, index) { return formatters[index].format(comp); });
         return "hsl(" + comps.join(', ') + ")";
     }
     /**
      * @hidden
      */
-    function toFunctionalHslaString(value) {
+    function colorToFunctionalHslaString(value) {
         var formatters = [
             new NumberFormatter(0),
             new PercentageFormatter(),
@@ -3200,91 +2837,190 @@
         return "hsla(" + comps.join(', ') + ")";
     }
     var NOTATION_TO_STRINGIFIER_MAP = {
-        'func.hsl': toFunctionalHslString,
-        'func.hsla': toFunctionalHslaString,
-        'func.rgb': toFunctionalRgbString,
-        'func.rgba': toFunctionalRgbaString,
-        'hex.rgb': toHexRgbString,
-        'hex.rgba': toHexRgbaString,
+        'func.hsl': colorToFunctionalHslString,
+        'func.hsla': colorToFunctionalHslaString,
+        'func.rgb': colorToFunctionalRgbString,
+        'func.rgba': colorToFunctionalRgbaString,
+        'hex.rgb': colorToHexRgbString,
+        'hex.rgba': colorToHexRgbaString,
     };
-    function getStringifier(notation) {
+    function getColorStringifier(notation) {
         return NOTATION_TO_STRINGIFIER_MAP[notation];
     }
     /**
      * @hidden
      */
-    function toRgbNumber(value) {
-        return withoutAlpha(value.getComponents('rgb')).reduce(function (result, comp) {
+    function colorToRgbNumber(value) {
+        return removeAlphaComponent(value.getComponents('rgb')).reduce(function (result, comp) {
             return (result << 8) | (Math.floor(comp) & 0xff);
         }, 0);
     }
     /**
      * @hidden
      */
-    function toRgbaNumber(value) {
-        return value.getComponents('rgb').reduce(function (result, comp, index) {
+    function colorToRgbaNumber(value) {
+        return (value.getComponents('rgb').reduce(function (result, comp, index) {
             var hex = Math.floor(index === 3 ? comp * 255 : comp) & 0xff;
             return (result << 8) | hex;
-        }, 0);
+        }, 0) >>> 0);
     }
 
-    var className$9 = ClassName('csw', 'input');
+    var className$8 = ClassName('txt');
     /**
      * @hidden
      */
-    var ColorSwatchInputView = /** @class */ (function (_super) {
-        __extends(ColorSwatchInputView, _super);
-        function ColorSwatchInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            if (_this.element === null) {
-                throw PaneError.alreadyDisposed();
-            }
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            config.value.emitter.on('change', _this.onValueChange_);
-            _this.value = config.value;
-            _this.element.classList.add(className$9());
-            var swatchElem = document.createElement('div');
-            swatchElem.classList.add(className$9('sw'));
-            _this.element.appendChild(swatchElem);
-            _this.swatchElem_ = swatchElem;
-            var buttonElem = document.createElement('button');
-            buttonElem.classList.add(className$9('b'));
-            _this.element.appendChild(buttonElem);
-            _this.buttonElem_ = buttonElem;
-            var pickerElem = document.createElement('div');
-            pickerElem.classList.add(className$9('p'));
-            _this.pickerView_ = config.pickerInputView;
-            pickerElem.appendChild(_this.pickerView_.element);
-            _this.element.appendChild(pickerElem);
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.buttonElem_ = disposeElement(_this.buttonElem_);
-                _this.swatchElem_ = disposeElement(_this.swatchElem_);
-            });
-            return _this;
+    var TextView = /** @class */ (function () {
+        function TextView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.formatter_ = config.formatter;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$8());
+            var inputElem = doc.createElement('input');
+            inputElem.classList.add(className$8('i'));
+            inputElem.type = 'text';
+            this.element.appendChild(inputElem);
+            this.inputElement = inputElem;
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
         }
-        Object.defineProperty(ColorSwatchInputView.prototype, "buttonElement", {
+        TextView.prototype.update = function () {
+            this.inputElement.value = this.formatter_.format(this.value.rawValue);
+        };
+        TextView.prototype.onValueChange_ = function () {
+            this.update();
+        };
+        return TextView;
+    }());
+
+    /**
+     * @hidden
+     */
+    var TextController = /** @class */ (function () {
+        function TextController(doc, config) {
+            this.onInputChange_ = this.onInputChange_.bind(this);
+            this.parser_ = config.parser;
+            this.value = config.value;
+            this.view = new TextView(doc, {
+                formatter: config.formatter,
+                value: this.value,
+            });
+            this.view.inputElement.addEventListener('change', this.onInputChange_);
+        }
+        TextController.prototype.onInputChange_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
+            var value = inputElem.value;
+            var parsedValue = this.parser_(value);
+            if (!isEmpty(parsedValue)) {
+                this.value.rawValue = parsedValue;
+            }
+            this.view.update();
+        };
+        return TextController;
+    }());
+
+    var className$9 = ClassName('cswtxt');
+    /**
+     * @hidden
+     */
+    var ColorSwatchTextView = /** @class */ (function () {
+        function ColorSwatchTextView(doc, config) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$9());
+            var swatchElem = doc.createElement('div');
+            swatchElem.classList.add(className$9('s'));
+            this.swatchView_ = config.swatchView;
+            swatchElem.appendChild(this.swatchView_.element);
+            this.element.appendChild(swatchElem);
+            var textElem = doc.createElement('div');
+            textElem.classList.add(className$9('t'));
+            this.textView = config.textView;
+            textElem.appendChild(this.textView.element);
+            this.element.appendChild(textElem);
+        }
+        Object.defineProperty(ColorSwatchTextView.prototype, "value", {
             get: function () {
-                if (this.buttonElem_ === null) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.buttonElem_;
+                return this.textView.value;
             },
             enumerable: false,
             configurable: true
         });
-        ColorSwatchInputView.prototype.update = function () {
-            if (!this.swatchElem_) {
-                throw PaneError.alreadyDisposed();
-            }
-            var value = this.value.rawValue;
-            this.swatchElem_.style.backgroundColor = toHexRgbaString(value);
+        ColorSwatchTextView.prototype.update = function () {
+            this.swatchView_.update();
+            this.textView.update();
         };
-        ColorSwatchInputView.prototype.onValueChange_ = function () {
+        return ColorSwatchTextView;
+    }());
+
+    var PickedColor = /** @class */ (function () {
+        function PickedColor(value) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.mode_ = value.rawValue.mode;
+            this.value = value;
+            this.value.emitter.on('change', this.onValueChange_);
+            this.emitter = new Emitter();
+        }
+        Object.defineProperty(PickedColor.prototype, "mode", {
+            get: function () {
+                return this.mode_;
+            },
+            set: function (mode) {
+                if (this.mode_ === mode) {
+                    return;
+                }
+                this.mode_ = mode;
+                this.emitter.emit('change', {
+                    propertyName: 'mode',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        PickedColor.prototype.onValueChange_ = function () {
+            this.emitter.emit('change', {
+                propertyName: 'value',
+                sender: this,
+            });
+        };
+        return PickedColor;
+    }());
+
+    var className$a = ClassName('csw');
+    /**
+     * @hidden
+     */
+    var ColorSwatchView = /** @class */ (function () {
+        function ColorSwatchView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$a());
+            var swatchElem = doc.createElement('div');
+            swatchElem.classList.add(className$a('sw'));
+            this.element.appendChild(swatchElem);
+            this.swatchElem_ = swatchElem;
+            var buttonElem = doc.createElement('button');
+            buttonElem.classList.add(className$a('b'));
+            this.element.appendChild(buttonElem);
+            this.buttonElement = buttonElem;
+            var pickerElem = doc.createElement('div');
+            pickerElem.classList.add(className$a('p'));
+            this.pickerView_ = config.pickerView;
+            pickerElem.appendChild(this.pickerView_.element);
+            this.element.appendChild(pickerElem);
+            this.update();
+        }
+        ColorSwatchView.prototype.update = function () {
+            var value = this.value.rawValue;
+            this.swatchElem_.style.backgroundColor = colorToHexRgbaString(value);
+        };
+        ColorSwatchView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return ColorSwatchInputView;
-    }(View));
+        return ColorSwatchView;
+    }());
 
     /**
      * @hidden
@@ -3317,14 +3053,14 @@
      * @hidden
      */
     function connect(_a) {
-        var primary = _a.primary, secondary = _a.secondary;
-        primary.emitter(primary.value).on('change', function () {
-            primary.apply(primary.value, secondary.value);
+        var primary = _a.primary, secondary = _a.secondary, forward = _a.forward, backward = _a.backward;
+        primary.emitter.on('change', function () {
+            secondary.rawValue = forward(primary, secondary);
         });
-        secondary.emitter(secondary.value).on('change', function () {
-            secondary.apply(secondary.value, primary.value);
+        secondary.emitter.on('change', function () {
+            primary.rawValue = backward(primary, secondary);
         });
-        primary.apply(primary.value, secondary.value);
+        secondary.rawValue = forward(primary, secondary);
     }
 
     /**
@@ -3338,60 +3074,135 @@
         return num;
     };
 
-    var className$a = ClassName('clp', 'input');
     /**
      * @hidden
      */
-    var ColorPickerInputView = /** @class */ (function (_super) {
-        __extends(ColorPickerInputView, _super);
-        function ColorPickerInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onFoldableChange_ = _this.onFoldableChange_.bind(_this);
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.pickedColor = config.pickedColor;
-            _this.pickedColor.value.emitter.on('change', _this.onValueChange_);
-            _this.foldable = config.foldable;
-            _this.foldable.emitter.on('change', _this.onFoldableChange_);
-            _this.element.classList.add(className$a());
-            var hsvElem = document.createElement('div');
-            hsvElem.classList.add(className$a('hsv'));
-            var svElem = document.createElement('div');
-            svElem.classList.add(className$a('sv'));
-            _this.svPaletteView_ = config.svPaletteInputView;
-            svElem.appendChild(_this.svPaletteView_.element);
-            hsvElem.appendChild(svElem);
-            var hElem = document.createElement('div');
-            hElem.classList.add(className$a('h'));
-            _this.hPaletteView_ = config.hPaletteInputView;
-            hElem.appendChild(_this.hPaletteView_.element);
-            hsvElem.appendChild(hElem);
-            _this.element.appendChild(hsvElem);
-            var rgbElem = document.createElement('div');
-            rgbElem.classList.add(className$a('rgb'));
-            _this.compTextsView_ = config.componentTextsView;
-            rgbElem.appendChild(_this.compTextsView_.element);
-            _this.element.appendChild(rgbElem);
-            if (config.alphaInputViews) {
-                _this.alphaViews_ = {
-                    palette: config.alphaInputViews.palette,
-                    text: config.alphaInputViews.text,
-                };
-                var aElem = document.createElement('div');
-                aElem.classList.add(className$a('a'));
-                var apElem = document.createElement('div');
-                apElem.classList.add(className$a('ap'));
-                apElem.appendChild(_this.alphaViews_.palette.element);
-                aElem.appendChild(apElem);
-                var atElem = document.createElement('div');
-                atElem.classList.add(className$a('at'));
-                atElem.appendChild(_this.alphaViews_.text.element);
-                aElem.appendChild(atElem);
-                _this.element.appendChild(aElem);
-            }
-            _this.update();
+    function getStepForKey(baseStep, keys) {
+        var step = baseStep * (keys.altKey ? 0.1 : 1) * (keys.shiftKey ? 10 : 1);
+        if (keys.upKey) {
+            return +step;
+        }
+        else if (keys.downKey) {
+            return -step;
+        }
+        return 0;
+    }
+    /**
+     * @hidden
+     */
+    function getVerticalStepKeys(ev) {
+        return {
+            altKey: ev.altKey,
+            downKey: ev.keyCode === 40,
+            shiftKey: ev.shiftKey,
+            upKey: ev.keyCode === 38,
+        };
+    }
+    /**
+     * @hidden
+     */
+    function getHorizontalStepKeys(ev) {
+        return {
+            altKey: ev.altKey,
+            downKey: ev.keyCode === 37,
+            shiftKey: ev.shiftKey,
+            upKey: ev.keyCode === 39,
+        };
+    }
+    /**
+     * @hidden
+     */
+    function isVerticalArrowKey(keyCode) {
+        return keyCode === 38 || keyCode === 40;
+    }
+    /**
+     * @hidden
+     */
+    function isArrowKey(keyCode) {
+        return isVerticalArrowKey(keyCode) || keyCode === 37 || keyCode === 39;
+    }
+    /**
+     * @hidden
+     */
+    function getBaseStepForColor(forAlpha) {
+        return forAlpha ? 0.1 : 1;
+    }
+
+    /**
+     * @hidden
+     */
+    var NumberTextController = /** @class */ (function (_super) {
+        __extends(NumberTextController, _super);
+        function NumberTextController(doc, config) {
+            var _this = _super.call(this, doc, config) || this;
+            _this.onInputKeyDown_ = _this.onInputKeyDown_.bind(_this);
+            _this.baseStep_ = config.baseStep;
+            _this.view.inputElement.addEventListener('keydown', _this.onInputKeyDown_);
             return _this;
         }
-        Object.defineProperty(ColorPickerInputView.prototype, "allFocusableElements", {
+        NumberTextController.prototype.onInputKeyDown_ = function (e) {
+            var step = getStepForKey(this.baseStep_, getVerticalStepKeys(e));
+            if (step !== 0) {
+                this.value.rawValue += step;
+                this.view.update();
+            }
+        };
+        return NumberTextController;
+    }(TextController));
+
+    var className$b = ClassName('clp');
+    /**
+     * @hidden
+     */
+    var ColorPickerView = /** @class */ (function () {
+        function ColorPickerView(doc, config) {
+            this.alphaViews_ = null;
+            this.onFoldableChange_ = this.onFoldableChange_.bind(this);
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.pickedColor = config.pickedColor;
+            this.pickedColor.value.emitter.on('change', this.onValueChange_);
+            this.foldable = config.foldable;
+            this.foldable.emitter.on('change', this.onFoldableChange_);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$b());
+            var hsvElem = doc.createElement('div');
+            hsvElem.classList.add(className$b('hsv'));
+            var svElem = doc.createElement('div');
+            svElem.classList.add(className$b('sv'));
+            this.svPaletteView_ = config.svPaletteView;
+            svElem.appendChild(this.svPaletteView_.element);
+            hsvElem.appendChild(svElem);
+            var hElem = doc.createElement('div');
+            hElem.classList.add(className$b('h'));
+            this.hPaletteView_ = config.hPaletteView;
+            hElem.appendChild(this.hPaletteView_.element);
+            hsvElem.appendChild(hElem);
+            this.element.appendChild(hsvElem);
+            var rgbElem = doc.createElement('div');
+            rgbElem.classList.add(className$b('rgb'));
+            this.compTextsView_ = config.componentTextsView;
+            rgbElem.appendChild(this.compTextsView_.element);
+            this.element.appendChild(rgbElem);
+            if (config.alphaViews) {
+                this.alphaViews_ = {
+                    palette: config.alphaViews.palette,
+                    text: config.alphaViews.text,
+                };
+                var aElem = doc.createElement('div');
+                aElem.classList.add(className$b('a'));
+                var apElem = doc.createElement('div');
+                apElem.classList.add(className$b('ap'));
+                apElem.appendChild(this.alphaViews_.palette.element);
+                aElem.appendChild(apElem);
+                var atElem = doc.createElement('div');
+                atElem.classList.add(className$b('at'));
+                atElem.appendChild(this.alphaViews_.text.element);
+                aElem.appendChild(atElem);
+                this.element.appendChild(aElem);
+            }
+            this.update();
+        }
+        Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
             get: function () {
                 var elems = __spreadArrays([
                     this.svPaletteView_.element,
@@ -3400,34 +3211,34 @@
                 if (this.alphaViews_) {
                     elems.push(this.alphaViews_.palette.element, this.alphaViews_.text.inputElement);
                 }
-                return TypeUtil.forceCast(elems);
+                return forceCast(elems);
             },
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(ColorPickerInputView.prototype, "value", {
+        Object.defineProperty(ColorPickerView.prototype, "value", {
             get: function () {
                 return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
         });
-        ColorPickerInputView.prototype.update = function () {
+        ColorPickerView.prototype.update = function () {
             if (this.foldable.expanded) {
-                this.element.classList.add(className$a(undefined, 'expanded'));
+                this.element.classList.add(className$b(undefined, 'expanded'));
             }
             else {
-                this.element.classList.remove(className$a(undefined, 'expanded'));
+                this.element.classList.remove(className$b(undefined, 'expanded'));
             }
         };
-        ColorPickerInputView.prototype.onValueChange_ = function () {
+        ColorPickerView.prototype.onValueChange_ = function () {
             this.update();
         };
-        ColorPickerInputView.prototype.onFoldableChange_ = function () {
+        ColorPickerView.prototype.onFoldableChange_ = function () {
             this.update();
         };
-        return ColorPickerInputView;
-    }(View));
+        return ColorPickerView;
+    }());
 
     function computeOffset(ev, elem) {
         // NOTE: OffsetX/Y should be computed from page and window properties to capture mouse events
@@ -3443,13 +3254,13 @@
      * @hidden
      */
     var PointerHandler = /** @class */ (function () {
-        function PointerHandler(document, element) {
+        function PointerHandler(doc, element) {
             this.onDocumentMouseMove_ = this.onDocumentMouseMove_.bind(this);
             this.onDocumentMouseUp_ = this.onDocumentMouseUp_.bind(this);
             this.onMouseDown_ = this.onMouseDown_.bind(this);
             this.onTouchMove_ = this.onTouchMove_.bind(this);
             this.onTouchStart_ = this.onTouchStart_.bind(this);
-            this.document = document;
+            this.document = doc;
             this.element = element;
             this.emitter = new Emitter();
             this.pressed_ = false;
@@ -3521,224 +3332,203 @@
         return PointerHandler;
     }());
 
-    var className$b = ClassName('apl', 'input');
+    var className$c = ClassName('apl');
     /**
      * @hidden
      */
-    var APaletteInputView = /** @class */ (function (_super) {
-        __extends(APaletteInputView, _super);
-        function APaletteInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.value = config.value;
-            _this.value.emitter.on('change', _this.onValueChange_);
-            _this.element.classList.add(className$b());
-            _this.element.tabIndex = 0;
-            var barElem = document.createElement('div');
-            barElem.classList.add(className$b('b'));
-            _this.element.appendChild(barElem);
-            var colorElem = document.createElement('div');
-            colorElem.classList.add(className$b('c'));
+    var APaletteView = /** @class */ (function () {
+        function APaletteView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.value = config.value;
+            this.value.emitter.on('change', this.onValueChange_);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$c());
+            this.element.tabIndex = 0;
+            var barElem = doc.createElement('div');
+            barElem.classList.add(className$c('b'));
+            this.element.appendChild(barElem);
+            var colorElem = doc.createElement('div');
+            colorElem.classList.add(className$c('c'));
             barElem.appendChild(colorElem);
-            _this.colorElem_ = colorElem;
-            var markerElem = document.createElement('div');
-            markerElem.classList.add(className$b('m'));
-            _this.element.appendChild(markerElem);
-            _this.markerElem_ = markerElem;
-            var previewElem = document.createElement('div');
-            previewElem.classList.add(className$b('p'));
-            _this.markerElem_.appendChild(previewElem);
-            _this.previewElem_ = previewElem;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.colorElem_ = disposeElement(_this.colorElem_);
-                _this.markerElem_ = disposeElement(_this.markerElem_);
-            });
-            return _this;
+            this.colorElem_ = colorElem;
+            var markerElem = doc.createElement('div');
+            markerElem.classList.add(className$c('m'));
+            this.element.appendChild(markerElem);
+            this.markerElem_ = markerElem;
+            var previewElem = doc.createElement('div');
+            previewElem.classList.add(className$c('p'));
+            this.markerElem_.appendChild(previewElem);
+            this.previewElem_ = previewElem;
+            this.update();
         }
-        APaletteInputView.prototype.update = function () {
-            if (!this.markerElem_ || !this.previewElem_ || !this.colorElem_) {
-                throw PaneError.alreadyDisposed();
-            }
+        APaletteView.prototype.update = function () {
             var c = this.value.rawValue;
             var rgbaComps = c.getComponents('rgb');
             var leftColor = new Color([rgbaComps[0], rgbaComps[1], rgbaComps[2], 0], 'rgb');
             var rightColor = new Color([rgbaComps[0], rgbaComps[1], rgbaComps[2], 255], 'rgb');
             var gradientComps = [
                 'to right',
-                toFunctionalRgbaString(leftColor),
-                toFunctionalRgbaString(rightColor),
+                colorToFunctionalRgbaString(leftColor),
+                colorToFunctionalRgbaString(rightColor),
             ];
             this.colorElem_.style.background = "linear-gradient(" + gradientComps.join(',') + ")";
-            this.previewElem_.style.backgroundColor = toFunctionalRgbaString(c);
-            var left = NumberUtil.map(rgbaComps[3], 0, 1, 0, 100);
+            this.previewElem_.style.backgroundColor = colorToFunctionalRgbaString(c);
+            var left = mapRange(rgbaComps[3], 0, 1, 0, 100);
             this.markerElem_.style.left = left + "%";
         };
-        APaletteInputView.prototype.onValueChange_ = function () {
+        APaletteView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return APaletteInputView;
-    }(View));
+        return APaletteView;
+    }());
 
     /**
      * @hidden
      */
-    var APaletteInputController = /** @class */ (function () {
-        function APaletteInputController(document, config) {
+    var APaletteController = /** @class */ (function () {
+        function APaletteController(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.view = new APaletteInputView(document, {
-                model: this.viewModel,
+            this.view = new APaletteView(doc, {
                 value: this.value,
             });
-            this.ptHandler_ = new PointerHandler(document, this.view.element);
+            this.ptHandler_ = new PointerHandler(doc, this.view.element);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
-        APaletteInputController.prototype.handlePointerEvent_ = function (d) {
+        APaletteController.prototype.handlePointerEvent_ = function (d) {
             var alpha = d.px;
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), h = _a[0], s = _a[1], v = _a[2];
             this.value.rawValue = new Color([h, s, v, alpha], 'hsv');
             this.view.update();
         };
-        APaletteInputController.prototype.onPointerDown_ = function (ev) {
+        APaletteController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        APaletteInputController.prototype.onPointerMove_ = function (ev) {
+        APaletteController.prototype.onPointerMove_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        APaletteInputController.prototype.onPointerUp_ = function (ev) {
+        APaletteController.prototype.onPointerUp_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        APaletteInputController.prototype.onKeyDown_ = function (ev) {
+        APaletteController.prototype.onKeyDown_ = function (ev) {
             var step = getStepForKey(getBaseStepForColor(true), getHorizontalStepKeys(ev));
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), h = _a[0], s = _a[1], v = _a[2], a = _a[3];
             this.value.rawValue = new Color([h, s, v, a + step], 'hsv');
         };
-        return APaletteInputController;
+        return APaletteController;
     }());
 
-    var className$c = ClassName('cctxts', 'input');
+    var className$d = ClassName('cctxts');
     var FORMATTER = new NumberFormatter(0);
-    function createModeSelectElement(document) {
-        var selectElem = document.createElement('select');
+    function createModeSelectElement(doc) {
+        var selectElem = doc.createElement('select');
         var items = [
             { text: 'RGB', value: 'rgb' },
             { text: 'HSL', value: 'hsl' },
             { text: 'HSV', value: 'hsv' },
         ];
         selectElem.appendChild(items.reduce(function (frag, item) {
-            var optElem = document.createElement('option');
+            var optElem = doc.createElement('option');
             optElem.textContent = item.text;
             optElem.value = item.value;
             frag.appendChild(optElem);
             return frag;
-        }, document.createDocumentFragment()));
+        }, doc.createDocumentFragment()));
         return selectElem;
     }
     /**
      * @hidden
      */
-    var ColorComponentTextsInputView = /** @class */ (function (_super) {
-        __extends(ColorComponentTextsInputView, _super);
-        function ColorComponentTextsInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.element.classList.add(className$c());
-            var modeElem = document.createElement('div');
-            modeElem.classList.add(className$c('m'));
-            _this.modeSelectElement = createModeSelectElement(document);
-            _this.modeSelectElement.classList.add(className$c('ms'));
-            modeElem.appendChild(_this.modeSelectElement);
-            var modeMarkerElem = document.createElement('div');
-            modeMarkerElem.classList.add(className$c('mm'));
+    var ColorComponentTextsView = /** @class */ (function () {
+        function ColorComponentTextsView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$d());
+            var modeElem = doc.createElement('div');
+            modeElem.classList.add(className$d('m'));
+            this.modeElem_ = createModeSelectElement(doc);
+            this.modeElem_.classList.add(className$d('ms'));
+            modeElem.appendChild(this.modeSelectElement);
+            var modeMarkerElem = doc.createElement('div');
+            modeMarkerElem.classList.add(className$d('mm'));
             modeElem.appendChild(modeMarkerElem);
-            _this.element.appendChild(modeElem);
-            var wrapperElem = document.createElement('div');
-            wrapperElem.classList.add(className$c('w'));
-            _this.element.appendChild(wrapperElem);
+            this.element.appendChild(modeElem);
+            var wrapperElem = doc.createElement('div');
+            wrapperElem.classList.add(className$d('w'));
+            this.element.appendChild(wrapperElem);
             var inputElems = [0, 1, 2].map(function () {
-                var inputElem = document.createElement('input');
-                inputElem.classList.add(className$c('i'));
+                var inputElem = doc.createElement('input');
+                inputElem.classList.add(className$d('i'));
                 inputElem.type = 'text';
                 return inputElem;
             });
             inputElems.forEach(function (elem) {
                 wrapperElem.appendChild(elem);
             });
-            _this.inputElems_ = [inputElems[0], inputElems[1], inputElems[2]];
-            _this.pickedColor = config.pickedColor;
-            _this.pickedColor.emitter.on('change', _this.onValueChange_);
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                if (_this.inputElems_) {
-                    _this.inputElems_.forEach(function (elem) {
-                        disposeElement(elem);
-                    });
-                    _this.inputElems_ = null;
-                }
-            });
-            return _this;
+            this.inputElems_ = [inputElems[0], inputElems[1], inputElems[2]];
+            this.pickedColor = config.pickedColor;
+            this.pickedColor.emitter.on('change', this.onValueChange_);
+            this.update();
         }
-        Object.defineProperty(ColorComponentTextsInputView.prototype, "inputElements", {
+        Object.defineProperty(ColorComponentTextsView.prototype, "modeSelectElement", {
             get: function () {
-                if (!this.inputElems_) {
-                    throw PaneError.alreadyDisposed();
-                }
+                return this.modeElem_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(ColorComponentTextsView.prototype, "inputElements", {
+            get: function () {
                 return this.inputElems_;
             },
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(ColorComponentTextsInputView.prototype, "value", {
+        Object.defineProperty(ColorComponentTextsView.prototype, "value", {
             get: function () {
                 return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
         });
-        ColorComponentTextsInputView.prototype.update = function () {
-            var inputElems = this.inputElems_;
-            if (!inputElems) {
-                throw PaneError.alreadyDisposed();
-            }
+        ColorComponentTextsView.prototype.update = function () {
+            var _this = this;
+            this.modeElem_.value = this.pickedColor.mode;
             var comps = this.pickedColor.value.rawValue.getComponents(this.pickedColor.mode);
             comps.forEach(function (comp, index) {
-                var inputElem = inputElems[index];
+                var inputElem = _this.inputElems_[index];
                 if (!inputElem) {
                     return;
                 }
                 inputElem.value = FORMATTER.format(comp);
             });
         };
-        ColorComponentTextsInputView.prototype.onValueChange_ = function () {
+        ColorComponentTextsView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return ColorComponentTextsInputView;
-    }(View));
+        return ColorComponentTextsView;
+    }());
 
     /**
      * @hidden
      */
-    var ColorComponentTextsInputController = /** @class */ (function () {
-        function ColorComponentTextsInputController(document, config) {
+    var ColorComponentTextsController = /** @class */ (function () {
+        function ColorComponentTextsController(doc, config) {
             var _this = this;
             this.onModeSelectChange_ = this.onModeSelectChange_.bind(this);
             this.onInputChange_ = this.onInputChange_.bind(this);
             this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
             this.parser_ = config.parser;
             this.pickedColor = config.pickedColor;
-            this.viewModel = config.viewModel;
-            this.view = new ColorComponentTextsInputView(document, {
-                model: this.viewModel,
+            this.view = new ColorComponentTextsView(doc, {
                 pickedColor: this.pickedColor,
             });
             this.view.inputElements.forEach(function (inputElem) {
@@ -3747,14 +3537,14 @@
             });
             this.view.modeSelectElement.addEventListener('change', this.onModeSelectChange_);
         }
-        Object.defineProperty(ColorComponentTextsInputController.prototype, "value", {
+        Object.defineProperty(ColorComponentTextsController.prototype, "value", {
             get: function () {
                 return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
         });
-        ColorComponentTextsInputController.prototype.findIndexOfInputElem_ = function (inputElem) {
+        ColorComponentTextsController.prototype.findIndexOfInputElem_ = function (inputElem) {
             var inputElems = this.view.inputElements;
             for (var i = 0; i < inputElems.length; i++) {
                 if (inputElems[i] === inputElem) {
@@ -3763,7 +3553,7 @@
             }
             return null;
         };
-        ColorComponentTextsInputController.prototype.updateComponent_ = function (index, newValue) {
+        ColorComponentTextsController.prototype.updateComponent_ = function (index, newValue) {
             var mode = this.pickedColor.mode;
             var comps = this.value.rawValue.getComponents(mode);
             var newComps = comps.map(function (comp, i) {
@@ -3772,272 +3562,145 @@
             this.value.rawValue = new Color(newComps, mode);
             this.view.update();
         };
-        ColorComponentTextsInputController.prototype.onInputChange_ = function (e) {
-            var inputElem = TypeUtil.forceCast(e.currentTarget);
+        ColorComponentTextsController.prototype.onInputChange_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
             var parsedValue = this.parser_(inputElem.value);
-            if (TypeUtil.isEmpty(parsedValue)) {
+            if (isEmpty(parsedValue)) {
                 return;
             }
             var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (TypeUtil.isEmpty(compIndex)) {
+            if (isEmpty(compIndex)) {
                 return;
             }
             this.updateComponent_(compIndex, parsedValue);
         };
-        ColorComponentTextsInputController.prototype.onInputKeyDown_ = function (e) {
+        ColorComponentTextsController.prototype.onInputKeyDown_ = function (e) {
             var compIndex = this.findIndexOfInputElem_(e.currentTarget);
             var step = getStepForKey(getBaseStepForColor(compIndex === 3), getVerticalStepKeys(e));
             if (step === 0) {
                 return;
             }
-            var inputElem = TypeUtil.forceCast(e.currentTarget);
+            var inputElem = forceCast(e.currentTarget);
             var parsedValue = this.parser_(inputElem.value);
-            if (TypeUtil.isEmpty(parsedValue)) {
+            if (isEmpty(parsedValue)) {
                 return;
             }
-            if (TypeUtil.isEmpty(compIndex)) {
+            if (isEmpty(compIndex)) {
                 return;
             }
             this.updateComponent_(compIndex, parsedValue + step);
         };
-        ColorComponentTextsInputController.prototype.onModeSelectChange_ = function (ev) {
+        ColorComponentTextsController.prototype.onModeSelectChange_ = function (ev) {
             var selectElem = ev.currentTarget;
             this.pickedColor.mode = selectElem.value;
         };
-        return ColorComponentTextsInputController;
+        return ColorComponentTextsController;
     }());
 
-    var className$d = ClassName('hpl', 'input');
+    var className$e = ClassName('hpl');
     /**
      * @hidden
      */
-    var HPaletteInputView = /** @class */ (function (_super) {
-        __extends(HPaletteInputView, _super);
-        function HPaletteInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.value = config.value;
-            _this.value.emitter.on('change', _this.onValueChange_);
-            _this.element.classList.add(className$d());
-            _this.element.tabIndex = 0;
-            var colorElem = document.createElement('div');
-            colorElem.classList.add(className$d('c'));
-            _this.element.appendChild(colorElem);
-            _this.colorElem_ = colorElem;
-            var markerElem = document.createElement('div');
-            markerElem.classList.add(className$d('m'));
-            _this.element.appendChild(markerElem);
-            _this.markerElem_ = markerElem;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.colorElem_ = disposeElement(_this.colorElem_);
-                _this.markerElem_ = disposeElement(_this.markerElem_);
-            });
-            return _this;
+    var HPaletteView = /** @class */ (function () {
+        function HPaletteView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.value = config.value;
+            this.value.emitter.on('change', this.onValueChange_);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$e());
+            this.element.tabIndex = 0;
+            var colorElem = doc.createElement('div');
+            colorElem.classList.add(className$e('c'));
+            this.element.appendChild(colorElem);
+            var markerElem = doc.createElement('div');
+            markerElem.classList.add(className$e('m'));
+            this.element.appendChild(markerElem);
+            this.markerElem_ = markerElem;
+            this.update();
         }
-        HPaletteInputView.prototype.update = function () {
-            if (!this.markerElem_) {
-                throw PaneError.alreadyDisposed();
-            }
+        HPaletteView.prototype.update = function () {
             var c = this.value.rawValue;
             var h = c.getComponents('hsv')[0];
-            this.markerElem_.style.backgroundColor = toFunctionalRgbString(new Color([h, 100, 100], 'hsv'));
-            var left = NumberUtil.map(h, 0, 360, 0, 100);
+            this.markerElem_.style.backgroundColor = colorToFunctionalRgbString(new Color([h, 100, 100], 'hsv'));
+            var left = mapRange(h, 0, 360, 0, 100);
             this.markerElem_.style.left = left + "%";
         };
-        HPaletteInputView.prototype.onValueChange_ = function () {
+        HPaletteView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return HPaletteInputView;
-    }(View));
+        return HPaletteView;
+    }());
 
     /**
      * @hidden
      */
-    var HPaletteInputController = /** @class */ (function () {
-        function HPaletteInputController(document, config) {
+    var HPaletteController = /** @class */ (function () {
+        function HPaletteController(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.view = new HPaletteInputView(document, {
-                model: this.viewModel,
+            this.view = new HPaletteView(doc, {
                 value: this.value,
             });
-            this.ptHandler_ = new PointerHandler(document, this.view.element);
+            this.ptHandler_ = new PointerHandler(doc, this.view.element);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
-        HPaletteInputController.prototype.handlePointerEvent_ = function (d) {
-            var hue = NumberUtil.map(d.px, 0, 1, 0, 360);
+        HPaletteController.prototype.handlePointerEvent_ = function (d) {
+            var hue = mapRange(d.px, 0, 1, 0, 360);
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), s = _a[1], v = _a[2], a = _a[3];
             this.value.rawValue = new Color([hue, s, v, a], 'hsv');
             this.view.update();
         };
-        HPaletteInputController.prototype.onPointerDown_ = function (ev) {
+        HPaletteController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        HPaletteInputController.prototype.onPointerMove_ = function (ev) {
+        HPaletteController.prototype.onPointerMove_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        HPaletteInputController.prototype.onPointerUp_ = function (ev) {
+        HPaletteController.prototype.onPointerUp_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        HPaletteInputController.prototype.onKeyDown_ = function (ev) {
+        HPaletteController.prototype.onKeyDown_ = function (ev) {
             var step = getStepForKey(getBaseStepForColor(false), getHorizontalStepKeys(ev));
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), h = _a[0], s = _a[1], v = _a[2], a = _a[3];
             this.value.rawValue = new Color([h + step, s, v, a], 'hsv');
         };
-        return HPaletteInputController;
+        return HPaletteController;
     }());
 
-    var className$e = ClassName('txt', 'input');
-    /**
-     * @hidden
-     */
-    var TextInputView = /** @class */ (function (_super) {
-        __extends(TextInputView, _super);
-        function TextInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.formatter_ = config.formatter;
-            _this.element.classList.add(className$e());
-            var inputElem = document.createElement('input');
-            inputElem.classList.add(className$e('i'));
-            inputElem.type = 'text';
-            _this.element.appendChild(inputElem);
-            _this.inputElem_ = inputElem;
-            config.value.emitter.on('change', _this.onValueChange_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.inputElem_ = disposeElement(_this.inputElem_);
-            });
-            return _this;
-        }
-        Object.defineProperty(TextInputView.prototype, "inputElement", {
-            get: function () {
-                if (!this.inputElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.inputElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        TextInputView.prototype.update = function () {
-            if (!this.inputElem_) {
-                throw PaneError.alreadyDisposed();
-            }
-            this.inputElem_.value = this.formatter_.format(this.value.rawValue);
-        };
-        TextInputView.prototype.onValueChange_ = function () {
-            this.update();
-        };
-        return TextInputView;
-    }(View));
-
-    /**
-     * @hidden
-     */
-    var TextInputController = /** @class */ (function () {
-        function TextInputController(document, config) {
-            this.onInputChange_ = this.onInputChange_.bind(this);
-            this.parser_ = config.parser;
-            this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.view = new TextInputView(document, {
-                formatter: config.formatter,
-                model: this.viewModel,
-                value: this.value,
-            });
-            this.view.inputElement.addEventListener('change', this.onInputChange_);
-        }
-        TextInputController.prototype.onInputChange_ = function (e) {
-            var inputElem = TypeUtil.forceCast(e.currentTarget);
-            var value = inputElem.value;
-            var parsedValue = this.parser_(value);
-            if (!TypeUtil.isEmpty(parsedValue)) {
-                this.value.rawValue = parsedValue;
-            }
-            this.view.update();
-        };
-        return TextInputController;
-    }());
-
-    /**
-     * @hidden
-     */
-    var NumberTextInputController = /** @class */ (function (_super) {
-        __extends(NumberTextInputController, _super);
-        function NumberTextInputController(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onInputKeyDown_ = _this.onInputKeyDown_.bind(_this);
-            _this.step_ = TypeUtil.getOrDefault(config.step, getStepForTextInput(_this.value.constraint));
-            _this.view.inputElement.addEventListener('keydown', _this.onInputKeyDown_);
-            return _this;
-        }
-        NumberTextInputController.prototype.onInputKeyDown_ = function (e) {
-            var step = getStepForKey(this.step_, getVerticalStepKeys(e));
-            if (step !== 0) {
-                this.value.rawValue += step;
-                this.view.update();
-            }
-        };
-        return NumberTextInputController;
-    }(TextInputController));
-
-    var className$f = ClassName('svp', 'input');
+    var className$f = ClassName('svp');
     var CANVAS_RESOL = 64;
     /**
      * @hidden
      */
-    var SvPaletteInputView = /** @class */ (function (_super) {
-        __extends(SvPaletteInputView, _super);
-        function SvPaletteInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.value = config.value;
-            _this.value.emitter.on('change', _this.onValueChange_);
-            _this.element.classList.add(className$f());
-            _this.element.tabIndex = 0;
-            var canvasElem = document.createElement('canvas');
+    var SvPaletteView = /** @class */ (function () {
+        function SvPaletteView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.value = config.value;
+            this.value.emitter.on('change', this.onValueChange_);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$f());
+            this.element.tabIndex = 0;
+            var canvasElem = doc.createElement('canvas');
             canvasElem.height = CANVAS_RESOL;
             canvasElem.width = CANVAS_RESOL;
             canvasElem.classList.add(className$f('c'));
-            _this.element.appendChild(canvasElem);
-            _this.canvasElem_ = canvasElem;
-            var markerElem = document.createElement('div');
+            this.element.appendChild(canvasElem);
+            this.canvasElement = canvasElem;
+            var markerElem = doc.createElement('div');
             markerElem.classList.add(className$f('m'));
-            _this.element.appendChild(markerElem);
-            _this.markerElem_ = markerElem;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.canvasElem_ = disposeElement(_this.canvasElem_);
-                _this.markerElem_ = disposeElement(_this.markerElem_);
-            });
-            return _this;
+            this.element.appendChild(markerElem);
+            this.markerElem_ = markerElem;
+            this.update();
         }
-        Object.defineProperty(SvPaletteInputView.prototype, "canvasElement", {
-            get: function () {
-                if (!this.canvasElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.canvasElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        SvPaletteInputView.prototype.update = function () {
-            if (!this.markerElem_) {
-                throw PaneError.alreadyDisposed();
-            }
+        SvPaletteView.prototype.update = function () {
             var ctx = getCanvasContext(this.canvasElement);
             if (!ctx) {
                 return;
@@ -4050,8 +3713,8 @@
             var data = imgData.data;
             for (var iy = 0; iy < height; iy++) {
                 for (var ix = 0; ix < width; ix++) {
-                    var s = NumberUtil.map(ix, 0, width, 0, 100);
-                    var v = NumberUtil.map(iy, 0, height, 100, 0);
+                    var s = mapRange(ix, 0, width, 0, 100);
+                    var v = mapRange(iy, 0, height, 100, 0);
                     var rgbComps = hsvToRgb(hsvComps[0], s, v);
                     var i = (iy * width + ix) * 4;
                     data[i] = rgbComps[0];
@@ -4061,55 +3724,53 @@
                 }
             }
             ctx.putImageData(imgData, 0, 0);
-            var left = NumberUtil.map(hsvComps[1], 0, 100, 0, 100);
+            var left = mapRange(hsvComps[1], 0, 100, 0, 100);
             this.markerElem_.style.left = left + "%";
-            var top = NumberUtil.map(hsvComps[2], 0, 100, 100, 0);
+            var top = mapRange(hsvComps[2], 0, 100, 100, 0);
             this.markerElem_.style.top = top + "%";
         };
-        SvPaletteInputView.prototype.onValueChange_ = function () {
+        SvPaletteView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return SvPaletteInputView;
-    }(View));
+        return SvPaletteView;
+    }());
 
     /**
      * @hidden
      */
-    var SvPaletteInputController = /** @class */ (function () {
-        function SvPaletteInputController(document, config) {
+    var SvPaletteController = /** @class */ (function () {
+        function SvPaletteController(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.view = new SvPaletteInputView(document, {
-                model: this.viewModel,
+            this.view = new SvPaletteView(doc, {
                 value: this.value,
             });
-            this.ptHandler_ = new PointerHandler(document, this.view.element);
+            this.ptHandler_ = new PointerHandler(doc, this.view.element);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
-        SvPaletteInputController.prototype.handlePointerEvent_ = function (d) {
-            var saturation = NumberUtil.map(d.px, 0, 1, 0, 100);
-            var value = NumberUtil.map(d.py, 0, 1, 100, 0);
+        SvPaletteController.prototype.handlePointerEvent_ = function (d) {
+            var saturation = mapRange(d.px, 0, 1, 0, 100);
+            var value = mapRange(d.py, 0, 1, 100, 0);
             var _a = this.value.rawValue.getComponents('hsv'), h = _a[0], a = _a[3];
             this.value.rawValue = new Color([h, saturation, value, a], 'hsv');
             this.view.update();
         };
-        SvPaletteInputController.prototype.onPointerDown_ = function (ev) {
+        SvPaletteController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        SvPaletteInputController.prototype.onPointerMove_ = function (ev) {
+        SvPaletteController.prototype.onPointerMove_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        SvPaletteInputController.prototype.onPointerUp_ = function (ev) {
+        SvPaletteController.prototype.onPointerUp_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        SvPaletteInputController.prototype.onKeyDown_ = function (ev) {
+        SvPaletteController.prototype.onKeyDown_ = function (ev) {
             if (isArrowKey(ev.keyCode)) {
                 ev.preventDefault();
             }
@@ -4122,71 +3783,59 @@
                 a,
             ], 'hsv');
         };
-        return SvPaletteInputController;
+        return SvPaletteController;
     }());
 
     /**
      * @hidden
      */
-    var ColorPickerInputController = /** @class */ (function () {
-        function ColorPickerInputController(document, config) {
+    var ColorPickerController = /** @class */ (function () {
+        function ColorPickerController(doc, config) {
             var _this = this;
             this.triggerElement = null;
             this.onFocusableElementBlur_ = this.onFocusableElementBlur_.bind(this);
             this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.pickedColor = config.pickedColor;
             this.foldable = new Foldable();
-            this.viewModel = config.viewModel;
-            this.hPaletteIc_ = new HPaletteInputController(document, {
+            this.hPaletteIc_ = new HPaletteController(doc, {
                 value: this.pickedColor.value,
-                viewModel: this.viewModel,
             });
-            this.svPaletteIc_ = new SvPaletteInputController(document, {
+            this.svPaletteIc_ = new SvPaletteController(doc, {
                 value: this.pickedColor.value,
-                viewModel: this.viewModel,
             });
             this.alphaIcs_ = config.supportsAlpha
                 ? {
-                    palette: new APaletteInputController(document, {
+                    palette: new APaletteController(doc, {
                         value: this.pickedColor.value,
-                        viewModel: this.viewModel,
                     }),
-                    text: new NumberTextInputController(document, {
+                    text: new NumberTextController(doc, {
                         formatter: new NumberFormatter(2),
                         parser: StringNumberParser,
-                        step: 0.1,
-                        value: new InputValue(0),
-                        viewModel: this.viewModel,
+                        baseStep: 0.1,
+                        value: new Value(0),
                     }),
                 }
                 : null;
             if (this.alphaIcs_) {
                 connect({
-                    primary: {
-                        apply: function (from, to) {
-                            to.rawValue = from.value.rawValue.getComponents()[3];
-                        },
-                        emitter: function (m) { return m.value.emitter; },
-                        value: this.pickedColor,
+                    primary: this.pickedColor.value,
+                    secondary: this.alphaIcs_.text.value,
+                    forward: function (p) {
+                        return p.rawValue.getComponents()[3];
                     },
-                    secondary: {
-                        apply: function (from, to) {
-                            var comps = to.value.rawValue.getComponents();
-                            comps[3] = from.rawValue;
-                            to.value.rawValue = new Color(comps, to.value.rawValue.mode);
-                        },
-                        emitter: function (m) { return m.emitter; },
-                        value: this.alphaIcs_.text.value,
+                    backward: function (p, s) {
+                        var comps = p.rawValue.getComponents();
+                        comps[3] = s.rawValue;
+                        return new Color(comps, p.rawValue.mode);
                     },
                 });
             }
-            this.compTextsIc_ = new ColorComponentTextsInputController(document, {
+            this.compTextsIc_ = new ColorComponentTextsController(doc, {
                 parser: StringNumberParser,
                 pickedColor: this.pickedColor,
-                viewModel: this.viewModel,
             });
-            this.view = new ColorPickerInputView(document, {
-                alphaInputViews: this.alphaIcs_
+            this.view = new ColorPickerView(doc, {
+                alphaViews: this.alphaIcs_
                     ? {
                         palette: this.alphaIcs_.palette.view,
                         text: this.alphaIcs_.text.view,
@@ -4194,25 +3843,24 @@
                     : null,
                 componentTextsView: this.compTextsIc_.view,
                 foldable: this.foldable,
-                hPaletteInputView: this.hPaletteIc_.view,
-                model: this.viewModel,
+                hPaletteView: this.hPaletteIc_.view,
                 pickedColor: this.pickedColor,
                 supportsAlpha: config.supportsAlpha,
-                svPaletteInputView: this.svPaletteIc_.view,
+                svPaletteView: this.svPaletteIc_.view,
             });
             this.view.element.addEventListener('keydown', this.onKeyDown_);
             this.view.allFocusableElements.forEach(function (elem) {
                 elem.addEventListener('blur', _this.onFocusableElementBlur_);
             });
         }
-        Object.defineProperty(ColorPickerInputController.prototype, "value", {
+        Object.defineProperty(ColorPickerController.prototype, "value", {
             get: function () {
                 return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
         });
-        ColorPickerInputController.prototype.onFocusableElementBlur_ = function (ev) {
+        ColorPickerController.prototype.onFocusableElementBlur_ = function (ev) {
             var elem = this.view.element;
             var nextTarget = findNextTarget(ev);
             if (nextTarget && elem.contains(nextTarget)) {
@@ -4227,91 +3875,71 @@
             }
             this.foldable.expanded = false;
         };
-        ColorPickerInputController.prototype.onKeyDown_ = function (ev) {
+        ColorPickerController.prototype.onKeyDown_ = function (ev) {
             if (ev.keyCode === 27) {
                 this.foldable.expanded = false;
             }
         };
-        return ColorPickerInputController;
+        return ColorPickerController;
     }());
 
     /**
      * @hidden
      */
-    var ColorSwatchInputController = /** @class */ (function () {
-        function ColorSwatchInputController(document, config) {
+    var ColorSwatchController = /** @class */ (function () {
+        function ColorSwatchController(doc, config) {
             this.onButtonBlur_ = this.onButtonBlur_.bind(this);
             this.onButtonClick_ = this.onButtonClick_.bind(this);
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.pickerIc_ = new ColorPickerInputController(document, {
+            this.pickerIc_ = new ColorPickerController(doc, {
                 pickedColor: new PickedColor(this.value),
                 supportsAlpha: config.supportsAlpha,
-                viewModel: this.viewModel,
             });
-            this.view = new ColorSwatchInputView(document, {
-                model: this.viewModel,
-                pickerInputView: this.pickerIc_.view,
+            this.view = new ColorSwatchView(doc, {
+                pickerView: this.pickerIc_.view,
                 value: this.value,
             });
             this.view.buttonElement.addEventListener('blur', this.onButtonBlur_);
             this.view.buttonElement.addEventListener('click', this.onButtonClick_);
             this.pickerIc_.triggerElement = this.view.buttonElement;
         }
-        ColorSwatchInputController.prototype.onButtonBlur_ = function (e) {
+        ColorSwatchController.prototype.onButtonBlur_ = function (e) {
             var elem = this.view.element;
-            var nextTarget = TypeUtil.forceCast(e.relatedTarget);
+            var nextTarget = forceCast(e.relatedTarget);
             if (!nextTarget || !elem.contains(nextTarget)) {
                 this.pickerIc_.foldable.expanded = false;
             }
         };
-        ColorSwatchInputController.prototype.onButtonClick_ = function () {
+        ColorSwatchController.prototype.onButtonClick_ = function () {
             this.pickerIc_.foldable.expanded = !this.pickerIc_.foldable.expanded;
             if (this.pickerIc_.foldable.expanded) {
                 this.pickerIc_.view.allFocusableElements[0].focus();
             }
         };
-        return ColorSwatchInputController;
+        return ColorSwatchController;
     }());
 
     /**
      * @hidden
      */
-    var ColorSwatchTextInputController = /** @class */ (function () {
-        function ColorSwatchTextInputController(document, config) {
+    var ColorSwatchTextController = /** @class */ (function () {
+        function ColorSwatchTextController(doc, config) {
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.swatchIc_ = new ColorSwatchInputController(document, {
+            this.swatchIc_ = new ColorSwatchController(doc, {
                 supportsAlpha: config.supportsAlpha,
                 value: this.value,
-                viewModel: this.viewModel,
             });
-            this.textIc_ = new TextInputController(document, {
+            this.textIc_ = new TextController(doc, {
                 formatter: config.formatter,
                 parser: config.parser,
                 value: this.value,
-                viewModel: this.viewModel,
             });
-            this.view = new ColorSwatchTextInputView(document, {
-                swatchInputView: this.swatchIc_.view,
-                textInputView: this.textIc_.view,
-                model: this.viewModel,
+            this.view = new ColorSwatchTextView(doc, {
+                swatchView: this.swatchIc_.view,
+                textView: this.textIc_.view,
             });
         }
-        return ColorSwatchTextInputController;
-    }());
-
-    /**
-     * @hidden
-     */
-    var ColorFormatter = /** @class */ (function () {
-        function ColorFormatter(stringifier) {
-            this.stringifier_ = stringifier;
-        }
-        ColorFormatter.prototype.format = function (value) {
-            return this.stringifier_(value);
-        };
-        return ColorFormatter;
+        return ColorSwatchTextController;
     }());
 
     function shouldSupportAlpha(inputParams) {
@@ -4321,7 +3949,8 @@
      * @hidden
      */
     var NumberColorInputPlugin = {
-        model: {
+        id: 'input-color-number',
+        binding: {
             accept: function (value, params) {
                 if (typeof value !== 'number') {
                     return null;
@@ -4338,27 +3967,26 @@
             },
             reader: function (args) {
                 return shouldSupportAlpha(args.params)
-                    ? fromNumberToRgba
-                    : fromNumberToRgb;
+                    ? colorFromNumberToRgba
+                    : colorFromNumberToRgb;
             },
             writer: function (args) {
                 return shouldSupportAlpha(args.params)
-                    ? toRgbaNumber
-                    : toRgbNumber;
+                    ? colorToRgbaNumber
+                    : colorToRgbNumber;
             },
             equals: Color.equals,
         },
         controller: function (args) {
             var supportsAlpha = shouldSupportAlpha(args.params);
             var formatter = supportsAlpha
-                ? new ColorFormatter(toHexRgbaString)
-                : new ColorFormatter(toHexRgbString);
-            return new ColorSwatchTextInputController(args.document, {
+                ? new ColorFormatter(colorToHexRgbaString)
+                : new ColorFormatter(colorToHexRgbString);
+            return new ColorSwatchTextController(args.document, {
                 formatter: formatter,
-                parser: CompositeParser,
+                parser: CompositeColorParser,
                 supportsAlpha: supportsAlpha,
                 value: args.binding.value,
-                viewModel: new ViewModel(),
             });
         },
     };
@@ -4366,22 +3994,32 @@
     /**
      * @hidden
      */
+    function colorFromObject(value) {
+        if (Color.isColorObject(value)) {
+            return Color.fromObject(value);
+        }
+        return Color.black();
+    }
+
+    /**
+     * @hidden
+     */
     var ObjectColorInputPlugin = {
-        model: {
+        id: 'input-color-object',
+        binding: {
             accept: function (value, _params) { return (Color.isColorObject(value) ? value : null); },
-            reader: function (_args) { return fromObject; },
+            reader: function (_args) { return colorFromObject; },
             writer: function (_args) { return Color.toRgbaObject; },
             equals: Color.equals,
         },
         controller: function (args) {
             var supportsAlpha = Color.isRgbaColorObject(args.initialValue);
             var formatter = supportsAlpha
-                ? new ColorFormatter(toHexRgbaString)
-                : new ColorFormatter(toHexRgbString);
-            return new ColorSwatchTextInputController(args.document, {
-                viewModel: new ViewModel(),
+                ? new ColorFormatter(colorToHexRgbaString)
+                : new ColorFormatter(colorToHexRgbString);
+            return new ColorSwatchTextController(args.document, {
                 formatter: formatter,
-                parser: CompositeParser,
+                parser: CompositeColorParser,
                 supportsAlpha: supportsAlpha,
                 value: args.binding.value,
             });
@@ -4392,7 +4030,8 @@
      * @hidden
      */
     var StringColorInputPlugin = {
-        model: {
+        id: 'input-color-string',
+        binding: {
             accept: function (value, params) {
                 if (typeof value !== 'string') {
                     return null;
@@ -4400,138 +4039,143 @@
                 if ('input' in params && params.input === 'string') {
                     return null;
                 }
-                var notation = getNotation(value);
+                var notation = getColorNotation(value);
                 if (!notation) {
                     return null;
                 }
                 return value;
             },
-            reader: function (_args) { return fromString; },
+            reader: function (_args) { return colorFromString; },
             writer: function (args) {
-                var notation = getNotation(args.initialValue);
+                var notation = getColorNotation(args.initialValue);
                 if (!notation) {
                     throw PaneError.shouldNeverHappen();
                 }
-                return getStringifier(notation);
+                return getColorStringifier(notation);
             },
             equals: Color.equals,
         },
         controller: function (args) {
-            var notation = getNotation(args.initialValue);
+            var notation = getColorNotation(args.initialValue);
             if (!notation) {
                 throw PaneError.shouldNeverHappen();
             }
-            return new ColorSwatchTextInputController(args.document, {
+            return new ColorSwatchTextController(args.document, {
                 formatter: new ColorFormatter(args.binding.writer),
-                parser: CompositeParser,
+                parser: CompositeColorParser,
                 supportsAlpha: hasAlphaComponent(notation),
                 value: args.binding.value,
-                viewModel: new ViewModel(),
             });
         },
     };
 
-    var className$g = ClassName('sldtxt', 'input');
     /**
      * @hidden
      */
-    var SliderTextInputView = /** @class */ (function (_super) {
-        __extends(SliderTextInputView, _super);
-        function SliderTextInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.element.classList.add(className$g());
-            var sliderElem = document.createElement('div');
-            sliderElem.classList.add(className$g('s'));
-            _this.sliderInputView_ = config.sliderInputView;
-            sliderElem.appendChild(_this.sliderInputView_.element);
-            _this.element.appendChild(sliderElem);
-            var textElem = document.createElement('div');
-            textElem.classList.add(className$g('t'));
-            _this.textInputView_ = config.textInputView;
-            textElem.appendChild(_this.textInputView_.element);
-            _this.element.appendChild(textElem);
-            return _this;
+    var RangeConstraint = /** @class */ (function () {
+        function RangeConstraint(config) {
+            this.maxValue = config.max;
+            this.minValue = config.min;
         }
-        Object.defineProperty(SliderTextInputView.prototype, "value", {
+        RangeConstraint.prototype.constrain = function (value) {
+            var result = value;
+            if (!isEmpty(this.minValue)) {
+                result = Math.max(result, this.minValue);
+            }
+            if (!isEmpty(this.maxValue)) {
+                result = Math.min(result, this.maxValue);
+            }
+            return result;
+        };
+        return RangeConstraint;
+    }());
+
+    /**
+     * @hidden
+     */
+    function numberFromUnknown(value) {
+        if (typeof value === 'number') {
+            return value;
+        }
+        if (typeof value === 'string') {
+            var pv = StringNumberParser(value);
+            if (!isEmpty(pv)) {
+                return pv;
+            }
+        }
+        return 0;
+    }
+
+    var className$g = ClassName('sldtxt');
+    /**
+     * @hidden
+     */
+    var SliderTextView = /** @class */ (function () {
+        function SliderTextView(doc, config) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$g());
+            var sliderElem = doc.createElement('div');
+            sliderElem.classList.add(className$g('s'));
+            this.sliderView_ = config.sliderView;
+            sliderElem.appendChild(this.sliderView_.element);
+            this.element.appendChild(sliderElem);
+            var textElem = doc.createElement('div');
+            textElem.classList.add(className$g('t'));
+            this.textView_ = config.textView;
+            textElem.appendChild(this.textView_.element);
+            this.element.appendChild(textElem);
+        }
+        Object.defineProperty(SliderTextView.prototype, "value", {
             get: function () {
-                return this.sliderInputView_.value;
+                return this.sliderView_.value;
             },
             enumerable: false,
             configurable: true
         });
-        SliderTextInputView.prototype.update = function () {
-            this.sliderInputView_.update();
-            this.textInputView_.update();
+        SliderTextView.prototype.update = function () {
+            this.sliderView_.update();
+            this.textView_.update();
         };
-        return SliderTextInputView;
-    }(View));
+        return SliderTextView;
+    }());
 
-    var className$h = ClassName('sld', 'input');
+    var className$h = ClassName('sld');
     /**
      * @hidden
      */
-    var SliderInputView = /** @class */ (function (_super) {
-        __extends(SliderInputView, _super);
-        function SliderInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.minValue_ = config.minValue;
-            _this.maxValue_ = config.maxValue;
-            _this.element.classList.add(className$h());
-            var outerElem = document.createElement('div');
+    var SliderView = /** @class */ (function () {
+        function SliderView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.minValue_ = config.minValue;
+            this.maxValue_ = config.maxValue;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$h());
+            var outerElem = doc.createElement('div');
             outerElem.classList.add(className$h('o'));
             outerElem.tabIndex = 0;
-            _this.element.appendChild(outerElem);
-            _this.outerElem_ = outerElem;
-            var innerElem = document.createElement('div');
+            this.element.appendChild(outerElem);
+            this.outerElement = outerElem;
+            var innerElem = doc.createElement('div');
             innerElem.classList.add(className$h('i'));
-            _this.outerElem_.appendChild(innerElem);
-            _this.innerElem_ = innerElem;
-            config.value.emitter.on('change', _this.onValueChange_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.innerElem_ = disposeElement(_this.innerElem_);
-                _this.outerElem_ = disposeElement(_this.outerElem_);
-            });
-            return _this;
+            this.outerElement.appendChild(innerElem);
+            this.innerElement = innerElem;
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
         }
-        Object.defineProperty(SliderInputView.prototype, "outerElement", {
-            get: function () {
-                if (!this.outerElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.outerElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(SliderInputView.prototype, "innerElement", {
-            get: function () {
-                if (!this.innerElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.innerElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        SliderInputView.prototype.update = function () {
-            if (!this.innerElem_) {
-                throw PaneError.alreadyDisposed();
-            }
-            var p = NumberUtil.constrain(NumberUtil.map(this.value.rawValue, this.minValue_, this.maxValue_, 0, 100), 0, 100);
-            this.innerElem_.style.width = p + "%";
+        SliderView.prototype.update = function () {
+            var p = constrainRange(mapRange(this.value.rawValue, this.minValue_, this.maxValue_, 0, 100), 0, 100);
+            this.innerElement.style.width = p + "%";
         };
-        SliderInputView.prototype.onValueChange_ = function () {
+        SliderView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return SliderInputView;
-    }(View));
+        return SliderView;
+    }());
 
     function findRange(value) {
         var c = value.constraint
-            ? ConstraintUtil.findConstraint(value.constraint, RangeConstraint)
+            ? findConstraint(value.constraint, RangeConstraint)
             : null;
         if (!c) {
             return [undefined, undefined];
@@ -4540,127 +4184,84 @@
     }
     function estimateSuitableRange(value) {
         var _a = findRange(value), min = _a[0], max = _a[1];
-        return [
-            TypeUtil.getOrDefault(min, 0),
-            TypeUtil.getOrDefault(max, 100),
-        ];
+        return [min !== null && min !== void 0 ? min : 0, max !== null && max !== void 0 ? max : 100];
     }
     /**
      * @hidden
      */
-    var SliderInputController = /** @class */ (function () {
-        function SliderInputController(document, config) {
+    var SliderController = /** @class */ (function () {
+        function SliderController(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
-            this.step_ = getStepForTextInput(this.value.constraint);
+            this.baseStep_ = config.baseStep;
             var _a = estimateSuitableRange(this.value), min = _a[0], max = _a[1];
             this.minValue_ = min;
             this.maxValue_ = max;
-            this.viewModel = config.viewModel;
-            this.view = new SliderInputView(document, {
+            this.view = new SliderView(doc, {
                 maxValue: this.maxValue_,
                 minValue: this.minValue_,
-                model: this.viewModel,
                 value: this.value,
             });
-            this.ptHandler_ = new PointerHandler(document, this.view.outerElement);
+            this.ptHandler_ = new PointerHandler(doc, this.view.outerElement);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.outerElement.addEventListener('keydown', this.onKeyDown_);
         }
-        SliderInputController.prototype.handlePointerEvent_ = function (d) {
-            this.value.rawValue = NumberUtil.map(d.px, 0, 1, this.minValue_, this.maxValue_);
+        SliderController.prototype.handlePointerEvent_ = function (d) {
+            this.value.rawValue = mapRange(d.px, 0, 1, this.minValue_, this.maxValue_);
         };
-        SliderInputController.prototype.onPointerDown_ = function (ev) {
+        SliderController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        SliderInputController.prototype.onPointerMove_ = function (ev) {
+        SliderController.prototype.onPointerMove_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        SliderInputController.prototype.onPointerUp_ = function (ev) {
+        SliderController.prototype.onPointerUp_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        SliderInputController.prototype.onKeyDown_ = function (ev) {
-            this.value.rawValue += getStepForKey(this.step_, getHorizontalStepKeys(ev));
+        SliderController.prototype.onKeyDown_ = function (ev) {
+            this.value.rawValue += getStepForKey(this.baseStep_, getHorizontalStepKeys(ev));
         };
-        return SliderInputController;
+        return SliderController;
     }());
 
     /**
      * @hidden
      */
-    var SliderTextInputController = /** @class */ (function () {
-        function SliderTextInputController(document, config) {
-            this.value_ = config.value;
-            this.viewModel = config.viewModel;
-            this.sliderIc_ = new SliderInputController(document, {
+    var SliderTextController = /** @class */ (function () {
+        function SliderTextController(doc, config) {
+            this.value = config.value;
+            this.sliderIc_ = new SliderController(doc, {
+                baseStep: config.baseStep,
                 value: config.value,
-                viewModel: this.viewModel,
             });
-            this.textIc_ = new NumberTextInputController(document, {
+            this.textIc_ = new NumberTextController(doc, {
+                baseStep: config.baseStep,
                 formatter: config.formatter,
                 parser: config.parser,
                 value: config.value,
-                viewModel: this.viewModel,
             });
-            this.view_ = new SliderTextInputView(document, {
-                model: this.viewModel,
-                sliderInputView: this.sliderIc_.view,
-                textInputView: this.textIc_.view,
+            this.view = new SliderTextView(doc, {
+                sliderView: this.sliderIc_.view,
+                textView: this.textIc_.view,
             });
         }
-        Object.defineProperty(SliderTextInputController.prototype, "value", {
-            get: function () {
-                return this.value_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(SliderTextInputController.prototype, "view", {
-            get: function () {
-                return this.view_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return SliderTextInputController;
+        return SliderTextController;
     }());
-
-    /**
-     * @hidden
-     */
-    function fromMixed$1(value) {
-        if (typeof value === 'number') {
-            return value;
-        }
-        if (typeof value === 'string') {
-            var pv = StringNumberParser(value);
-            if (!TypeUtil.isEmpty(pv)) {
-                return pv;
-            }
-        }
-        return 0;
-    }
-    /**
-     * @hidden
-     */
-    function toString$1(value) {
-        return String(value);
-    }
 
     function createConstraint$1(params) {
         var constraints = [];
-        if ('step' in params && !TypeUtil.isEmpty(params.step)) {
+        if ('step' in params && !isEmpty(params.step)) {
             constraints.push(new StepConstraint({
                 step: params.step,
             }));
         }
-        if (('max' in params && !TypeUtil.isEmpty(params.max)) ||
-            ('min' in params && !TypeUtil.isEmpty(params.min))) {
+        if (('max' in params && !isEmpty(params.max)) ||
+            ('min' in params && !isEmpty(params.min))) {
             constraints.push(new RangeConstraint({
                 max: params.max,
                 min: params.min,
@@ -4668,216 +4269,239 @@
         }
         if ('options' in params && params.options !== undefined) {
             constraints.push(new ListConstraint({
-                options: normalizeInputParamsOptions(params.options, fromMixed$1),
+                options: normalizeInputParamsOptions(params.options, numberFromUnknown),
             }));
         }
         return new CompositeConstraint({
             constraints: constraints,
         });
     }
-    function createController$3(document, value) {
+    function createController$3(doc, value) {
+        var _a;
         var c = value.constraint;
-        if (c && ConstraintUtil.findConstraint(c, ListConstraint)) {
-            return new ListInputController(document, {
-                stringifyValue: toString$1,
+        if (c && findConstraint(c, ListConstraint)) {
+            return new ListController(doc, {
+                listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                stringifyValue: numberToString,
                 value: value,
-                viewModel: new ViewModel(),
             });
         }
-        if (c && ConstraintUtil.findConstraint(c, RangeConstraint)) {
-            return new SliderTextInputController(document, {
+        if (c && findConstraint(c, RangeConstraint)) {
+            return new SliderTextController(doc, {
+                baseStep: getBaseStep(c),
                 formatter: new NumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
                 parser: StringNumberParser,
                 value: value,
-                viewModel: new ViewModel(),
             });
         }
-        return new NumberTextInputController(document, {
+        return new NumberTextController(doc, {
+            baseStep: getBaseStep(c),
             formatter: new NumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
             parser: StringNumberParser,
             value: value,
-            viewModel: new ViewModel(),
         });
     }
     /**
      * @hidden
      */
     var NumberInputPlugin = {
-        model: {
+        id: 'input-number',
+        binding: {
             accept: function (value) { return (typeof value === 'number' ? value : null); },
-            reader: function (_args) { return fromMixed$1; },
-            writer: function (_args) { return function (v) { return v; }; },
             constraint: function (args) { return createConstraint$1(args.params); },
+            reader: function (_args) { return numberFromUnknown; },
+            writer: function (_args) { return function (v) { return v; }; },
         },
         controller: function (args) {
             return createController$3(args.document, args.binding.value);
         },
     };
 
-    var className$i = ClassName('p2dpadtxt', 'input');
+    var Point2d = /** @class */ (function () {
+        function Point2d(x, y) {
+            if (x === void 0) { x = 0; }
+            if (y === void 0) { y = 0; }
+            this.x = x;
+            this.y = y;
+        }
+        Point2d.prototype.getComponents = function () {
+            return [this.x, this.y];
+        };
+        Point2d.isObject = function (obj) {
+            if (isEmpty(obj)) {
+                return false;
+            }
+            var x = obj.x;
+            var y = obj.y;
+            if (typeof x !== 'number' || typeof y !== 'number') {
+                return false;
+            }
+            return true;
+        };
+        Point2d.equals = function (v1, v2) {
+            return v1.x === v2.x && v1.y === v2.y;
+        };
+        Point2d.prototype.toObject = function () {
+            return {
+                x: this.x,
+                y: this.y,
+            };
+        };
+        return Point2d;
+    }());
+
     /**
      * @hidden
      */
-    var Point2dPadTextInputView = /** @class */ (function (_super) {
-        __extends(Point2dPadTextInputView, _super);
-        function Point2dPadTextInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.element.classList.add(className$i());
-            var padWrapperElem = document.createElement('div');
+    var Point2dConstraint = /** @class */ (function () {
+        function Point2dConstraint(config) {
+            this.x = config.x;
+            this.y = config.y;
+        }
+        Point2dConstraint.prototype.constrain = function (value) {
+            return new Point2d(this.x ? this.x.constrain(value.x) : value.x, this.y ? this.y.constrain(value.y) : value.y);
+        };
+        return Point2dConstraint;
+    }());
+
+    var className$i = ClassName('p2dpadtxt');
+    /**
+     * @hidden
+     */
+    var Point2dPadTextView = /** @class */ (function () {
+        function Point2dPadTextView(doc, config) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$i());
+            var padWrapperElem = doc.createElement('div');
             padWrapperElem.classList.add(className$i('w'));
-            _this.element.appendChild(padWrapperElem);
-            var buttonElem = document.createElement('button');
+            this.element.appendChild(padWrapperElem);
+            var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$i('b'));
-            buttonElem.appendChild(createSvgIconElement(document, 'p2dpad'));
+            buttonElem.appendChild(createSvgIconElement(doc, 'p2dpad'));
             padWrapperElem.appendChild(buttonElem);
-            _this.padButtonElem_ = buttonElem;
-            var padElem = document.createElement('div');
+            this.padButtonElem_ = buttonElem;
+            var padElem = doc.createElement('div');
             padElem.classList.add(className$i('p'));
             padWrapperElem.appendChild(padElem);
-            _this.padInputView_ = config.padInputView;
-            padElem.appendChild(_this.padInputView_.element);
-            var textElem = document.createElement('div');
+            this.padView_ = config.padView;
+            padElem.appendChild(this.padView_.element);
+            var textElem = doc.createElement('div');
             textElem.classList.add(className$i('t'));
-            _this.textInputView_ = config.textInputView;
-            textElem.appendChild(_this.textInputView_.element);
-            _this.element.appendChild(textElem);
-            return _this;
+            this.textView_ = config.textView;
+            textElem.appendChild(this.textView_.element);
+            this.element.appendChild(textElem);
         }
-        Object.defineProperty(Point2dPadTextInputView.prototype, "value", {
+        Object.defineProperty(Point2dPadTextView.prototype, "value", {
             get: function () {
-                return this.textInputView_.value;
+                return this.textView_.value;
             },
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(Point2dPadTextInputView.prototype, "padButtonElement", {
+        Object.defineProperty(Point2dPadTextView.prototype, "padButtonElement", {
             get: function () {
                 return this.padButtonElem_;
             },
             enumerable: false,
             configurable: true
         });
-        Point2dPadTextInputView.prototype.update = function () {
-            this.padInputView_.update();
-            this.textInputView_.update();
+        Point2dPadTextView.prototype.update = function () {
+            this.padView_.update();
+            this.textView_.update();
         };
-        return Point2dPadTextInputView;
-    }(View));
+        return Point2dPadTextView;
+    }());
 
-    var SVG_NS$1 = SVG_NS;
-    var className$j = ClassName('p2dpad', 'input');
+    var className$j = ClassName('p2dpad');
     /**
      * @hidden
      */
-    var Point2dPadInputView = /** @class */ (function (_super) {
-        __extends(Point2dPadInputView, _super);
-        function Point2dPadInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onFoldableChange_ = _this.onFoldableChange_.bind(_this);
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.foldable = config.foldable;
-            _this.foldable.emitter.on('change', _this.onFoldableChange_);
-            _this.invertsY_ = config.invertsY;
-            _this.maxValue_ = config.maxValue;
-            _this.element.classList.add(className$j());
-            var padElem = document.createElement('div');
+    var Point2dPadView = /** @class */ (function () {
+        function Point2dPadView(doc, config) {
+            this.onFoldableChange_ = this.onFoldableChange_.bind(this);
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.foldable = config.foldable;
+            this.foldable.emitter.on('change', this.onFoldableChange_);
+            this.invertsY_ = config.invertsY;
+            this.maxValue_ = config.maxValue;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$j());
+            var padElem = doc.createElement('div');
             padElem.tabIndex = 0;
             padElem.classList.add(className$j('p'));
-            _this.element.appendChild(padElem);
-            _this.padElem_ = padElem;
-            var svgElem = document.createElementNS(SVG_NS$1, 'svg');
+            this.element.appendChild(padElem);
+            this.padElement = padElem;
+            var svgElem = doc.createElementNS(SVG_NS, 'svg');
             svgElem.classList.add(className$j('g'));
-            _this.padElem_.appendChild(svgElem);
-            _this.svgElem_ = svgElem;
-            var xAxisElem = document.createElementNS(SVG_NS$1, 'line');
+            this.padElement.appendChild(svgElem);
+            this.svgElem_ = svgElem;
+            var xAxisElem = doc.createElementNS(SVG_NS, 'line');
             xAxisElem.classList.add(className$j('ax'));
             xAxisElem.setAttributeNS(null, 'x1', '0');
             xAxisElem.setAttributeNS(null, 'y1', '50%');
             xAxisElem.setAttributeNS(null, 'x2', '100%');
             xAxisElem.setAttributeNS(null, 'y2', '50%');
-            _this.svgElem_.appendChild(xAxisElem);
-            var yAxisElem = document.createElementNS(SVG_NS$1, 'line');
+            this.svgElem_.appendChild(xAxisElem);
+            var yAxisElem = doc.createElementNS(SVG_NS, 'line');
             yAxisElem.classList.add(className$j('ax'));
             yAxisElem.setAttributeNS(null, 'x1', '50%');
             yAxisElem.setAttributeNS(null, 'y1', '0');
             yAxisElem.setAttributeNS(null, 'x2', '50%');
             yAxisElem.setAttributeNS(null, 'y2', '100%');
-            _this.svgElem_.appendChild(yAxisElem);
-            var lineElem = document.createElementNS(SVG_NS$1, 'line');
+            this.svgElem_.appendChild(yAxisElem);
+            var lineElem = doc.createElementNS(SVG_NS, 'line');
             lineElem.classList.add(className$j('l'));
             lineElem.setAttributeNS(null, 'x1', '50%');
             lineElem.setAttributeNS(null, 'y1', '50%');
-            _this.svgElem_.appendChild(lineElem);
-            _this.lineElem_ = lineElem;
-            var markerElem = document.createElementNS(SVG_NS$1, 'circle');
+            this.svgElem_.appendChild(lineElem);
+            this.lineElem_ = lineElem;
+            var markerElem = doc.createElementNS(SVG_NS, 'circle');
             markerElem.classList.add(className$j('m'));
             markerElem.setAttributeNS(null, 'r', '2px');
-            _this.svgElem_.appendChild(markerElem);
-            _this.markerElem_ = markerElem;
-            config.value.emitter.on('change', _this.onValueChange_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.padElem_ = disposeElement(_this.padElem_);
-            });
-            return _this;
+            this.svgElem_.appendChild(markerElem);
+            this.markerElem_ = markerElem;
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
         }
-        Object.defineProperty(Point2dPadInputView.prototype, "padElement", {
+        Object.defineProperty(Point2dPadView.prototype, "allFocusableElements", {
             get: function () {
-                if (!this.padElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.padElem_;
+                return [this.padElement];
             },
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(Point2dPadInputView.prototype, "allFocusableElements", {
-            get: function () {
-                if (!this.padElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return [this.padElem_];
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Point2dPadInputView.prototype.update = function () {
+        Point2dPadView.prototype.update = function () {
             if (this.foldable.expanded) {
                 this.element.classList.add(className$j(undefined, 'expanded'));
             }
             else {
                 this.element.classList.remove(className$j(undefined, 'expanded'));
             }
-            var lineElem = this.lineElem_;
-            var markerElem = this.markerElem_;
-            if (!lineElem || !markerElem) {
-                throw PaneError.alreadyDisposed();
-            }
             var _a = this.value.rawValue.getComponents(), x = _a[0], y = _a[1];
             var max = this.maxValue_;
-            var px = NumberUtil.map(x, -max, +max, 0, 100);
-            var py = NumberUtil.map(y, -max, +max, 0, 100);
+            var px = mapRange(x, -max, +max, 0, 100);
+            var py = mapRange(y, -max, +max, 0, 100);
             var ipy = this.invertsY_ ? 100 - py : py;
-            lineElem.setAttributeNS(null, 'x2', px + "%");
-            lineElem.setAttributeNS(null, 'y2', ipy + "%");
-            markerElem.setAttributeNS(null, 'cx', px + "%");
-            markerElem.setAttributeNS(null, 'cy', ipy + "%");
+            this.lineElem_.setAttributeNS(null, 'x2', px + "%");
+            this.lineElem_.setAttributeNS(null, 'y2', ipy + "%");
+            this.markerElem_.setAttributeNS(null, 'cx', px + "%");
+            this.markerElem_.setAttributeNS(null, 'cy', ipy + "%");
         };
-        Point2dPadInputView.prototype.onValueChange_ = function () {
+        Point2dPadView.prototype.onValueChange_ = function () {
             this.update();
         };
-        Point2dPadInputView.prototype.onFoldableChange_ = function () {
+        Point2dPadView.prototype.onFoldableChange_ = function () {
             this.update();
         };
-        return Point2dPadInputView;
-    }(View));
+        return Point2dPadView;
+    }());
 
     /**
      * @hidden
      */
-    var Point2dPadInputController = /** @class */ (function () {
-        function Point2dPadInputController(document, config) {
+    var Point2dPadController = /** @class */ (function () {
+        function Point2dPadController(doc, config) {
             var _this = this;
             this.triggerElement = null;
             this.onFocusableElementBlur_ = this.onFocusableElementBlur_.bind(this);
@@ -4888,20 +4512,16 @@
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
             this.foldable = new Foldable();
-            this.maxValue_ = getSuitableMaxValueForPoint2dPad(this.value.constraint, this.value.rawValue);
+            this.baseSteps_ = config.baseSteps;
+            this.maxValue_ = config.maxValue;
             this.invertsY_ = config.invertsY;
-            var c = this.value.constraint;
-            this.xStep_ = getStepForTextInput(c instanceof Point2dConstraint ? c.xConstraint : undefined);
-            this.yStep_ = getStepForTextInput(c instanceof Point2dConstraint ? c.yConstraint : undefined);
-            this.viewModel = config.viewModel;
-            this.view = new Point2dPadInputView(document, {
+            this.view = new Point2dPadView(doc, {
                 foldable: this.foldable,
                 invertsY: this.invertsY_,
                 maxValue: this.maxValue_,
-                model: this.viewModel,
                 value: this.value,
             });
-            this.ptHandler_ = new PointerHandler(document, this.view.padElement);
+            this.ptHandler_ = new PointerHandler(doc, this.view.padElement);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
@@ -4911,32 +4531,32 @@
                 elem.addEventListener('blur', _this.onFocusableElementBlur_);
             });
         }
-        Point2dPadInputController.prototype.handlePointerEvent_ = function (d) {
+        Point2dPadController.prototype.handlePointerEvent_ = function (d) {
             var max = this.maxValue_;
-            var px = NumberUtil.map(d.px, 0, 1, -max, +max);
-            var py = NumberUtil.map(this.invertsY_ ? 1 - d.py : d.py, 0, 1, -max, +max);
+            var px = mapRange(d.px, 0, 1, -max, +max);
+            var py = mapRange(this.invertsY_ ? 1 - d.py : d.py, 0, 1, -max, +max);
             this.value.rawValue = new Point2d(px, py);
             this.view.update();
         };
-        Point2dPadInputController.prototype.onPointerDown_ = function (ev) {
+        Point2dPadController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        Point2dPadInputController.prototype.onPointerMove_ = function (ev) {
+        Point2dPadController.prototype.onPointerMove_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        Point2dPadInputController.prototype.onPointerUp_ = function (ev) {
+        Point2dPadController.prototype.onPointerUp_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        Point2dPadInputController.prototype.onPadKeyDown_ = function (ev) {
+        Point2dPadController.prototype.onPadKeyDown_ = function (ev) {
             if (isArrowKey(ev.keyCode)) {
                 ev.preventDefault();
             }
             this.value.rawValue = new Point2d(this.value.rawValue.x +
-                getStepForKey(this.xStep_, getHorizontalStepKeys(ev)), this.value.rawValue.y +
-                getStepForKey(this.yStep_, getVerticalStepKeys(ev)) *
+                getStepForKey(this.baseSteps_[0], getHorizontalStepKeys(ev)), this.value.rawValue.y +
+                getStepForKey(this.baseSteps_[1], getVerticalStepKeys(ev)) *
                     (this.invertsY_ ? 1 : -1));
         };
-        Point2dPadInputController.prototype.onFocusableElementBlur_ = function (ev) {
+        Point2dPadController.prototype.onFocusableElementBlur_ = function (ev) {
             var elem = this.view.element;
             var nextTarget = findNextTarget(ev);
             if (nextTarget && elem.contains(nextTarget)) {
@@ -4951,106 +4571,84 @@
             }
             this.foldable.expanded = false;
         };
-        Point2dPadInputController.prototype.onKeyDown_ = function (ev) {
+        Point2dPadController.prototype.onKeyDown_ = function (ev) {
             if (ev.keyCode === 27) {
                 this.foldable.expanded = false;
             }
         };
-        return Point2dPadInputController;
+        return Point2dPadController;
     }());
 
-    var COMPONENT_LABELS = ['X', 'Y'];
-    var className$k = ClassName('p2dtxt', 'input');
+    var className$k = ClassName('p2dtxt');
     /**
      * @hidden
      */
-    var Point2dTextInputView = /** @class */ (function (_super) {
-        __extends(Point2dTextInputView, _super);
-        function Point2dTextInputView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueChange_ = _this.onValueChange_.bind(_this);
-            _this.formatters_ = [config.xFormatter, config.yFormatter];
-            _this.element.classList.add(className$k());
-            var inputElems = COMPONENT_LABELS.map(function () {
-                var inputElem = document.createElement('input');
+    var Point2dTextView = /** @class */ (function () {
+        function Point2dTextView(doc, config) {
+            var _this = this;
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.formatters_ = config.formatters;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$k());
+            var inputElems = [0, 1].map(function () {
+                var inputElem = doc.createElement('input');
                 inputElem.classList.add(className$k('i'));
                 inputElem.type = 'text';
                 return inputElem;
             });
-            COMPONENT_LABELS.forEach(function (_, index) {
-                var elem = document.createElement('div');
+            [0, 1].forEach(function (_, index) {
+                var elem = doc.createElement('div');
                 elem.classList.add(className$k('w'));
                 elem.appendChild(inputElems[index]);
                 _this.element.appendChild(elem);
             });
-            _this.inputElems_ = [inputElems[0], inputElems[1]];
-            config.value.emitter.on('change', _this.onValueChange_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                if (_this.inputElems_) {
-                    _this.inputElems_.forEach(function (elem) {
-                        disposeElement(elem);
-                    });
-                    _this.inputElems_ = null;
-                }
-            });
-            return _this;
+            this.inputElems_ = [inputElems[0], inputElems[1]];
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
         }
-        Object.defineProperty(Point2dTextInputView.prototype, "inputElements", {
+        Object.defineProperty(Point2dTextView.prototype, "inputElements", {
             get: function () {
-                if (!this.inputElems_) {
-                    throw PaneError.alreadyDisposed();
-                }
                 return this.inputElems_;
             },
             enumerable: false,
             configurable: true
         });
-        Point2dTextInputView.prototype.update = function () {
+        Point2dTextView.prototype.update = function () {
             var _this = this;
-            var inputElems = this.inputElems_;
-            if (!inputElems) {
-                throw PaneError.alreadyDisposed();
-            }
             var xyComps = this.value.rawValue.getComponents();
             xyComps.forEach(function (comp, index) {
-                var inputElem = inputElems[index];
+                var inputElem = _this.inputElems_[index];
                 inputElem.value = _this.formatters_[index].format(comp);
             });
         };
-        Point2dTextInputView.prototype.onValueChange_ = function () {
+        Point2dTextView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return Point2dTextInputView;
-    }(View));
+        return Point2dTextView;
+    }());
 
     /**
      * @hidden
      */
-    var Point2dTextInputController = /** @class */ (function () {
-        function Point2dTextInputController(document, config) {
+    var Point2dTextController = /** @class */ (function () {
+        function Point2dTextController(doc, config) {
             var _this = this;
             this.onInputChange_ = this.onInputChange_.bind(this);
             this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
             this.parser_ = config.parser;
             this.value = config.value;
-            var c = this.value.constraint;
-            this.xStep_ = getStepForTextInput(c instanceof Point2dConstraint ? c.xConstraint : undefined);
-            this.yStep_ = getStepForTextInput(c instanceof Point2dConstraint ? c.yConstraint : undefined);
-            this.viewModel = config.viewModel;
-            this.view = new Point2dTextInputView(document, {
-                model: this.viewModel,
+            this.baseSteps_ = [config.axes[0].baseStep, config.axes[1].baseStep];
+            this.view = new Point2dTextView(doc, {
+                formatters: [config.axes[0].formatter, config.axes[1].formatter],
                 value: this.value,
-                xFormatter: config.xFormatter,
-                yFormatter: config.yFormatter,
             });
             this.view.inputElements.forEach(function (inputElem) {
                 inputElem.addEventListener('change', _this.onInputChange_);
                 inputElem.addEventListener('keydown', _this.onInputKeyDown_);
             });
         }
-        Point2dTextInputController.prototype.findIndexOfInputElem_ = function (inputElem) {
+        Point2dTextController.prototype.findIndexOfInputElem_ = function (inputElem) {
             var inputElems = this.view.inputElements;
             for (var i = 0; i < inputElems.length; i++) {
                 if (inputElems[i] === inputElem) {
@@ -5059,7 +4657,7 @@
             }
             return null;
         };
-        Point2dTextInputController.prototype.updateComponent_ = function (index, newValue) {
+        Point2dTextController.prototype.updateComponent_ = function (index, newValue) {
             var comps = this.value.rawValue.getComponents();
             var newComps = comps.map(function (comp, i) {
                 return i === index ? newValue : comp;
@@ -5067,95 +4665,87 @@
             this.value.rawValue = new Point2d(newComps[0], newComps[1]);
             this.view.update();
         };
-        Point2dTextInputController.prototype.onInputChange_ = function (e) {
-            var inputElem = TypeUtil.forceCast(e.currentTarget);
+        Point2dTextController.prototype.onInputChange_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
             var parsedValue = this.parser_(inputElem.value);
-            if (TypeUtil.isEmpty(parsedValue)) {
+            if (isEmpty(parsedValue)) {
                 return;
             }
             var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (TypeUtil.isEmpty(compIndex)) {
+            if (isEmpty(compIndex)) {
                 return;
             }
             this.updateComponent_(compIndex, parsedValue);
         };
-        Point2dTextInputController.prototype.onInputKeyDown_ = function (e) {
-            var inputElem = TypeUtil.forceCast(e.currentTarget);
+        Point2dTextController.prototype.onInputKeyDown_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
             var parsedValue = this.parser_(inputElem.value);
-            if (TypeUtil.isEmpty(parsedValue)) {
+            if (isEmpty(parsedValue)) {
                 return;
             }
             var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (TypeUtil.isEmpty(compIndex)) {
+            if (isEmpty(compIndex)) {
                 return;
             }
-            var step = getStepForKey(compIndex === 0 ? this.xStep_ : this.yStep_, getVerticalStepKeys(e));
+            var step = getStepForKey(this.baseSteps_[compIndex], getVerticalStepKeys(e));
             if (step === 0) {
                 return;
             }
             this.updateComponent_(compIndex, parsedValue + step);
         };
-        return Point2dTextInputController;
+        return Point2dTextController;
     }());
 
     /**
      * @hidden
      */
-    var Point2dPadTextInputController = /** @class */ (function () {
-        function Point2dPadTextInputController(document, config) {
+    var Point2dPadTextController = /** @class */ (function () {
+        function Point2dPadTextController(doc, config) {
             this.onPadButtonBlur_ = this.onPadButtonBlur_.bind(this);
             this.onPadButtonClick_ = this.onPadButtonClick_.bind(this);
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.padIc_ = new Point2dPadInputController(document, {
+            this.padIc_ = new Point2dPadController(doc, {
+                baseSteps: [config.axes[0].baseStep, config.axes[1].baseStep],
                 invertsY: config.invertsY,
+                maxValue: config.maxValue,
                 value: this.value,
-                viewModel: this.viewModel,
             });
-            this.textIc_ = new Point2dTextInputController(document, {
+            this.textIc_ = new Point2dTextController(doc, {
+                axes: config.axes,
                 parser: config.parser,
                 value: this.value,
-                viewModel: this.viewModel,
-                xFormatter: config.xFormatter,
-                yFormatter: config.yFormatter,
             });
-            this.view = new Point2dPadTextInputView(document, {
-                model: this.viewModel,
-                padInputView: this.padIc_.view,
-                textInputView: this.textIc_.view,
+            this.view = new Point2dPadTextView(doc, {
+                padView: this.padIc_.view,
+                textView: this.textIc_.view,
             });
             this.view.padButtonElement.addEventListener('blur', this.onPadButtonBlur_);
             this.view.padButtonElement.addEventListener('click', this.onPadButtonClick_);
             this.padIc_.triggerElement = this.view.padButtonElement;
         }
-        Point2dPadTextInputController.prototype.onPadButtonBlur_ = function (e) {
+        Point2dPadTextController.prototype.onPadButtonBlur_ = function (e) {
             var elem = this.view.element;
-            var nextTarget = TypeUtil.forceCast(e.relatedTarget);
+            var nextTarget = forceCast(e.relatedTarget);
             if (!nextTarget || !elem.contains(nextTarget)) {
                 this.padIc_.foldable.expanded = false;
             }
         };
-        Point2dPadTextInputController.prototype.onPadButtonClick_ = function () {
+        Point2dPadTextController.prototype.onPadButtonClick_ = function () {
             this.padIc_.foldable.expanded = !this.padIc_.foldable.expanded;
             if (this.padIc_.foldable.expanded) {
                 this.padIc_.view.allFocusableElements[0].focus();
             }
         };
-        return Point2dPadTextInputController;
+        return Point2dPadTextController;
     }());
 
     /**
      * @hidden
      */
-    var AnyPoint2dParser = function (obj) {
-        return Point2d.isObject(obj) ? new Point2d(obj.x, obj.y) : null;
-    };
-
-    /**
-     * @hidden
-     */
-    function fromMixed$2(value) {
-        return AnyPoint2dParser(value) || new Point2d();
+    function point2dFromUnknown(value) {
+        return Point2d.isObject(value)
+            ? new Point2d(value.x, value.y)
+            : new Point2d();
     }
 
     function createDimensionConstraint(params) {
@@ -5163,12 +4753,12 @@
             return undefined;
         }
         var constraints = [];
-        if (!TypeUtil.isEmpty(params.step)) {
+        if (!isEmpty(params.step)) {
             constraints.push(new StepConstraint({
                 step: params.step,
             }));
         }
-        if (!TypeUtil.isEmpty(params.max) || !TypeUtil.isEmpty(params.min)) {
+        if (!isEmpty(params.max) || !isEmpty(params.min)) {
             constraints.push(new RangeConstraint({
                 max: params.max,
                 min: params.min,
@@ -5184,49 +4774,327 @@
             y: createDimensionConstraint('y' in params ? params.y : undefined),
         });
     }
+    function getSuitableMaxDimensionValue(constraint, rawValue) {
+        var rc = constraint && findConstraint(constraint, RangeConstraint);
+        if (rc) {
+            return Math.max(Math.abs(rc.minValue || 0), Math.abs(rc.maxValue || 0));
+        }
+        var step = getBaseStep(constraint);
+        return Math.max(Math.abs(step) * 10, Math.abs(rawValue) * 10);
+    }
+    /**
+     * @hidden
+     */
+    function getSuitableMaxValue(initialValue, constraint) {
+        var xc = constraint instanceof Point2dConstraint ? constraint.x : undefined;
+        var yc = constraint instanceof Point2dConstraint ? constraint.y : undefined;
+        var xr = getSuitableMaxDimensionValue(xc, initialValue.x);
+        var yr = getSuitableMaxDimensionValue(yc, initialValue.y);
+        return Math.max(xr, yr);
+    }
     function createController$4(document, value, invertsY) {
         var c = value.constraint;
         if (!(c instanceof Point2dConstraint)) {
             throw PaneError.shouldNeverHappen();
         }
-        return new Point2dPadTextInputController(document, {
+        return new Point2dPadTextController(document, {
+            axes: [
+                {
+                    baseStep: getBaseStep(c.x),
+                    formatter: new NumberFormatter(getSuitableDecimalDigits(c.x, value.rawValue.x)),
+                },
+                {
+                    baseStep: getBaseStep(c.y),
+                    formatter: new NumberFormatter(getSuitableDecimalDigits(c.y, value.rawValue.y)),
+                },
+            ],
             invertsY: invertsY,
+            maxValue: getSuitableMaxValue(value.rawValue, value.constraint),
             parser: StringNumberParser,
             value: value,
-            viewModel: new ViewModel(),
-            xFormatter: new NumberFormatter(getSuitableDecimalDigits(c.xConstraint, value.rawValue.x)),
-            yFormatter: new NumberFormatter(getSuitableDecimalDigits(c.yConstraint, value.rawValue.y)),
         });
+    }
+    function shouldInvertY(params) {
+        if (!('y' in params)) {
+            return false;
+        }
+        var yParams = params.y;
+        if (!yParams) {
+            return false;
+        }
+        return 'inverted' in yParams ? !!yParams.inverted : false;
     }
     /**
      * @hidden
      */
     var Point2dInputPlugin = {
-        model: {
+        id: 'input-point2d',
+        binding: {
             accept: function (value, _params) { return (Point2d.isObject(value) ? value : null); },
-            reader: function (_args) { return fromMixed$2; },
+            reader: function (_args) { return point2dFromUnknown; },
             writer: function (_args) { return function (v) { return v.toObject(); }; },
             constraint: function (args) { return createConstraint$2(args.params); },
             equals: Point2d.equals,
         },
         controller: function (args) {
-            var yParams = 'y' in args.params ? args.params.y : undefined;
-            var invertsY = yParams ? !!yParams.inverted : false;
-            return createController$4(args.document, args.binding.value, invertsY);
+            return createController$4(args.document, args.binding.value, shouldInvertY(args.params));
+        },
+    };
+
+    var Point3d = /** @class */ (function () {
+        function Point3d(x, y, z) {
+            if (x === void 0) { x = 0; }
+            if (y === void 0) { y = 0; }
+            if (z === void 0) { z = 0; }
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        Point3d.prototype.getComponents = function () {
+            return [this.x, this.y, this.z];
+        };
+        Point3d.isObject = function (obj) {
+            if (isEmpty(obj)) {
+                return false;
+            }
+            var x = obj.x;
+            var y = obj.y;
+            var z = obj.z;
+            if (typeof x !== 'number' ||
+                typeof y !== 'number' ||
+                typeof z !== 'number') {
+                return false;
+            }
+            return true;
+        };
+        Point3d.equals = function (v1, v2) {
+            return v1.x === v2.x && v1.y === v2.y && v1.z === v2.z;
+        };
+        Point3d.prototype.toObject = function () {
+            return {
+                x: this.x,
+                y: this.y,
+                z: this.z,
+            };
+        };
+        return Point3d;
+    }());
+
+    /**
+     * @hidden
+     */
+    var Point3dConstraint = /** @class */ (function () {
+        function Point3dConstraint(config) {
+            this.x = config.x;
+            this.y = config.y;
+            this.z = config.z;
+        }
+        Point3dConstraint.prototype.constrain = function (value) {
+            return new Point3d(this.x ? this.x.constrain(value.x) : value.x, this.y ? this.y.constrain(value.y) : value.y, this.z ? this.z.constrain(value.z) : value.z);
+        };
+        return Point3dConstraint;
+    }());
+
+    var className$l = ClassName('p3dtxt');
+    /**
+     * @hidden
+     */
+    var Point3dTextView = /** @class */ (function () {
+        function Point3dTextView(doc, config) {
+            var _this = this;
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.formatters_ = config.formatters;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$l());
+            var inputElems = [0, 1, 2].map(function () {
+                var inputElem = doc.createElement('input');
+                inputElem.classList.add(className$l('i'));
+                inputElem.type = 'text';
+                return inputElem;
+            });
+            [0, 1, 2].forEach(function (_, index) {
+                var elem = doc.createElement('div');
+                elem.classList.add(className$l('w'));
+                elem.appendChild(inputElems[index]);
+                _this.element.appendChild(elem);
+            });
+            this.inputElems_ = [inputElems[0], inputElems[1], inputElems[2]];
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
+        }
+        Object.defineProperty(Point3dTextView.prototype, "inputElements", {
+            get: function () {
+                return this.inputElems_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Point3dTextView.prototype.update = function () {
+            var _this = this;
+            var comps = this.value.rawValue.getComponents();
+            comps.forEach(function (comp, index) {
+                var inputElem = _this.inputElems_[index];
+                inputElem.value = _this.formatters_[index].format(comp);
+            });
+        };
+        Point3dTextView.prototype.onValueChange_ = function () {
+            this.update();
+        };
+        return Point3dTextView;
+    }());
+
+    /**
+     * @hidden
+     */
+    var Point3dTextController = /** @class */ (function () {
+        function Point3dTextController(doc, config) {
+            var _this = this;
+            this.onInputChange_ = this.onInputChange_.bind(this);
+            this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
+            this.parser_ = config.parser;
+            this.value = config.value;
+            var axes = config.axes;
+            this.baseSteps_ = [axes[0].baseStep, axes[1].baseStep, axes[2].baseStep];
+            this.view = new Point3dTextView(doc, {
+                formatters: [axes[0].formatter, axes[1].formatter, axes[2].formatter],
+                value: this.value,
+            });
+            this.view.inputElements.forEach(function (inputElem) {
+                inputElem.addEventListener('change', _this.onInputChange_);
+                inputElem.addEventListener('keydown', _this.onInputKeyDown_);
+            });
+        }
+        Point3dTextController.prototype.findIndexOfInputElem_ = function (inputElem) {
+            var inputElems = this.view.inputElements;
+            for (var i = 0; i < inputElems.length; i++) {
+                if (inputElems[i] === inputElem) {
+                    return i;
+                }
+            }
+            return null;
+        };
+        Point3dTextController.prototype.updateComponent_ = function (index, newValue) {
+            var comps = this.value.rawValue.getComponents();
+            var newComps = comps.map(function (comp, i) {
+                return i === index ? newValue : comp;
+            });
+            this.value.rawValue = new Point3d(newComps[0], newComps[1], newComps[2]);
+            this.view.update();
+        };
+        Point3dTextController.prototype.onInputChange_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
+            var parsedValue = this.parser_(inputElem.value);
+            if (isEmpty(parsedValue)) {
+                return;
+            }
+            var compIndex = this.findIndexOfInputElem_(inputElem);
+            if (isEmpty(compIndex)) {
+                return;
+            }
+            this.updateComponent_(compIndex, parsedValue);
+        };
+        Point3dTextController.prototype.onInputKeyDown_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
+            var parsedValue = this.parser_(inputElem.value);
+            if (isEmpty(parsedValue)) {
+                return;
+            }
+            var compIndex = this.findIndexOfInputElem_(inputElem);
+            if (isEmpty(compIndex)) {
+                return;
+            }
+            var step = getStepForKey(this.baseSteps_[compIndex], getVerticalStepKeys(e));
+            if (step === 0) {
+                return;
+            }
+            this.updateComponent_(compIndex, parsedValue + step);
+        };
+        return Point3dTextController;
+    }());
+
+    /**
+     * @hidden
+     */
+    function point3dFromUnknown(value) {
+        return Point3d.isObject(value)
+            ? new Point3d(value.x, value.y, value.z)
+            : new Point3d();
+    }
+
+    function createDimensionConstraint$1(params) {
+        if (!params) {
+            return undefined;
+        }
+        var constraints = [];
+        if (!isEmpty(params.step)) {
+            constraints.push(new StepConstraint({
+                step: params.step,
+            }));
+        }
+        if (!isEmpty(params.max) || !isEmpty(params.min)) {
+            constraints.push(new RangeConstraint({
+                max: params.max,
+                min: params.min,
+            }));
+        }
+        return new CompositeConstraint({
+            constraints: constraints,
+        });
+    }
+    function createConstraint$3(params) {
+        return new Point3dConstraint({
+            x: createDimensionConstraint$1('x' in params ? params.x : undefined),
+            y: createDimensionConstraint$1('y' in params ? params.y : undefined),
+            z: createDimensionConstraint$1('z' in params ? params.z : undefined),
+        });
+    }
+    /**
+     * @hidden
+     */
+    function getAxis(initialValue, constraint) {
+        return {
+            baseStep: getBaseStep(constraint),
+            formatter: new NumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
+        };
+    }
+    function createController$5(document, value) {
+        var c = value.constraint;
+        if (!(c instanceof Point3dConstraint)) {
+            throw PaneError.shouldNeverHappen();
+        }
+        return new Point3dTextController(document, {
+            axes: [
+                getAxis(value.rawValue.x, c.x),
+                getAxis(value.rawValue.y, c.y),
+                getAxis(value.rawValue.z, c.z),
+            ],
+            parser: StringNumberParser,
+            value: value,
+        });
+    }
+    /**
+     * @hidden
+     */
+    var Point3dInputPlugin = {
+        id: 'input-point3d',
+        binding: {
+            accept: function (value, _params) { return (Point3d.isObject(value) ? value : null); },
+            reader: function (_args) { return point3dFromUnknown; },
+            writer: function (_args) { return function (v) { return v.toObject(); }; },
+            constraint: function (args) { return createConstraint$3(args.params); },
+            equals: Point3d.equals,
+        },
+        controller: function (args) {
+            return createController$5(args.document, args.binding.value);
         },
     };
 
     /**
      * @hidden
      */
-    function fromMixed$3(value) {
+    function stringFromUnknown(value) {
         return String(value);
-    }
-    /**
-     * @hidden
-     */
-    function toString$2(value) {
-        return value;
     }
 
     /**
@@ -5241,163 +5109,143 @@
         return StringFormatter;
     }());
 
-    function createConstraint$3(params) {
+    function createConstraint$4(params) {
         var constraints = [];
         if ('options' in params && params.options !== undefined) {
             constraints.push(new ListConstraint({
-                options: normalizeInputParamsOptions(params.options, fromMixed$3),
+                options: normalizeInputParamsOptions(params.options, stringFromUnknown),
             }));
         }
         return new CompositeConstraint({
             constraints: constraints,
         });
     }
-    function createController$5(document, value) {
+    function createController$6(doc, value) {
+        var _a;
         var c = value.constraint;
-        if (c && ConstraintUtil.findConstraint(c, ListConstraint)) {
-            return new ListInputController(document, {
-                stringifyValue: toString$2,
+        if (c && findConstraint(c, ListConstraint)) {
+            return new ListController(doc, {
+                listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                stringifyValue: function (v) { return v; },
                 value: value,
-                viewModel: new ViewModel(),
             });
         }
-        return new TextInputController(document, {
+        return new TextController(doc, {
             formatter: new StringFormatter(),
-            parser: toString$2,
+            parser: function (v) { return v; },
             value: value,
-            viewModel: new ViewModel(),
         });
     }
     /**
      * @hidden
      */
     var StringInputPlugin = {
-        model: {
+        id: 'input-string',
+        binding: {
             accept: function (value, _params) { return (typeof value === 'string' ? value : null); },
-            reader: function (_args) { return fromMixed$3; },
+            constraint: function (args) { return createConstraint$4(args.params); },
+            reader: function (_args) { return stringFromUnknown; },
             writer: function (_args) { return function (v) { return v; }; },
-            constraint: function (args) { return createConstraint$3(args.params); },
         },
         controller: function (params) {
-            return createController$5(params.document, params.binding.value);
+            return createController$6(params.document, params.binding.value);
         },
     };
 
-    var className$l = ClassName('mll', 'monitor');
+    var className$m = ClassName('mll');
     /**
      * @hidden
      */
-    var MultiLogMonitorView = /** @class */ (function (_super) {
-        __extends(MultiLogMonitorView, _super);
-        function MultiLogMonitorView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueUpdate_ = _this.onValueUpdate_.bind(_this);
-            _this.formatter_ = config.formatter;
-            _this.element.classList.add(className$l());
-            var textareaElem = document.createElement('textarea');
-            textareaElem.classList.add(className$l('i'));
+    var MultiLogView = /** @class */ (function () {
+        function MultiLogView(doc, config) {
+            this.onValueUpdate_ = this.onValueUpdate_.bind(this);
+            this.formatter_ = config.formatter;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$m());
+            var textareaElem = doc.createElement('textarea');
+            textareaElem.classList.add(className$m('i'));
             textareaElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
             textareaElem.readOnly = true;
-            _this.element.appendChild(textareaElem);
-            _this.textareaElem_ = textareaElem;
-            config.value.emitter.on('update', _this.onValueUpdate_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.textareaElem_ = disposeElement(_this.textareaElem_);
-            });
-            return _this;
+            this.element.appendChild(textareaElem);
+            this.textareaElem_ = textareaElem;
+            config.value.emitter.on('change', this.onValueUpdate_);
+            this.value = config.value;
+            this.update();
         }
-        MultiLogMonitorView.prototype.update = function () {
+        MultiLogView.prototype.update = function () {
             var _this = this;
             var elem = this.textareaElem_;
-            if (!elem) {
-                throw PaneError.alreadyDisposed();
-            }
             var shouldScroll = elem.scrollTop === elem.scrollHeight - elem.clientHeight;
-            elem.textContent = this.value.rawValues
+            elem.textContent = this.value.rawValue
                 .map(function (value) {
-                return _this.formatter_.format(value);
+                return value !== undefined ? _this.formatter_.format(value) : '';
             })
                 .join('\n');
             if (shouldScroll) {
                 elem.scrollTop = elem.scrollHeight;
             }
         };
-        MultiLogMonitorView.prototype.onValueUpdate_ = function () {
+        MultiLogView.prototype.onValueUpdate_ = function () {
             this.update();
         };
-        return MultiLogMonitorView;
-    }(View));
+        return MultiLogView;
+    }());
 
     /**
      * @hidden
      */
-    var MultiLogMonitorController = /** @class */ (function () {
-        function MultiLogMonitorController(document, config) {
+    var MultiLogController = /** @class */ (function () {
+        function MultiLogController(doc, config) {
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.view = new MultiLogMonitorView(document, {
+            this.view = new MultiLogView(doc, {
                 formatter: config.formatter,
                 lineCount: config.lineCount,
-                model: this.viewModel,
                 value: this.value,
             });
         }
-        return MultiLogMonitorController;
+        return MultiLogController;
     }());
 
-    var className$m = ClassName('sgl', 'monitor');
+    var className$n = ClassName('sgl');
     /**
      * @hidden
      */
-    var SingleLogMonitorView = /** @class */ (function (_super) {
-        __extends(SingleLogMonitorView, _super);
-        function SingleLogMonitorView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onValueUpdate_ = _this.onValueUpdate_.bind(_this);
-            _this.formatter_ = config.formatter;
-            _this.element.classList.add(className$m());
-            var inputElem = document.createElement('input');
-            inputElem.classList.add(className$m('i'));
+    var SingleLogView = /** @class */ (function () {
+        function SingleLogView(doc, config) {
+            this.onValueUpdate_ = this.onValueUpdate_.bind(this);
+            this.formatter_ = config.formatter;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$n());
+            var inputElem = doc.createElement('input');
+            inputElem.classList.add(className$n('i'));
             inputElem.readOnly = true;
             inputElem.type = 'text';
-            _this.element.appendChild(inputElem);
-            _this.inputElem_ = inputElem;
-            config.value.emitter.on('update', _this.onValueUpdate_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.inputElem_ = disposeElement(_this.inputElem_);
-            });
-            return _this;
+            this.element.appendChild(inputElem);
+            this.inputElem_ = inputElem;
+            config.value.emitter.on('change', this.onValueUpdate_);
+            this.value = config.value;
+            this.update();
         }
-        SingleLogMonitorView.prototype.update = function () {
-            if (!this.inputElem_) {
-                throw PaneError.alreadyDisposed();
-            }
-            var values = this.value.rawValues;
+        SingleLogView.prototype.update = function () {
+            var values = this.value.rawValue;
+            var lastValue = values[values.length - 1];
             this.inputElem_.value =
-                values.length > 0
-                    ? this.formatter_.format(values[values.length - 1])
-                    : '';
+                lastValue !== undefined ? this.formatter_.format(lastValue) : '';
         };
-        SingleLogMonitorView.prototype.onValueUpdate_ = function () {
+        SingleLogView.prototype.onValueUpdate_ = function () {
             this.update();
         };
-        return SingleLogMonitorView;
-    }(View));
+        return SingleLogView;
+    }());
 
     /**
      * @hidden
      */
     var SingleLogMonitorController = /** @class */ (function () {
-        function SingleLogMonitorController(document, config) {
+        function SingleLogMonitorController(doc, config) {
             this.value = config.value;
-            this.viewModel = config.viewModel;
-            this.view = new SingleLogMonitorView(document, {
+            this.view = new SingleLogView(doc, {
                 formatter: config.formatter,
-                model: this.viewModel,
                 value: this.value,
             });
         }
@@ -5407,36 +5255,23 @@
     /**
      * @hidden
      */
-    var BooleanFormatter = /** @class */ (function () {
-        function BooleanFormatter() {
-        }
-        BooleanFormatter.prototype.format = function (value) {
-            return toString(value);
-        };
-        return BooleanFormatter;
-    }());
-
-    /**
-     * @hidden
-     */
     var BooleanMonitorPlugin = {
-        model: {
+        id: 'monitor-bool',
+        binding: {
             accept: function (value, _params) { return (typeof value === 'boolean' ? value : null); },
-            defaultBufferSize: function (_params) { return 1; },
-            reader: function (_args) { return fromMixed; },
+            reader: function (_args) { return boolFromUnknown; },
         },
         controller: function (args) {
-            if (args.binding.value.bufferSize === 1) {
+            var _a;
+            if (args.binding.value.rawValue.length === 1) {
                 return new SingleLogMonitorController(args.document, {
-                    viewModel: new ViewModel(),
                     formatter: new BooleanFormatter(),
                     value: args.binding.value,
                 });
             }
-            return new MultiLogMonitorController(args.document, {
-                viewModel: new ViewModel(),
+            return new MultiLogController(args.document, {
                 formatter: new BooleanFormatter(),
-                lineCount: TypeUtil.getOrDefault(args.params.lineCount, Constants.monitor.defaultLineCount),
+                lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
                 value: args.binding.value,
             });
         },
@@ -5470,125 +5305,112 @@
         return GraphCursor;
     }());
 
-    var SVG_NS$2 = SVG_NS;
-    var className$n = ClassName('grp', 'monitor');
+    var className$o = ClassName('grl');
     /**
      * @hidden
      */
-    var GraphMonitorView = /** @class */ (function (_super) {
-        __extends(GraphMonitorView, _super);
-        function GraphMonitorView(document, config) {
-            var _this = _super.call(this, document, config) || this;
-            _this.onCursorChange_ = _this.onCursorChange_.bind(_this);
-            _this.onValueUpdate_ = _this.onValueUpdate_.bind(_this);
-            _this.element.classList.add(className$n());
-            _this.formatter_ = config.formatter;
-            _this.minValue_ = config.minValue;
-            _this.maxValue_ = config.maxValue;
-            _this.cursor_ = config.cursor;
-            _this.cursor_.emitter.on('change', _this.onCursorChange_);
-            var svgElem = document.createElementNS(SVG_NS$2, 'svg');
-            svgElem.classList.add(className$n('g'));
+    var GraphLogView = /** @class */ (function () {
+        function GraphLogView(doc, config) {
+            this.onCursorChange_ = this.onCursorChange_.bind(this);
+            this.onValueUpdate_ = this.onValueUpdate_.bind(this);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$o());
+            this.formatter_ = config.formatter;
+            this.minValue_ = config.minValue;
+            this.maxValue_ = config.maxValue;
+            this.cursor_ = config.cursor;
+            this.cursor_.emitter.on('change', this.onCursorChange_);
+            var svgElem = doc.createElementNS(SVG_NS, 'svg');
+            svgElem.classList.add(className$o('g'));
             svgElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
-            _this.element.appendChild(svgElem);
-            _this.svgElem_ = svgElem;
-            var lineElem = document.createElementNS(SVG_NS$2, 'polyline');
-            _this.svgElem_.appendChild(lineElem);
-            _this.lineElem_ = lineElem;
-            var tooltipElem = document.createElement('div');
-            tooltipElem.classList.add(className$n('t'));
-            _this.element.appendChild(tooltipElem);
-            _this.tooltipElem_ = tooltipElem;
-            config.value.emitter.on('update', _this.onValueUpdate_);
-            _this.value = config.value;
-            _this.update();
-            config.model.emitter.on('dispose', function () {
-                _this.lineElem_ = disposeElement(_this.lineElem_);
-                _this.svgElem_ = disposeElement(_this.svgElem_);
-                _this.tooltipElem_ = disposeElement(_this.tooltipElem_);
-            });
-            return _this;
+            this.element.appendChild(svgElem);
+            this.svgElem_ = svgElem;
+            var lineElem = doc.createElementNS(SVG_NS, 'polyline');
+            this.svgElem_.appendChild(lineElem);
+            this.lineElem_ = lineElem;
+            var tooltipElem = doc.createElement('div');
+            tooltipElem.classList.add(className$o('t'));
+            this.element.appendChild(tooltipElem);
+            this.tooltipElem_ = tooltipElem;
+            config.value.emitter.on('change', this.onValueUpdate_);
+            this.value = config.value;
+            this.update();
         }
-        Object.defineProperty(GraphMonitorView.prototype, "graphElement", {
+        Object.defineProperty(GraphLogView.prototype, "graphElement", {
             get: function () {
-                if (!this.svgElem_) {
-                    throw PaneError.alreadyDisposed();
-                }
                 return this.svgElem_;
             },
             enumerable: false,
             configurable: true
         });
-        GraphMonitorView.prototype.update = function () {
-            var tooltipElem = this.tooltipElem_;
-            if (!this.lineElem_ || !this.svgElem_ || !tooltipElem) {
-                throw PaneError.alreadyDisposed();
-            }
+        GraphLogView.prototype.update = function () {
             var bounds = this.svgElem_.getBoundingClientRect();
             // Graph
-            var maxIndex = this.value.bufferSize - 1;
+            var maxIndex = this.value.rawValue.length - 1;
             var min = this.minValue_;
             var max = this.maxValue_;
-            this.lineElem_.setAttributeNS(null, 'points', this.value.rawValues
-                .map(function (v, index) {
-                var x = NumberUtil.map(index, 0, maxIndex, 0, bounds.width);
-                var y = NumberUtil.map(v, min, max, bounds.height, 0);
-                return [x, y].join(',');
-            })
-                .join(' '));
+            var points = [];
+            this.value.rawValue.forEach(function (v, index) {
+                if (v === undefined) {
+                    return;
+                }
+                var x = mapRange(index, 0, maxIndex, 0, bounds.width);
+                var y = mapRange(v, min, max, bounds.height, 0);
+                points.push([x, y].join(','));
+            });
+            this.lineElem_.setAttributeNS(null, 'points', points.join(' '));
             // Cursor
-            var value = this.value.rawValues[this.cursor_.index];
+            var tooltipElem = this.tooltipElem_;
+            var value = this.value.rawValue[this.cursor_.index];
             if (value === undefined) {
-                tooltipElem.classList.remove(className$n('t', 'valid'));
+                tooltipElem.classList.remove(className$o('t', 'valid'));
                 return;
             }
-            tooltipElem.classList.add(className$n('t', 'valid'));
-            var tx = NumberUtil.map(this.cursor_.index, 0, maxIndex, 0, bounds.width);
-            var ty = NumberUtil.map(value, min, max, bounds.height, 0);
+            tooltipElem.classList.add(className$o('t', 'valid'));
+            var tx = mapRange(this.cursor_.index, 0, maxIndex, 0, bounds.width);
+            var ty = mapRange(value, min, max, bounds.height, 0);
             tooltipElem.style.left = tx + "px";
             tooltipElem.style.top = ty + "px";
             tooltipElem.textContent = "" + this.formatter_.format(value);
         };
-        GraphMonitorView.prototype.onValueUpdate_ = function () {
+        GraphLogView.prototype.onValueUpdate_ = function () {
             this.update();
         };
-        GraphMonitorView.prototype.onCursorChange_ = function () {
+        GraphLogView.prototype.onCursorChange_ = function () {
             this.update();
         };
-        return GraphMonitorView;
-    }(View));
+        return GraphLogView;
+    }());
 
     /**
      * @hidden
      */
-    var GraphMonitorController = /** @class */ (function () {
-        function GraphMonitorController(document, config) {
+    var GraphLogController = /** @class */ (function () {
+        function GraphLogController(doc, config) {
             this.onGraphMouseLeave_ = this.onGraphMouseLeave_.bind(this);
             this.onGraphMouseMove_ = this.onGraphMouseMove_.bind(this);
             this.value = config.value;
             this.cursor_ = new GraphCursor();
-            this.viewModel = config.viewModel;
-            this.view = new GraphMonitorView(document, {
+            this.view = new GraphLogView(doc, {
                 cursor: this.cursor_,
                 formatter: config.formatter,
                 lineCount: config.lineCount,
                 maxValue: config.maxValue,
                 minValue: config.minValue,
-                model: this.viewModel,
                 value: this.value,
             });
-            this.view.graphElement.addEventListener('mouseleave', this.onGraphMouseLeave_);
-            this.view.graphElement.addEventListener('mousemove', this.onGraphMouseMove_);
+            this.view.element.addEventListener('mouseleave', this.onGraphMouseLeave_);
+            this.view.element.addEventListener('mousemove', this.onGraphMouseMove_);
         }
-        GraphMonitorController.prototype.onGraphMouseLeave_ = function () {
+        GraphLogController.prototype.onGraphMouseLeave_ = function () {
             this.cursor_.index = -1;
         };
-        GraphMonitorController.prototype.onGraphMouseMove_ = function (e) {
+        GraphLogController.prototype.onGraphMouseMove_ = function (e) {
             var bounds = this.view.graphElement.getBoundingClientRect();
             var x = e.offsetX;
-            this.cursor_.index = Math.floor(NumberUtil.map(x, 0, bounds.width, 0, this.value.bufferSize));
+            this.cursor_.index = Math.floor(mapRange(x, 0, bounds.width, 0, this.value.rawValue.length));
         };
-        return GraphMonitorController;
+        return GraphLogController;
     }());
 
     function createFormatter() {
@@ -5596,28 +5418,28 @@
         return new NumberFormatter(2);
     }
     function createTextMonitor(document, binding, params) {
-        if (binding.value.bufferSize === 1) {
+        var _a;
+        if (binding.value.rawValue.length === 1) {
             return new SingleLogMonitorController(document, {
                 formatter: createFormatter(),
                 value: binding.value,
-                viewModel: new ViewModel(),
             });
         }
-        return new MultiLogMonitorController(document, {
+        return new MultiLogController(document, {
             formatter: createFormatter(),
-            lineCount: TypeUtil.getOrDefault(params.lineCount, Constants.monitor.defaultLineCount),
+            lineCount: (_a = params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
             value: binding.value,
-            viewModel: new ViewModel(),
         });
     }
-    function createGraphMonitor(document, binding, params) {
-        return new GraphMonitorController(document, {
+    function createGraphMonitor(_a) {
+        var _b, _c, _d;
+        var document = _a.document, binding = _a.binding, params = _a.params;
+        return new GraphLogController(document, {
             formatter: createFormatter(),
-            lineCount: TypeUtil.getOrDefault(params.lineCount, Constants.monitor.defaultLineCount),
-            maxValue: TypeUtil.getOrDefault('max' in params ? params.max : null, 100),
-            minValue: TypeUtil.getOrDefault('min' in params ? params.min : null, 0),
+            lineCount: (_b = params.lineCount) !== null && _b !== void 0 ? _b : Constants.monitor.defaultLineCount,
+            maxValue: (_c = ('max' in params ? params.max : null)) !== null && _c !== void 0 ? _c : 100,
+            minValue: (_d = ('min' in params ? params.min : null)) !== null && _d !== void 0 ? _d : 0,
             value: binding.value,
-            viewModel: new ViewModel(),
         });
     }
     function shouldShowGraph(params) {
@@ -5627,14 +5449,19 @@
      * @hidden
      */
     var NumberMonitorPlugin = {
-        model: {
+        id: 'monitor-number',
+        binding: {
             accept: function (value, _params) { return (typeof value === 'number' ? value : null); },
             defaultBufferSize: function (params) { return (shouldShowGraph(params) ? 64 : 1); },
-            reader: function (_args) { return fromMixed$1; },
+            reader: function (_args) { return numberFromUnknown; },
         },
         controller: function (args) {
             if (shouldShowGraph(args.params)) {
-                return createGraphMonitor(args.document, args.binding, args.params);
+                return createGraphMonitor({
+                    document: args.document,
+                    binding: args.binding,
+                    params: args.params,
+                });
             }
             return createTextMonitor(args.document, args.binding, args.params);
         },
@@ -5644,59 +5471,86 @@
      * @hidden
      */
     var StringMonitorPlugin = {
-        model: {
+        id: 'monitor-string',
+        binding: {
             accept: function (value, _params) { return (typeof value === 'string' ? value : null); },
-            defaultBufferSize: function (_params) { return 1; },
-            reader: function (_args) { return fromMixed$3; },
+            reader: function (_args) { return stringFromUnknown; },
         },
         controller: function (args) {
+            var _a;
             var value = args.binding.value;
-            var multiline = value.bufferSize > 1 ||
+            var multiline = value.rawValue.length > 1 ||
                 ('multiline' in args.params && args.params.multiline);
             if (multiline) {
-                return new MultiLogMonitorController(args.document, {
+                return new MultiLogController(args.document, {
                     formatter: new StringFormatter(),
-                    lineCount: TypeUtil.getOrDefault(args.params.lineCount, Constants.monitor.defaultLineCount),
+                    lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
                     value: value,
-                    viewModel: new ViewModel(),
                 });
             }
             return new SingleLogMonitorController(args.document, {
                 formatter: new StringFormatter(),
                 value: value,
-                viewModel: new ViewModel(),
             });
         },
     };
 
-    function createDefaultWrapperElement(document) {
-        var elem = document.createElement('div');
+    function createDefaultWrapperElement(doc) {
+        var elem = doc.createElement('div');
         elem.classList.add(ClassName('dfw')());
-        if (document.body) {
-            document.body.appendChild(elem);
+        if (doc.body) {
+            doc.body.appendChild(elem);
         }
         return elem;
     }
-    var PlainTweakpane = /** @class */ (function (_super) {
-        __extends(PlainTweakpane, _super);
-        function PlainTweakpane(opt_config) {
+    function embedStyle(doc, id, css) {
+        if (doc.querySelector("style[data-tp-style=" + id + "]")) {
+            return;
+        }
+        var styleElem = doc.createElement('style');
+        styleElem.dataset.tpStyle = id;
+        styleElem.textContent = css;
+        doc.head.appendChild(styleElem);
+    }
+    function embedDefaultStyleIfNeeded(doc) {
+        embedStyle(doc, 'default', '.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cctxtsv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b{background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-btnv_b:hover,.tp-lstv_s:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--button-background-color-hover)}.tp-btnv_b:focus,.tp-lstv_s:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--button-background-color-focus)}.tp-btnv_b:active,.tp-lstv_s:active,.tp-p2dpadtxtv_b:active{background-color:var(--button-background-color-active)}.tp-fldv_t,.tp-rotv_t{background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i{background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cctxtsv_i:hover,.tp-cswv_sw:hover,.tp-p2dpadv_p:hover,.tp-p2dtxtv_i:hover,.tp-p3dtxtv_i:hover,.tp-txtv_i:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_i:focus,.tp-cswv_sw:focus,.tp-p2dpadv_p:focus,.tp-p2dtxtv_i:focus,.tp-p3dtxtv_i:focus,.tp-txtv_i:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_i:active,.tp-cswv_sw:active,.tp-p2dpadv_p:active,.tp-p2dtxtv_i:active,.tp-p3dtxtv_i:active,.tp-txtv_i:active{background-color:var(--input-background-color-active)}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-btnv{padding:0 4px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_m{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_m::before{background-color:var(--input-foreground-color);border-radius:2px;bottom:4px;content:\'\';display:block;left:4px;opacity:0;position:absolute;right:4px;top:4px}.tp-ckbv_i:hover+.tp-ckbv_m{background-color:var(--input-background-color-hover)}.tp-ckbv_i:focus+.tp-ckbv_m{background-color:var(--input-background-color-focus)}.tp-ckbv_i:active+.tp-ckbv_m{background-color:var(--input-background-color-active)}.tp-ckbv_i:checked+.tp-ckbv_m::before{opacity:1}.tp-cctxtsv{display:flex;width:100%}.tp-cctxtsv_m{margin-right:4px;position:relative}.tp-cctxtsv_ms{border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cctxtsv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_ms:active{background-color:var(--input-background-color-active)}.tp-cctxtsv_mm{border-color:var(--label-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-cctxtsv_w{display:flex;flex:1}.tp-cctxtsv_i{border-radius:0;flex:1;padding:0 4px}.tp-cctxtsv_i:first-child{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-cctxtsv_i:last-child{border-bottom-right-radius:2px;border-top-right-radius:2px}.tp-cctxtsv_i+.tp-cctxtsv_i{margin-left:2px}.tp-clpv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded{display:block;visibility:visible}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-cswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-cswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-cswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-cswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-cswtxtv{display:flex;position:relative}.tp-cswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-cswtxtv_t{flex:1;margin-left:4px}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grlv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grlv_t.tp-grlv_t-valid{visibility:visible}.tp-grlv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:160px}.tp-lstv{position:relative}.tp-lstv_s{padding:0 18px 0 4px;width:100%}.tp-lstv_m{border-color:var(--button-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px 4px 4px calc(4px * 2 + var(--unit-size));position:relative;visibility:hidden;z-index:1000}.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{stroke:var(--input-guide-color)}.tp-p2dpadv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-p2dtxtv{display:flex}.tp-p2dtxtv_w{align-items:center;display:flex}.tp-p2dtxtv_w+.tp-p2dtxtv_w{margin-left:2px}.tp-p2dtxtv_i{padding:0 4px;width:100%}.tp-p2dtxtv_w:nth-child(1) .tp-p2dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p2dtxtv_w:nth-child(2) .tp-p2dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-p3dtxtv{display:flex}.tp-p3dtxtv_w{align-items:center;display:flex}.tp-p3dtxtv_w+.tp-p3dtxtv_w{margin-left:2px}.tp-p3dtxtv_i{padding:0 4px;width:100%}.tp-p3dtxtv_w:first-child .tp-p3dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p3dtxtv_w:not(:first-child):not(:last-child) .tp-p3dtxtv_i{border-radius:0}.tp-p3dtxtv_w:last-child .tp-p3dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(47,49,55,0.5));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, #26272c);--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, #26272c)}.tp-rotv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_o{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_o::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_i{height:100%;left:0;position:absolute;top:0}.tp-sldv_i::before{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_o:hover .tp-sldv_i::before{background-color:var(--button-background-color-hover)}.tp-sldv_o:focus .tp-sldv_i::before{background-color:var(--button-background-color-focus)}.tp-sldv_o:active .tp-sldv_i::before{background-color:var(--button-background-color-active)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv_i{padding:0 4px}.tp-v.tp-v-hidden{display:none}');
+        getAllPlugins().forEach(function (plugin) {
+            if (plugin.css) {
+                embedStyle(doc, "plugin-" + plugin.id, plugin.css);
+            }
+        });
+    }
+    var Tweakpane = /** @class */ (function (_super) {
+        __extends(Tweakpane, _super);
+        function Tweakpane(opt_config) {
+            var _a;
             var _this = this;
             var config = opt_config || {};
-            var document = TypeUtil.getOrDefault(config.document, getWindowDocument());
-            var rootController = new RootController(document, {
+            var doc = (_a = config.document) !== null && _a !== void 0 ? _a : getWindowDocument();
+            var rootController = new RootController(doc, {
                 expanded: config.expanded,
-                viewModel: new ViewModel(),
+                blade: new Blade(),
                 title: config.title,
             });
             _this = _super.call(this, rootController) || this;
-            _this.containerElem_ =
-                config.container || createDefaultWrapperElement(document);
+            _this.containerElem_ = config.container || createDefaultWrapperElement(doc);
             _this.containerElem_.appendChild(_this.element);
-            _this.doc_ = document;
+            _this.doc_ = doc;
             _this.usesDefaultWrapper_ = !config.container;
+            embedDefaultStyleIfNeeded(_this.document);
             return _this;
         }
-        PlainTweakpane.prototype.dispose = function () {
+        Object.defineProperty(Tweakpane.prototype, "document", {
+            get: function () {
+                if (!this.doc_) {
+                    throw PaneError.alreadyDisposed();
+                }
+                return this.doc_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Tweakpane.prototype.dispose = function () {
             var containerElem = this.containerElem_;
             if (!containerElem) {
                 throw PaneError.alreadyDisposed();
@@ -5711,34 +5565,25 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Object.defineProperty(PlainTweakpane.prototype, "document", {
-            get: function () {
-                if (!this.doc_) {
-                    throw PaneError.alreadyDisposed();
-                }
-                return this.doc_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return PlainTweakpane;
+        return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
         [
-            BooleanInputPlugin,
-            NumberColorInputPlugin,
-            ObjectColorInputPlugin,
-            StringColorInputPlugin,
-            NumberInputPlugin,
-            StringInputPlugin,
             Point2dInputPlugin,
+            Point3dInputPlugin,
+            StringInputPlugin,
+            NumberInputPlugin,
+            StringColorInputPlugin,
+            ObjectColorInputPlugin,
+            NumberColorInputPlugin,
+            BooleanInputPlugin,
         ].forEach(function (p) {
             RootApi.registerPlugin({
                 type: 'input',
                 plugin: p,
             });
         });
-        [NumberMonitorPlugin, StringMonitorPlugin, BooleanMonitorPlugin].forEach(function (p) {
+        [BooleanMonitorPlugin, StringMonitorPlugin, NumberMonitorPlugin].forEach(function (p) {
             RootApi.registerPlugin({
                 type: 'monitor',
                 plugin: p,
@@ -5746,29 +5591,6 @@
         });
     }
     registerDefaultPlugins();
-
-    function embedDefaultStyleIfNeeded(document) {
-        var MARKER = 'tweakpane';
-        if (document.querySelector("style[data-for=" + MARKER + "]")) {
-            return;
-        }
-        var styleElem = document.createElement('style');
-        styleElem.dataset.for = MARKER;
-        styleElem.textContent = '.tp-fldv_t,.tp-rotv_t{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-btnv{padding:0 4px}.tp-btnv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}.tp-btnv_b:hover{background-color:var(--button-background-color-hover)}.tp-btnv_b:focus{background-color:var(--button-background-color-focus)}.tp-btnv_b:active{background-color:var(--button-background-color-active)}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-ckbiv_l{display:block;position:relative}.tp-ckbiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background:red;left:0;opacity:0;position:absolute;top:0}.tp-ckbiv_m{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbiv_m::before{background-color:var(--input-foreground-color);border-radius:2px;bottom:4px;content:\'\';display:block;left:4px;opacity:0;position:absolute;right:4px;top:4px}.tp-ckbiv_i:hover+.tp-ckbiv_m{background-color:var(--input-background-color-hover)}.tp-ckbiv_i:focus+.tp-ckbiv_m{background-color:var(--input-background-color-focus)}.tp-ckbiv_i:active+.tp-ckbiv_m{background-color:var(--input-background-color-active)}.tp-ckbiv_i:checked+.tp-ckbiv_m::before{opacity:1}.tp-cctxtsiv{display:flex;width:100%}.tp-cctxtsiv_m{margin-right:4px;position:relative}.tp-cctxtsiv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cctxtsiv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsiv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsiv_ms:active{background-color:var(--input-background-color-active)}.tp-cctxtsiv_mm{border-color:var(--label-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-cctxtsiv_w{display:flex;flex:1}.tp-cctxtsiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;border-radius:0;flex:1;padding:0 4px}.tp-cctxtsiv_i:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsiv_i:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsiv_i:active{background-color:var(--input-background-color-active)}.tp-cctxtsiv_i:first-child{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-cctxtsiv_i:last-child{border-bottom-right-radius:2px;border-top-right-radius:2px}.tp-cctxtsiv_i+.tp-cctxtsiv_i{margin-left:2px}.tp-clpiv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpiv.tp-clpiv-expanded{display:block;visibility:visible}.tp-clpiv_h,.tp-clpiv_ap{margin-left:6px;margin-right:6px}.tp-clpiv_h{margin-top:4px}.tp-clpiv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpiv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpiv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpiv_ap{align-items:center;display:flex;flex:3}.tp-clpiv_at{flex:1;margin-left:4px}.tp-svpiv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpiv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpiv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpiv:focus .tp-svpiv_m{border-color:#fff}.tp-hpliv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hpliv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hpliv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hpliv:focus .tp-hpliv_m{border-color:#fff}.tp-apliv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-apliv_b{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;background-color:#fff;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-apliv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-apliv_m{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;background-color:#fff;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-apliv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-apliv:focus .tp-apliv_p{border-color:#fff}.tp-lstiv{display:block;padding:0;position:relative}.tp-lstiv_s{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px;width:100%}.tp-lstiv_s:hover{background-color:var(--button-background-color-hover)}.tp-lstiv_s:focus{background-color:var(--button-background-color-focus)}.tp-lstiv_s:active{background-color:var(--button-background-color-active)}.tp-lstiv_m{border-color:var(--button-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-p2dpadiv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px 4px 4px calc(4px * 2 + var(--unit-size));position:relative;visibility:hidden;z-index:1000}.tp-p2dpadiv.tp-p2dpadiv-expanded{display:block;visibility:visible}.tp-p2dpadiv_p{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadiv_p:hover{background-color:var(--input-background-color-hover)}.tp-p2dpadiv_p:focus{background-color:var(--input-background-color-focus)}.tp-p2dpadiv_p:active{background-color:var(--input-background-color-active)}.tp-p2dpadiv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadiv_ax{stroke:var(--input-guide-color)}.tp-p2dpadiv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadiv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtiv{display:flex;position:relative}.tp-p2dpadtxtiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtiv_b:hover{background-color:var(--button-background-color-hover)}.tp-p2dpadtxtiv_b:focus{background-color:var(--button-background-color-focus)}.tp-p2dpadtxtiv_b:active{background-color:var(--button-background-color-active)}.tp-p2dpadtxtiv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtiv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtiv_t{margin-left:4px}.tp-p2dtxtiv{display:flex}.tp-p2dtxtiv_w{align-items:center;display:flex}.tp-p2dtxtiv_w+.tp-p2dtxtiv_w{margin-left:2px}.tp-p2dtxtiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;padding:0 4px;width:100%}.tp-p2dtxtiv_i:hover{background-color:var(--input-background-color-hover)}.tp-p2dtxtiv_i:focus{background-color:var(--input-background-color-focus)}.tp-p2dtxtiv_i:active{background-color:var(--input-background-color-active)}.tp-p2dtxtiv_w:nth-child(1) .tp-p2dtxtiv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p2dtxtiv_w:nth-child(2) .tp-p2dtxtiv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-sldiv{display:block;padding:0}.tp-sldiv_o{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldiv_o::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldiv_i{height:100%;left:0;position:absolute;top:0}.tp-sldiv_i::before{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldiv_o:hover .tp-sldiv_i::before{background-color:var(--button-background-color-hover)}.tp-sldiv_o:focus .tp-sldiv_i::before{background-color:var(--button-background-color-focus)}.tp-sldiv_o:active .tp-sldiv_i::before{background-color:var(--button-background-color-active)}.tp-txtiv{display:block;padding:0}.tp-txtiv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%;padding:0 4px}.tp-txtiv_i:hover{background-color:var(--input-background-color-hover)}.tp-txtiv_i:focus{background-color:var(--input-background-color-focus)}.tp-txtiv_i:active{background-color:var(--input-background-color-active)}.tp-cswiv{background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;background-color:#fff;border-radius:2px}.tp-cswiv_sw{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cswiv_sw:hover{background-color:var(--input-background-color-hover)}.tp-cswiv_sw:focus{background-color:var(--input-background-color-focus)}.tp-cswiv_sw:active{background-color:var(--input-background-color-active)}.tp-cswiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-cswiv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-cswiv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-cswtxtiv{display:flex;position:relative}.tp-cswtxtiv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-cswtxtiv_t{flex:1;margin-left:4px}.tp-sldtxtiv{display:flex}.tp-sldtxtiv_s{flex:2}.tp-sldtxtiv_t{flex:1;margin-left:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:160px}.tp-grpmv{display:block;padding:0;position:relative}.tp-grpmv_g{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%;display:block;height:calc(var(--unit-size) * 3)}.tp-grpmv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grpmv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grpmv_t.tp-grpmv_t-valid{visibility:visible}.tp-grpmv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-sglmv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%;padding:0 4px}.tp-mllmv_i{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%;display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-cswmv_sw{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0;background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(47,49,55,0.5));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, #26272c);--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, #26272c);background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-v.tp-v-hidden{display:none}';
-        if (document.head) {
-            document.head.appendChild(styleElem);
-        }
-    }
-    // tslint:disable-next-line: no-default-export
-    var Tweakpane = /** @class */ (function (_super) {
-        __extends(Tweakpane, _super);
-        function Tweakpane(opt_config) {
-            var _this = _super.call(this, opt_config) || this;
-            embedDefaultStyleIfNeeded(_this.document);
-            return _this;
-        }
-        return Tweakpane;
-    }(PlainTweakpane));
 
     return Tweakpane;
 
