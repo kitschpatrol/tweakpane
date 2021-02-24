@@ -1,4 +1,4 @@
-/*! Tweakpane 1.6.0 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 1.6.1 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -60,60 +60,6 @@
         return true;
     }
 
-    /**
-     * @hidden
-     */
-    var Emitter = /** @class */ (function () {
-        function Emitter() {
-            this.observers_ = {};
-        }
-        Emitter.prototype.on = function (eventName, handler) {
-            var observers = this.observers_[eventName];
-            if (!observers) {
-                observers = this.observers_[eventName] = [];
-            }
-            observers.push({
-                handler: handler,
-            });
-            return this;
-        };
-        Emitter.prototype.off = function (eventName, handler) {
-            var observers = this.observers_[eventName];
-            if (observers) {
-                this.observers_[eventName] = observers.filter(function (observer) {
-                    return observer.handler !== handler;
-                });
-            }
-            return this;
-        };
-        Emitter.prototype.emit = function (eventName, event) {
-            var observers = this.observers_[eventName];
-            if (!observers) {
-                return;
-            }
-            observers.forEach(function (observer) {
-                observer.handler(event);
-            });
-        };
-        return Emitter;
-    }());
-
-    /**
-     * @hidden
-     */
-    var Button = /** @class */ (function () {
-        function Button(title) {
-            this.emitter = new Emitter();
-            this.title = title;
-        }
-        Button.prototype.click = function () {
-            this.emitter.emit('click', {
-                sender: this,
-            });
-        };
-        return Button;
-    }());
-
     function disposeElement(elem) {
         if (elem && elem.parentElement) {
             elem.parentElement.removeChild(elem);
@@ -168,6 +114,60 @@
             disposeElement(elem);
         });
     }
+
+    /**
+     * @hidden
+     */
+    var Emitter = /** @class */ (function () {
+        function Emitter() {
+            this.observers_ = {};
+        }
+        Emitter.prototype.on = function (eventName, handler) {
+            var observers = this.observers_[eventName];
+            if (!observers) {
+                observers = this.observers_[eventName] = [];
+            }
+            observers.push({
+                handler: handler,
+            });
+            return this;
+        };
+        Emitter.prototype.off = function (eventName, handler) {
+            var observers = this.observers_[eventName];
+            if (observers) {
+                this.observers_[eventName] = observers.filter(function (observer) {
+                    return observer.handler !== handler;
+                });
+            }
+            return this;
+        };
+        Emitter.prototype.emit = function (eventName, event) {
+            var observers = this.observers_[eventName];
+            if (!observers) {
+                return;
+            }
+            observers.forEach(function (observer) {
+                observer.handler(event);
+            });
+        };
+        return Emitter;
+    }());
+
+    /**
+     * @hidden
+     */
+    var Button = /** @class */ (function () {
+        function Button(title) {
+            this.emitter = new Emitter();
+            this.title = title;
+        }
+        Button.prototype.click = function () {
+            this.emitter.emit('click', {
+                sender: this,
+            });
+        };
+        return Button;
+    }());
 
     var className$1 = ClassName('btn');
     /**
@@ -427,130 +427,6 @@
         return null;
     }
 
-    /**
-     * @hidden
-     */
-    var Folder = /** @class */ (function () {
-        function Folder(title, expanded) {
-            this.emitter = new Emitter();
-            this.expanded_ = expanded;
-            this.expandedHeight_ = null;
-            this.temporaryExpanded_ = null;
-            this.shouldFixHeight_ = false;
-            this.title = title;
-        }
-        Object.defineProperty(Folder.prototype, "expanded", {
-            get: function () {
-                return this.expanded_;
-            },
-            set: function (expanded) {
-                var changed = this.expanded_ !== expanded;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'expanded',
-                    sender: this,
-                });
-                this.expanded_ = expanded;
-                this.emitter.emit('change', {
-                    propertyName: 'expanded',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Folder.prototype, "temporaryExpanded", {
-            get: function () {
-                return this.temporaryExpanded_;
-            },
-            set: function (expanded) {
-                var changed = this.temporaryExpanded_ !== expanded;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'temporaryExpanded',
-                    sender: this,
-                });
-                this.temporaryExpanded_ = expanded;
-                this.emitter.emit('change', {
-                    propertyName: 'temporaryExpanded',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Folder.prototype, "expandedHeight", {
-            get: function () {
-                return this.expandedHeight_;
-            },
-            set: function (expandedHeight) {
-                var changed = this.expandedHeight_ !== expandedHeight;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'expandedHeight',
-                    sender: this,
-                });
-                this.expandedHeight_ = expandedHeight;
-                this.emitter.emit('change', {
-                    propertyName: 'expandedHeight',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Folder.prototype, "shouldFixHeight", {
-            get: function () {
-                return this.shouldFixHeight_;
-            },
-            set: function (shouldFixHeight) {
-                var changed = this.shouldFixHeight_ !== shouldFixHeight;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'shouldFixHeight',
-                    sender: this,
-                });
-                this.shouldFixHeight_ = shouldFixHeight;
-                this.emitter.emit('change', {
-                    propertyName: 'shouldFixHeight',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Folder.prototype, "styleExpanded", {
-            get: function () {
-                var _a;
-                return (_a = this.temporaryExpanded) !== null && _a !== void 0 ? _a : this.expanded;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Folder.prototype, "styleHeight", {
-            get: function () {
-                if (!this.styleExpanded) {
-                    return '0';
-                }
-                if (this.shouldFixHeight && !isEmpty(this.expandedHeight)) {
-                    return this.expandedHeight + "px";
-                }
-                return 'auto';
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return Folder;
-    }());
-
     function updateAllItemsPositions(bladeRack) {
         var visibleItems = bladeRack.items.filter(function (bc) { return !bc.blade.hidden; });
         var firstVisibleItem = visibleItems[0];
@@ -674,14 +550,10 @@
             bc.blade.emitter.on('dispose', this.onListItemDispose_);
             bc.blade.emitter.on('change', this.onListItemLayout_);
             if (bc instanceof InputBindingController) {
-                var emitter = bc.binding.emitter;
-                // TODO: Find more type-safe way
-                emitter.on('change', this.onItemInputChange_);
+                bc.binding.emitter.on('change', this.onItemInputChange_);
             }
             else if (bc instanceof MonitorBindingController) {
-                var emitter = bc.binding.emitter;
-                // TODO: Find more type-safe way
-                emitter.on('update', this.onItemMonitorUpdate_);
+                bc.binding.emitter.on('update', this.onItemMonitorUpdate_);
             }
             else if (bc instanceof FolderController) {
                 bc.folder.emitter.on('change', this.onItemFolderFold_);
@@ -762,6 +634,130 @@
             });
         };
         return BladeRack;
+    }());
+
+    /**
+     * @hidden
+     */
+    var Folder = /** @class */ (function () {
+        function Folder(title, expanded) {
+            this.emitter = new Emitter();
+            this.expanded_ = expanded;
+            this.expandedHeight_ = null;
+            this.temporaryExpanded_ = null;
+            this.shouldFixHeight_ = false;
+            this.title = title;
+        }
+        Object.defineProperty(Folder.prototype, "expanded", {
+            get: function () {
+                return this.expanded_;
+            },
+            set: function (expanded) {
+                var changed = this.expanded_ !== expanded;
+                if (!changed) {
+                    return;
+                }
+                this.emitter.emit('beforechange', {
+                    propertyName: 'expanded',
+                    sender: this,
+                });
+                this.expanded_ = expanded;
+                this.emitter.emit('change', {
+                    propertyName: 'expanded',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Folder.prototype, "temporaryExpanded", {
+            get: function () {
+                return this.temporaryExpanded_;
+            },
+            set: function (expanded) {
+                var changed = this.temporaryExpanded_ !== expanded;
+                if (!changed) {
+                    return;
+                }
+                this.emitter.emit('beforechange', {
+                    propertyName: 'temporaryExpanded',
+                    sender: this,
+                });
+                this.temporaryExpanded_ = expanded;
+                this.emitter.emit('change', {
+                    propertyName: 'temporaryExpanded',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Folder.prototype, "expandedHeight", {
+            get: function () {
+                return this.expandedHeight_;
+            },
+            set: function (expandedHeight) {
+                var changed = this.expandedHeight_ !== expandedHeight;
+                if (!changed) {
+                    return;
+                }
+                this.emitter.emit('beforechange', {
+                    propertyName: 'expandedHeight',
+                    sender: this,
+                });
+                this.expandedHeight_ = expandedHeight;
+                this.emitter.emit('change', {
+                    propertyName: 'expandedHeight',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Folder.prototype, "shouldFixHeight", {
+            get: function () {
+                return this.shouldFixHeight_;
+            },
+            set: function (shouldFixHeight) {
+                var changed = this.shouldFixHeight_ !== shouldFixHeight;
+                if (!changed) {
+                    return;
+                }
+                this.emitter.emit('beforechange', {
+                    propertyName: 'shouldFixHeight',
+                    sender: this,
+                });
+                this.shouldFixHeight_ = shouldFixHeight;
+                this.emitter.emit('change', {
+                    propertyName: 'shouldFixHeight',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Folder.prototype, "styleExpanded", {
+            get: function () {
+                var _a;
+                return (_a = this.temporaryExpanded) !== null && _a !== void 0 ? _a : this.expanded;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Folder.prototype, "styleHeight", {
+            get: function () {
+                if (!this.styleExpanded) {
+                    return '0';
+                }
+                if (this.shouldFixHeight && !isEmpty(this.expandedHeight)) {
+                    return this.expandedHeight + "px";
+                }
+                return 'auto';
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return Folder;
     }());
 
     var className$3 = ClassName('fld');
@@ -910,38 +906,6 @@
         return SeparatorController;
     }());
 
-    /**
-     * @hidden
-     */
-    var Target = /** @class */ (function () {
-        function Target(object, key, opt_id) {
-            this.obj_ = object;
-            this.key_ = key;
-            this.presetKey_ = opt_id !== null && opt_id !== void 0 ? opt_id : key;
-        }
-        Object.defineProperty(Target.prototype, "key", {
-            get: function () {
-                return this.key_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Target.prototype, "presetKey", {
-            get: function () {
-                return this.presetKey_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Target.prototype.read = function () {
-            return this.obj_[this.key_];
-        };
-        Target.prototype.write = function (value) {
-            this.obj_[this.key_] = value;
-        };
-        return Target;
-    }());
-
     var ButtonApi = /** @class */ (function () {
         /**
          * @hidden
@@ -979,7 +943,7 @@
         if (eventName === 'change') {
             var emitter = binding.emitter;
             emitter.on('change', function (ev) {
-                handler(ev.sender.getValueToWrite(ev.rawValue));
+                handler(forceCast(ev.sender.target.read()));
             });
         }
     }
@@ -1003,8 +967,7 @@
         if (eventName === 'change') {
             var emitter = bladeRack.emitter;
             emitter.on('inputchange', function (ev) {
-                // TODO: Find more type-safe way
-                handler(ev.inputBinding.getValueToWrite(ev.value));
+                handler(ev.inputBinding.target.read());
             });
         }
         if (eventName === 'update') {
@@ -1028,8 +991,8 @@
 
     /**
      * The API for the input binding between the parameter and the pane.
-     * @param In The type internal Tweakpane.
-     * @param Ex The type external Tweakpane (= parameter object).
+     * @param In The internal type.
+     * @param Ex The external type (= parameter object).
      */
     var InputBindingApi = /** @class */ (function () {
         /**
@@ -1055,8 +1018,7 @@
             handleInputBinding({
                 binding: this.controller.binding,
                 eventName: eventName,
-                // TODO: Type-safe
-                handler: forceCast(handler.bind(this)),
+                handler: handler.bind(this),
             });
             return this;
         };
@@ -1066,41 +1028,48 @@
         return InputBindingApi;
     }());
 
-    function createMessage(config) {
-        if (config.type === 'alreadydisposed') {
-            return 'View has been already disposed';
-        }
-        if (config.type === 'emptyvalue') {
-            return "Value is empty for " + config.context.key;
-        }
-        if (config.type === 'invalidparams') {
-            return "Invalid parameters for " + config.context.name;
-        }
-        if (config.type === 'nomatchingcontroller') {
-            return "No matching controller for " + config.context.key;
-        }
-        if (config.type === 'shouldneverhappen') {
-            return 'This error should never happen';
-        }
-        return 'Unexpected error';
-    }
-    var PaneError = /** @class */ (function () {
-        function PaneError(config) {
-            this.message = createMessage(config);
+    var CREATE_MESSAGE_MAP = {
+        alreadydisposed: function () { return 'View has been already disposed'; },
+        invalidparams: function (context) { return "Invalid parameters for '" + context.name + "'"; },
+        nomatchingcontroller: function (context) {
+            return "No matching controller for '" + context.key + "'";
+        },
+        notbindable: function () { return "Value is not bindable"; },
+        propertynotfound: function (context) { return "Property '" + context.name + "' not found"; },
+        shouldneverhappen: function () { return 'This error should never happen'; },
+    };
+    var TpError = /** @class */ (function () {
+        function TpError(config) {
+            var _a;
+            this.message = (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
             this.name = this.constructor.name;
             this.stack = new Error(this.message).stack;
             this.type = config.type;
         }
-        PaneError.alreadyDisposed = function () {
-            return new PaneError({ type: 'alreadydisposed' });
+        TpError.alreadyDisposed = function () {
+            return new TpError({ context: {}, type: 'alreadydisposed' });
         };
-        PaneError.shouldNeverHappen = function () {
-            return new PaneError({ type: 'shouldneverhappen' });
+        TpError.notBindable = function () {
+            return new TpError({
+                context: {},
+                type: 'notbindable',
+            });
         };
-        return PaneError;
+        TpError.propertyNotFound = function (name) {
+            return new TpError({
+                type: 'propertynotfound',
+                context: {
+                    name: name,
+                },
+            });
+        };
+        TpError.shouldNeverHappen = function () {
+            return new TpError({ context: {}, type: 'shouldneverhappen' });
+        };
+        return TpError;
     }());
-    PaneError.prototype = Object.create(Error.prototype);
-    PaneError.prototype.constructor = PaneError;
+    TpError.prototype = Object.create(Error.prototype);
+    TpError.prototype.constructor = TpError;
 
     /**
      * @hidden
@@ -1122,11 +1091,8 @@
                 this.value.rawValue = this.reader(targetValue);
             }
         };
-        InputBinding.prototype.getValueToWrite = function (rawValue) {
-            return this.writer(rawValue);
-        };
         InputBinding.prototype.write_ = function (rawValue) {
-            this.target.write(this.getValueToWrite(rawValue));
+            this.writer(this.target, rawValue);
         };
         InputBinding.prototype.onValueChange_ = function (ev) {
             this.write_(ev.rawValue);
@@ -1223,11 +1189,11 @@
     function createInputBindingController(document, target, params) {
         var initialValue = target.read();
         if (isEmpty(initialValue)) {
-            throw new PaneError({
+            throw new TpError({
                 context: {
                     key: target.key,
                 },
-                type: 'emptyvalue',
+                type: 'nomatchingcontroller',
             });
         }
         var bc = Plugins.inputs.reduce(function (result, plugin) {
@@ -1241,7 +1207,7 @@
         if (bc) {
             return bc;
         }
-        throw new PaneError({
+        throw new TpError({
             context: {
                 key: target.key,
             },
@@ -1467,15 +1433,6 @@
      * @hidden
      */
     function createMonitorBindingController(document, target, params) {
-        var initialValue = target.read();
-        if (isEmpty(initialValue)) {
-            throw new PaneError({
-                context: {
-                    key: target.key,
-                },
-                type: 'emptyvalue',
-            });
-        }
         var bc = Plugins.monitors.reduce(function (result, plugin) {
             return result ||
                 createController$1(plugin, {
@@ -1487,7 +1444,7 @@
         if (bc) {
             return bc;
         }
-        throw new PaneError({
+        throw new TpError({
             context: {
                 key: target.key,
             },
@@ -1517,6 +1474,64 @@
         };
         return SeparatorApi;
     }());
+
+    /**
+     * @hidden
+     */
+    var BindingTarget = /** @class */ (function () {
+        function BindingTarget(obj, key, opt_id) {
+            this.obj_ = obj;
+            this.key_ = key;
+            this.presetKey_ = opt_id !== null && opt_id !== void 0 ? opt_id : key;
+        }
+        BindingTarget.isBindable = function (obj) {
+            if (obj === null) {
+                return false;
+            }
+            if (typeof obj !== 'object') {
+                return false;
+            }
+            return true;
+        };
+        Object.defineProperty(BindingTarget.prototype, "key", {
+            get: function () {
+                return this.key_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(BindingTarget.prototype, "presetKey", {
+            get: function () {
+                return this.presetKey_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        BindingTarget.prototype.read = function () {
+            return this.obj_[this.key_];
+        };
+        BindingTarget.prototype.write = function (value) {
+            this.obj_[this.key_] = value;
+        };
+        BindingTarget.prototype.writeProperty = function (name, value) {
+            var valueObj = this.read();
+            if (!BindingTarget.isBindable(valueObj)) {
+                throw TpError.notBindable();
+            }
+            if (!(name in valueObj)) {
+                throw TpError.propertyNotFound(name);
+            }
+            valueObj[name] = value;
+        };
+        return BindingTarget;
+    }());
+
+    function createBindingTarget(obj, key, opt_id) {
+        if (!BindingTarget.isBindable(obj)) {
+            throw TpError.notBindable();
+        }
+        return new BindingTarget(obj, key, opt_id);
+    }
 
     var FolderApi = /** @class */ (function () {
         /**
@@ -1550,13 +1565,13 @@
         };
         FolderApi.prototype.addInput = function (object, key, opt_params) {
             var params = opt_params || {};
-            var bc = createInputBindingController(this.controller.document, new Target(object, key, params.presetKey), params);
+            var bc = createInputBindingController(this.controller.document, createBindingTarget(object, key, params.presetKey), params);
             this.controller.bladeRack.add(bc, params.index);
             return new InputBindingApi(forceCast(bc));
         };
         FolderApi.prototype.addMonitor = function (object, key, opt_params) {
             var params = opt_params || {};
-            var bc = createMonitorBindingController(this.controller.document, new Target(object, key), params);
+            var bc = createMonitorBindingController(this.controller.document, createBindingTarget(object, key), params);
             this.controller.bladeRack.add(bc, params.index);
             return new MonitorBindingApi(forceCast(bc));
         };
@@ -1678,13 +1693,13 @@
         };
         RootApi.prototype.addInput = function (object, key, opt_params) {
             var params = opt_params || {};
-            var bc = createInputBindingController(this.controller.document, new Target(object, key, params.presetKey), params);
+            var bc = createInputBindingController(this.controller.document, createBindingTarget(object, key, params.presetKey), params);
             this.controller.bladeRack.add(bc, params.index);
             return new InputBindingApi(forceCast(bc));
         };
         RootApi.prototype.addMonitor = function (object, key, opt_params) {
             var params = opt_params || {};
-            var bc = createMonitorBindingController(this.controller.document, new Target(object, key), params);
+            var bc = createMonitorBindingController(this.controller.document, createBindingTarget(object, key), params);
             this.controller.bladeRack.add(bc, params.index);
             return new MonitorBindingApi(forceCast(bc));
         };
@@ -1976,30 +1991,28 @@
     /**
      * @hidden
      */
-    function boolFromUnknown(value) {
-        if (value === 'false') {
-            return false;
-        }
-        return !!value;
-    }
-
-    /**
-     * @hidden
-     */
     function boolToString(value) {
         return String(value);
     }
     /**
      * @hidden
      */
-    var BooleanFormatter = /** @class */ (function () {
-        function BooleanFormatter() {
+    function boolFromUnknown(value) {
+        if (value === 'false') {
+            return false;
         }
-        BooleanFormatter.prototype.format = function (value) {
-            return boolToString(value);
-        };
-        return BooleanFormatter;
-    }());
+        return !!value;
+    }
+    /**
+     * @hidden
+     */
+    function BooleanFormatter(value) {
+        return boolToString(value);
+    }
+
+    function writePrimitive(target, value) {
+        target.write(value);
+    }
 
     /**
      * @hidden
@@ -2244,12 +2257,181 @@
             accept: function (value) { return (typeof value === 'boolean' ? value : null); },
             constraint: function (args) { return createConstraint(args.params); },
             reader: function (_args) { return boolFromUnknown; },
-            writer: function (_args) { return function (v) { return v; }; },
+            writer: function (_args) { return writePrimitive; },
         },
         controller: function (args) {
             return createController$2(args.document, args.binding.value);
         },
     };
+
+    var className$8 = ClassName('txt');
+    /**
+     * @hidden
+     */
+    var TextView = /** @class */ (function () {
+        function TextView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.formatter_ = config.formatter;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$8());
+            var inputElem = doc.createElement('input');
+            inputElem.classList.add(className$8('i'));
+            inputElem.type = 'text';
+            this.element.appendChild(inputElem);
+            this.inputElement = inputElem;
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.update();
+        }
+        TextView.prototype.update = function () {
+            this.inputElement.value = this.formatter_(this.value.rawValue);
+        };
+        TextView.prototype.onValueChange_ = function () {
+            this.update();
+        };
+        return TextView;
+    }());
+
+    /**
+     * @hidden
+     */
+    var TextController = /** @class */ (function () {
+        function TextController(doc, config) {
+            this.onInputChange_ = this.onInputChange_.bind(this);
+            this.parser_ = config.parser;
+            this.value = config.value;
+            this.view = new TextView(doc, {
+                formatter: config.formatter,
+                value: this.value,
+            });
+            this.view.inputElement.addEventListener('change', this.onInputChange_);
+        }
+        TextController.prototype.onInputChange_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
+            var value = inputElem.value;
+            var parsedValue = this.parser_(value);
+            if (!isEmpty(parsedValue)) {
+                this.value.rawValue = parsedValue;
+            }
+            this.view.update();
+        };
+        return TextController;
+    }());
+
+    var className$9 = ClassName('cswtxt');
+    /**
+     * @hidden
+     */
+    var ColorSwatchTextView = /** @class */ (function () {
+        function ColorSwatchTextView(doc, config) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$9());
+            var swatchElem = doc.createElement('div');
+            swatchElem.classList.add(className$9('s'));
+            this.swatchView_ = config.swatchView;
+            swatchElem.appendChild(this.swatchView_.element);
+            this.element.appendChild(swatchElem);
+            var textElem = doc.createElement('div');
+            textElem.classList.add(className$9('t'));
+            this.textView = config.textView;
+            textElem.appendChild(this.textView.element);
+            this.element.appendChild(textElem);
+        }
+        Object.defineProperty(ColorSwatchTextView.prototype, "value", {
+            get: function () {
+                return this.textView.value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        ColorSwatchTextView.prototype.update = function () {
+            this.swatchView_.update();
+            this.textView.update();
+        };
+        return ColorSwatchTextView;
+    }());
+
+    var PickedColor = /** @class */ (function () {
+        function PickedColor(value) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.mode_ = value.rawValue.mode;
+            this.value = value;
+            this.value.emitter.on('change', this.onValueChange_);
+            this.emitter = new Emitter();
+        }
+        Object.defineProperty(PickedColor.prototype, "mode", {
+            get: function () {
+                return this.mode_;
+            },
+            set: function (mode) {
+                if (this.mode_ === mode) {
+                    return;
+                }
+                this.mode_ = mode;
+                this.emitter.emit('change', {
+                    propertyName: 'mode',
+                    sender: this,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        PickedColor.prototype.onValueChange_ = function () {
+            this.emitter.emit('change', {
+                propertyName: 'value',
+                sender: this,
+            });
+        };
+        return PickedColor;
+    }());
+
+    /**
+     * @hidden
+     */
+    function parseNumber(text) {
+        var num = parseFloat(text);
+        if (isNaN(num)) {
+            return null;
+        }
+        return num;
+    }
+    /**
+     * @hidden
+     */
+    function numberFromUnknown(value) {
+        if (typeof value === 'number') {
+            return value;
+        }
+        if (typeof value === 'string') {
+            var pv = parseNumber(value);
+            if (!isEmpty(pv)) {
+                return pv;
+            }
+        }
+        return 0;
+    }
+    /**
+     * @hidden
+     */
+    function numberToString(value) {
+        return String(value);
+    }
+    /**
+     * @hidden
+     */
+    function createNumberFormatter(digits) {
+        return function (value) {
+            return value.toFixed(Math.max(Math.min(digits, 20), 0));
+        };
+    }
+
+    var innerFormatter = createNumberFormatter(0);
+    /**
+     * @hidden
+     */
+    function formatPercentage(value) {
+        return innerFormatter(value) + '%';
+    }
 
     function rgbToHsl(r, g, b) {
         var rp = constrainRange(r / 255, 0, 1);
@@ -2493,59 +2675,15 @@
         };
         Color.prototype.toRgbaObject = function () {
             var rgbComps = this.getComponents('rgb');
-            // tslint:disable:object-literal-sort-keys
             return {
                 r: rgbComps[0],
                 g: rgbComps[1],
                 b: rgbComps[2],
                 a: rgbComps[3],
             };
-            // tslint:enable:object-literal-sort-keys
         };
         return Color;
     }());
-
-    /**
-     * @hidden
-     */
-    var RgbParser = function (num) {
-        return new Color([(num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff], 'rgb');
-    };
-    /**
-     * @hidden
-     */
-    var RgbaParser = function (num) {
-        return new Color([
-            (num >> 24) & 0xff,
-            (num >> 16) & 0xff,
-            (num >> 8) & 0xff,
-            mapRange(num & 0xff, 0, 255, 0, 1),
-        ], 'rgb');
-    };
-    /**
-     * @hidden
-     */
-    function colorFromNumberToRgb(value) {
-        if (typeof value === 'number') {
-            var cv = RgbParser(value);
-            if (cv) {
-                return cv;
-            }
-        }
-        return Color.black();
-    }
-    /**
-     * @hidden
-     */
-    function colorFromNumberToRgba(value) {
-        if (typeof value === 'number') {
-            var cv = RgbaParser(value);
-            if (cv) {
-                return cv;
-            }
-        }
-        return Color.black();
-    }
 
     function parseCssNumberOrPercentage(text, maxValue) {
         var m = text.match(/^(.+)%$/);
@@ -2712,58 +2850,6 @@
         }
         return Color.black();
     }
-
-    /**
-     * @hidden
-     */
-    function numberToString(value) {
-        return String(value);
-    }
-    /**
-     * @hidden
-     */
-    var NumberFormatter = /** @class */ (function () {
-        function NumberFormatter(digits) {
-            this.digits_ = digits;
-        }
-        Object.defineProperty(NumberFormatter.prototype, "digits", {
-            get: function () {
-                return this.digits_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        NumberFormatter.prototype.format = function (value) {
-            return value.toFixed(Math.max(Math.min(this.digits_, 20), 0));
-        };
-        return NumberFormatter;
-    }());
-
-    var innerFormatter = new NumberFormatter(0);
-    /**
-     * @hidden
-     */
-    var PercentageFormatter = /** @class */ (function () {
-        function PercentageFormatter() {
-        }
-        PercentageFormatter.prototype.format = function (value) {
-            return innerFormatter.format(value) + '%';
-        };
-        return PercentageFormatter;
-    }());
-
-    /**
-     * @hidden
-     */
-    var ColorFormatter = /** @class */ (function () {
-        function ColorFormatter(stringifier) {
-            this.stringifier_ = stringifier;
-        }
-        ColorFormatter.prototype.format = function (value) {
-            return this.stringifier_(value);
-        };
-        return ColorFormatter;
-    }());
     function zerofill(comp) {
         var hex = constrainRange(Math.floor(comp), 0, 255).toString(16);
         return hex.length === 1 ? "0" + hex : hex;
@@ -2791,9 +2877,9 @@
      * @hidden
      */
     function colorToFunctionalRgbString(value) {
-        var formatter = new NumberFormatter(0);
+        var formatter = createNumberFormatter(0);
         var comps = removeAlphaComponent(value.getComponents('rgb')).map(function (comp) {
-            return formatter.format(comp);
+            return formatter(comp);
         });
         return "rgb(" + comps.join(', ') + ")";
     }
@@ -2801,11 +2887,11 @@
      * @hidden
      */
     function colorToFunctionalRgbaString(value) {
-        var aFormatter = new NumberFormatter(2);
-        var rgbFormatter = new NumberFormatter(0);
+        var aFormatter = createNumberFormatter(2);
+        var rgbFormatter = createNumberFormatter(0);
         var comps = value.getComponents('rgb').map(function (comp, index) {
             var formatter = index === 3 ? aFormatter : rgbFormatter;
-            return formatter.format(comp);
+            return formatter(comp);
         });
         return "rgba(" + comps.join(', ') + ")";
     }
@@ -2814,11 +2900,11 @@
      */
     function colorToFunctionalHslString(value) {
         var formatters = [
-            new NumberFormatter(0),
-            new PercentageFormatter(),
-            new PercentageFormatter(),
+            createNumberFormatter(0),
+            formatPercentage,
+            formatPercentage,
         ];
-        var comps = removeAlphaComponent(value.getComponents('hsl')).map(function (comp, index) { return formatters[index].format(comp); });
+        var comps = removeAlphaComponent(value.getComponents('hsl')).map(function (comp, index) { return formatters[index](comp); });
         return "hsl(" + comps.join(', ') + ")";
     }
     /**
@@ -2826,14 +2912,14 @@
      */
     function colorToFunctionalHslaString(value) {
         var formatters = [
-            new NumberFormatter(0),
-            new PercentageFormatter(),
-            new PercentageFormatter(),
-            new NumberFormatter(2),
+            createNumberFormatter(0),
+            formatPercentage,
+            formatPercentage,
+            createNumberFormatter(2),
         ];
         var comps = value
             .getComponents('hsl')
-            .map(function (comp, index) { return formatters[index].format(comp); });
+            .map(function (comp, index) { return formatters[index](comp); });
         return "hsla(" + comps.join(', ') + ")";
     }
     var NOTATION_TO_STRINGIFIER_MAP = {
@@ -2847,144 +2933,6 @@
     function getColorStringifier(notation) {
         return NOTATION_TO_STRINGIFIER_MAP[notation];
     }
-    /**
-     * @hidden
-     */
-    function colorToRgbNumber(value) {
-        return removeAlphaComponent(value.getComponents('rgb')).reduce(function (result, comp) {
-            return (result << 8) | (Math.floor(comp) & 0xff);
-        }, 0);
-    }
-    /**
-     * @hidden
-     */
-    function colorToRgbaNumber(value) {
-        return (value.getComponents('rgb').reduce(function (result, comp, index) {
-            var hex = Math.floor(index === 3 ? comp * 255 : comp) & 0xff;
-            return (result << 8) | hex;
-        }, 0) >>> 0);
-    }
-
-    var className$8 = ClassName('txt');
-    /**
-     * @hidden
-     */
-    var TextView = /** @class */ (function () {
-        function TextView(doc, config) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.formatter_ = config.formatter;
-            this.element = doc.createElement('div');
-            this.element.classList.add(className$8());
-            var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$8('i'));
-            inputElem.type = 'text';
-            this.element.appendChild(inputElem);
-            this.inputElement = inputElem;
-            config.value.emitter.on('change', this.onValueChange_);
-            this.value = config.value;
-            this.update();
-        }
-        TextView.prototype.update = function () {
-            this.inputElement.value = this.formatter_.format(this.value.rawValue);
-        };
-        TextView.prototype.onValueChange_ = function () {
-            this.update();
-        };
-        return TextView;
-    }());
-
-    /**
-     * @hidden
-     */
-    var TextController = /** @class */ (function () {
-        function TextController(doc, config) {
-            this.onInputChange_ = this.onInputChange_.bind(this);
-            this.parser_ = config.parser;
-            this.value = config.value;
-            this.view = new TextView(doc, {
-                formatter: config.formatter,
-                value: this.value,
-            });
-            this.view.inputElement.addEventListener('change', this.onInputChange_);
-        }
-        TextController.prototype.onInputChange_ = function (e) {
-            var inputElem = forceCast(e.currentTarget);
-            var value = inputElem.value;
-            var parsedValue = this.parser_(value);
-            if (!isEmpty(parsedValue)) {
-                this.value.rawValue = parsedValue;
-            }
-            this.view.update();
-        };
-        return TextController;
-    }());
-
-    var className$9 = ClassName('cswtxt');
-    /**
-     * @hidden
-     */
-    var ColorSwatchTextView = /** @class */ (function () {
-        function ColorSwatchTextView(doc, config) {
-            this.element = doc.createElement('div');
-            this.element.classList.add(className$9());
-            var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$9('s'));
-            this.swatchView_ = config.swatchView;
-            swatchElem.appendChild(this.swatchView_.element);
-            this.element.appendChild(swatchElem);
-            var textElem = doc.createElement('div');
-            textElem.classList.add(className$9('t'));
-            this.textView = config.textView;
-            textElem.appendChild(this.textView.element);
-            this.element.appendChild(textElem);
-        }
-        Object.defineProperty(ColorSwatchTextView.prototype, "value", {
-            get: function () {
-                return this.textView.value;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        ColorSwatchTextView.prototype.update = function () {
-            this.swatchView_.update();
-            this.textView.update();
-        };
-        return ColorSwatchTextView;
-    }());
-
-    var PickedColor = /** @class */ (function () {
-        function PickedColor(value) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.mode_ = value.rawValue.mode;
-            this.value = value;
-            this.value.emitter.on('change', this.onValueChange_);
-            this.emitter = new Emitter();
-        }
-        Object.defineProperty(PickedColor.prototype, "mode", {
-            get: function () {
-                return this.mode_;
-            },
-            set: function (mode) {
-                if (this.mode_ === mode) {
-                    return;
-                }
-                this.mode_ = mode;
-                this.emitter.emit('change', {
-                    propertyName: 'mode',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        PickedColor.prototype.onValueChange_ = function () {
-            this.emitter.emit('change', {
-                propertyName: 'value',
-                sender: this,
-            });
-        };
-        return PickedColor;
-    }());
 
     var className$a = ClassName('csw');
     /**
@@ -3066,17 +3014,6 @@
     /**
      * @hidden
      */
-    var StringNumberParser = function (text) {
-        var num = parseFloat(text);
-        if (isNaN(num)) {
-            return null;
-        }
-        return num;
-    };
-
-    /**
-     * @hidden
-     */
     function getStepForKey(baseStep, keys) {
         var step = baseStep * (keys.altKey ? 0.1 : 1) * (keys.shiftKey ? 10 : 1);
         if (keys.upKey) {
@@ -3120,12 +3057,6 @@
      */
     function isArrowKey(keyCode) {
         return isVerticalArrowKey(keyCode) || keyCode === 37 || keyCode === 39;
-    }
-    /**
-     * @hidden
-     */
-    function getBaseStepForColor(forAlpha) {
-        return forAlpha ? 0.1 : 1;
     }
 
     /**
@@ -3332,6 +3263,13 @@
         return PointerHandler;
     }());
 
+    /**
+     * @hidden
+     */
+    function getBaseStepForColor(forAlpha) {
+        return forAlpha ? 0.1 : 1;
+    }
+
     var className$c = ClassName('apl');
     /**
      * @hidden
@@ -3427,7 +3365,7 @@
     }());
 
     var className$d = ClassName('cctxts');
-    var FORMATTER = new NumberFormatter(0);
+    var FORMATTER = createNumberFormatter(0);
     function createModeSelectElement(doc) {
         var selectElem = doc.createElement('select');
         var items = [
@@ -3508,7 +3446,7 @@
                 if (!inputElem) {
                     return;
                 }
-                inputElem.value = FORMATTER.format(comp);
+                inputElem.value = FORMATTER(comp);
             });
         };
         ColorComponentTextsView.prototype.onValueChange_ = function () {
@@ -3809,8 +3747,8 @@
                         value: this.pickedColor.value,
                     }),
                     text: new NumberTextController(doc, {
-                        formatter: new NumberFormatter(2),
-                        parser: StringNumberParser,
+                        formatter: createNumberFormatter(2),
+                        parser: parseNumber,
                         baseStep: 0.1,
                         value: new Value(0),
                     }),
@@ -3831,7 +3769,7 @@
                 });
             }
             this.compTextsIc_ = new ColorComponentTextsController(doc, {
-                parser: StringNumberParser,
+                parser: parseNumber,
                 pickedColor: this.pickedColor,
             });
             this.view = new ColorPickerView(doc, {
@@ -3942,6 +3880,97 @@
         return ColorSwatchTextController;
     }());
 
+    /**
+     * @hidden
+     */
+    function colorFromObject(value) {
+        if (Color.isColorObject(value)) {
+            return Color.fromObject(value);
+        }
+        return Color.black();
+    }
+    /**
+     * @hidden
+     */
+    function colorToRgbNumber(value) {
+        return removeAlphaComponent(value.getComponents('rgb')).reduce(function (result, comp) {
+            return (result << 8) | (Math.floor(comp) & 0xff);
+        }, 0);
+    }
+    /**
+     * @hidden
+     */
+    function colorToRgbaNumber(value) {
+        return (value.getComponents('rgb').reduce(function (result, comp, index) {
+            var hex = Math.floor(index === 3 ? comp * 255 : comp) & 0xff;
+            return (result << 8) | hex;
+        }, 0) >>> 0);
+    }
+    /**
+     * @hidden
+     */
+    function numberToRgbColor(num) {
+        return new Color([(num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff], 'rgb');
+    }
+    /**
+     * @hidden
+     */
+    function numberToRgbaColor(num) {
+        return new Color([
+            (num >> 24) & 0xff,
+            (num >> 16) & 0xff,
+            (num >> 8) & 0xff,
+            mapRange(num & 0xff, 0, 255, 0, 1),
+        ], 'rgb');
+    }
+    /**
+     * @hidden
+     */
+    function colorFromRgbNumber(value) {
+        if (typeof value !== 'number') {
+            return Color.black();
+        }
+        return numberToRgbColor(value);
+    }
+    /**
+     * @hidden
+     */
+    function colorFromRgbaNumber(value) {
+        if (typeof value !== 'number') {
+            return Color.black();
+        }
+        return numberToRgbaColor(value);
+    }
+
+    function createColorStringWriter(notation) {
+        var stringify = getColorStringifier(notation);
+        return function (target, value) {
+            writePrimitive(target, stringify(value));
+        };
+    }
+    function createColorNumberWriter(supportsAlpha) {
+        var colorToNumber = supportsAlpha ? colorToRgbaNumber : colorToRgbNumber;
+        return function (target, value) {
+            writePrimitive(target, colorToNumber(value));
+        };
+    }
+    function writeRgbaColorObject(target, value) {
+        var obj = value.toRgbaObject();
+        target.writeProperty('r', obj.r);
+        target.writeProperty('g', obj.g);
+        target.writeProperty('b', obj.b);
+        target.writeProperty('a', obj.a);
+    }
+    function writeRgbColorObject(target, value) {
+        var obj = value.toRgbaObject();
+        target.writeProperty('r', obj.r);
+        target.writeProperty('g', obj.g);
+        target.writeProperty('b', obj.b);
+    }
+    function createColorObjectWriter(supportsAlpha) {
+        return supportsAlpha ? writeRgbaColorObject : writeRgbColorObject;
+    }
+
     function shouldSupportAlpha(inputParams) {
         return 'input' in inputParams && inputParams.input === 'color.rgba';
     }
@@ -3967,21 +3996,19 @@
             },
             reader: function (args) {
                 return shouldSupportAlpha(args.params)
-                    ? colorFromNumberToRgba
-                    : colorFromNumberToRgb;
+                    ? colorFromRgbaNumber
+                    : colorFromRgbNumber;
             },
             writer: function (args) {
-                return shouldSupportAlpha(args.params)
-                    ? colorToRgbaNumber
-                    : colorToRgbNumber;
+                return createColorNumberWriter(shouldSupportAlpha(args.params));
             },
             equals: Color.equals,
         },
         controller: function (args) {
             var supportsAlpha = shouldSupportAlpha(args.params);
             var formatter = supportsAlpha
-                ? new ColorFormatter(colorToHexRgbaString)
-                : new ColorFormatter(colorToHexRgbString);
+                ? colorToHexRgbaString
+                : colorToHexRgbString;
             return new ColorSwatchTextController(args.document, {
                 formatter: formatter,
                 parser: CompositeColorParser,
@@ -3991,16 +4018,9 @@
         },
     };
 
-    /**
-     * @hidden
-     */
-    function colorFromObject(value) {
-        if (Color.isColorObject(value)) {
-            return Color.fromObject(value);
-        }
-        return Color.black();
+    function shouldSupportAlpha$1(initialValue) {
+        return Color.isRgbaColorObject(initialValue);
     }
-
     /**
      * @hidden
      */
@@ -4009,14 +4029,16 @@
         binding: {
             accept: function (value, _params) { return (Color.isColorObject(value) ? value : null); },
             reader: function (_args) { return colorFromObject; },
-            writer: function (_args) { return Color.toRgbaObject; },
+            writer: function (args) {
+                return createColorObjectWriter(shouldSupportAlpha$1(args.initialValue));
+            },
             equals: Color.equals,
         },
         controller: function (args) {
             var supportsAlpha = Color.isRgbaColorObject(args.initialValue);
             var formatter = supportsAlpha
-                ? new ColorFormatter(colorToHexRgbaString)
-                : new ColorFormatter(colorToHexRgbString);
+                ? colorToHexRgbaString
+                : colorToHexRgbString;
             return new ColorSwatchTextController(args.document, {
                 formatter: formatter,
                 parser: CompositeColorParser,
@@ -4049,19 +4071,20 @@
             writer: function (args) {
                 var notation = getColorNotation(args.initialValue);
                 if (!notation) {
-                    throw PaneError.shouldNeverHappen();
+                    throw TpError.shouldNeverHappen();
                 }
-                return getColorStringifier(notation);
+                return createColorStringWriter(notation);
             },
             equals: Color.equals,
         },
         controller: function (args) {
             var notation = getColorNotation(args.initialValue);
             if (!notation) {
-                throw PaneError.shouldNeverHappen();
+                throw TpError.shouldNeverHappen();
             }
+            var stringifier = getColorStringifier(notation);
             return new ColorSwatchTextController(args.document, {
-                formatter: new ColorFormatter(args.binding.writer),
+                formatter: stringifier,
                 parser: CompositeColorParser,
                 supportsAlpha: hasAlphaComponent(notation),
                 value: args.binding.value,
@@ -4089,22 +4112,6 @@
         };
         return RangeConstraint;
     }());
-
-    /**
-     * @hidden
-     */
-    function numberFromUnknown(value) {
-        if (typeof value === 'number') {
-            return value;
-        }
-        if (typeof value === 'string') {
-            var pv = StringNumberParser(value);
-            if (!isEmpty(pv)) {
-                return pv;
-            }
-        }
-        return 0;
-    }
 
     var className$g = ClassName('sldtxt');
     /**
@@ -4289,15 +4296,15 @@
         if (c && findConstraint(c, RangeConstraint)) {
             return new SliderTextController(doc, {
                 baseStep: getBaseStep(c),
-                formatter: new NumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
-                parser: StringNumberParser,
+                formatter: createNumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
+                parser: parseNumber,
                 value: value,
             });
         }
         return new NumberTextController(doc, {
             baseStep: getBaseStep(c),
-            formatter: new NumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
-            parser: StringNumberParser,
+            formatter: createNumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
+            parser: parseNumber,
             value: value,
         });
     }
@@ -4310,7 +4317,7 @@
             accept: function (value) { return (typeof value === 'number' ? value : null); },
             constraint: function (args) { return createConstraint$1(args.params); },
             reader: function (_args) { return numberFromUnknown; },
-            writer: function (_args) { return function (v) { return v; }; },
+            writer: function (_args) { return writePrimitive; },
         },
         controller: function (args) {
             return createController$3(args.document, args.binding.value);
@@ -4619,7 +4626,7 @@
             var xyComps = this.value.rawValue.getComponents();
             xyComps.forEach(function (comp, index) {
                 var inputElem = _this.inputElems_[index];
-                inputElem.value = _this.formatters_[index].format(comp);
+                inputElem.value = _this.formatters_[index](comp);
             });
         };
         Point2dTextView.prototype.onValueChange_ = function () {
@@ -4748,6 +4755,11 @@
             : new Point2d();
     }
 
+    function writePoint2d(target, value) {
+        target.writeProperty('x', value.x);
+        target.writeProperty('y', value.y);
+    }
+
     function createDimensionConstraint(params) {
         if (!params) {
             return undefined;
@@ -4795,22 +4807,22 @@
     function createController$4(document, value, invertsY) {
         var c = value.constraint;
         if (!(c instanceof Point2dConstraint)) {
-            throw PaneError.shouldNeverHappen();
+            throw TpError.shouldNeverHappen();
         }
         return new Point2dPadTextController(document, {
             axes: [
                 {
                     baseStep: getBaseStep(c.x),
-                    formatter: new NumberFormatter(getSuitableDecimalDigits(c.x, value.rawValue.x)),
+                    formatter: createNumberFormatter(getSuitableDecimalDigits(c.x, value.rawValue.x)),
                 },
                 {
                     baseStep: getBaseStep(c.y),
-                    formatter: new NumberFormatter(getSuitableDecimalDigits(c.y, value.rawValue.y)),
+                    formatter: createNumberFormatter(getSuitableDecimalDigits(c.y, value.rawValue.y)),
                 },
             ],
             invertsY: invertsY,
             maxValue: getSuitableMaxValue(value.rawValue, value.constraint),
-            parser: StringNumberParser,
+            parser: parseNumber,
             value: value,
         });
     }
@@ -4832,7 +4844,7 @@
         binding: {
             accept: function (value, _params) { return (Point2d.isObject(value) ? value : null); },
             reader: function (_args) { return point2dFromUnknown; },
-            writer: function (_args) { return function (v) { return v.toObject(); }; },
+            writer: function (_args) { return writePoint2d; },
             constraint: function (args) { return createConstraint$2(args.params); },
             equals: Point2d.equals,
         },
@@ -4935,7 +4947,7 @@
             var comps = this.value.rawValue.getComponents();
             comps.forEach(function (comp, index) {
                 var inputElem = _this.inputElems_[index];
-                inputElem.value = _this.formatters_[index].format(comp);
+                inputElem.value = _this.formatters_[index](comp);
             });
         };
         Point3dTextView.prototype.onValueChange_ = function () {
@@ -5022,6 +5034,12 @@
             : new Point3d();
     }
 
+    function writePoint3d(target, value) {
+        target.writeProperty('x', value.x);
+        target.writeProperty('y', value.y);
+        target.writeProperty('z', value.z);
+    }
+
     function createDimensionConstraint$1(params) {
         if (!params) {
             return undefined;
@@ -5055,13 +5073,13 @@
     function getAxis(initialValue, constraint) {
         return {
             baseStep: getBaseStep(constraint),
-            formatter: new NumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
+            formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
         };
     }
     function createController$5(document, value) {
         var c = value.constraint;
         if (!(c instanceof Point3dConstraint)) {
-            throw PaneError.shouldNeverHappen();
+            throw TpError.shouldNeverHappen();
         }
         return new Point3dTextController(document, {
             axes: [
@@ -5069,7 +5087,7 @@
                 getAxis(value.rawValue.y, c.y),
                 getAxis(value.rawValue.z, c.z),
             ],
-            parser: StringNumberParser,
+            parser: parseNumber,
             value: value,
         });
     }
@@ -5081,7 +5099,7 @@
         binding: {
             accept: function (value, _params) { return (Point3d.isObject(value) ? value : null); },
             reader: function (_args) { return point3dFromUnknown; },
-            writer: function (_args) { return function (v) { return v.toObject(); }; },
+            writer: function (_args) { return writePoint3d; },
             constraint: function (args) { return createConstraint$3(args.params); },
             equals: Point3d.equals,
         },
@@ -5096,18 +5114,12 @@
     function stringFromUnknown(value) {
         return String(value);
     }
-
     /**
      * @hidden
      */
-    var StringFormatter = /** @class */ (function () {
-        function StringFormatter() {
-        }
-        StringFormatter.prototype.format = function (value) {
-            return value;
-        };
-        return StringFormatter;
-    }());
+    function formatString(value) {
+        return value;
+    }
 
     function createConstraint$4(params) {
         var constraints = [];
@@ -5131,7 +5143,7 @@
             });
         }
         return new TextController(doc, {
-            formatter: new StringFormatter(),
+            formatter: formatString,
             parser: function (v) { return v; },
             value: value,
         });
@@ -5145,7 +5157,7 @@
             accept: function (value, _params) { return (typeof value === 'string' ? value : null); },
             constraint: function (args) { return createConstraint$4(args.params); },
             reader: function (_args) { return stringFromUnknown; },
-            writer: function (_args) { return function (v) { return v; }; },
+            writer: function (_args) { return writePrimitive; },
         },
         controller: function (params) {
             return createController$6(params.document, params.binding.value);
@@ -5178,7 +5190,7 @@
             var shouldScroll = elem.scrollTop === elem.scrollHeight - elem.clientHeight;
             elem.textContent = this.value.rawValue
                 .map(function (value) {
-                return value !== undefined ? _this.formatter_.format(value) : '';
+                return value !== undefined ? _this.formatter_(value) : '';
             })
                 .join('\n');
             if (shouldScroll) {
@@ -5230,7 +5242,7 @@
             var values = this.value.rawValue;
             var lastValue = values[values.length - 1];
             this.inputElem_.value =
-                lastValue !== undefined ? this.formatter_.format(lastValue) : '';
+                lastValue !== undefined ? this.formatter_(lastValue) : '';
         };
         SingleLogView.prototype.onValueUpdate_ = function () {
             this.update();
@@ -5265,12 +5277,12 @@
             var _a;
             if (args.binding.value.rawValue.length === 1) {
                 return new SingleLogMonitorController(args.document, {
-                    formatter: new BooleanFormatter(),
+                    formatter: BooleanFormatter,
                     value: args.binding.value,
                 });
             }
             return new MultiLogController(args.document, {
-                formatter: new BooleanFormatter(),
+                formatter: BooleanFormatter,
                 lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
                 value: args.binding.value,
             });
@@ -5371,7 +5383,7 @@
             var ty = mapRange(value, min, max, bounds.height, 0);
             tooltipElem.style.left = tx + "px";
             tooltipElem.style.top = ty + "px";
-            tooltipElem.textContent = "" + this.formatter_.format(value);
+            tooltipElem.textContent = "" + this.formatter_(value);
         };
         GraphLogView.prototype.onValueUpdate_ = function () {
             this.update();
@@ -5415,7 +5427,7 @@
 
     function createFormatter() {
         // TODO: formatter precision
-        return new NumberFormatter(2);
+        return createNumberFormatter(2);
     }
     function createTextMonitor(document, binding, params) {
         var _a;
@@ -5483,13 +5495,13 @@
                 ('multiline' in args.params && args.params.multiline);
             if (multiline) {
                 return new MultiLogController(args.document, {
-                    formatter: new StringFormatter(),
+                    formatter: formatString,
                     lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
                     value: value,
                 });
             }
             return new SingleLogMonitorController(args.document, {
-                formatter: new StringFormatter(),
+                formatter: formatString,
                 value: value,
             });
         },
@@ -5513,7 +5525,7 @@
         doc.head.appendChild(styleElem);
     }
     function embedDefaultStyleIfNeeded(doc) {
-        embedStyle(doc, 'default', '.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cctxtsv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b{background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-btnv_b:hover,.tp-lstv_s:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--button-background-color-hover)}.tp-btnv_b:focus,.tp-lstv_s:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--button-background-color-focus)}.tp-btnv_b:active,.tp-lstv_s:active,.tp-p2dpadtxtv_b:active{background-color:var(--button-background-color-active)}.tp-fldv_t,.tp-rotv_t{background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i{background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cctxtsv_i:hover,.tp-cswv_sw:hover,.tp-p2dpadv_p:hover,.tp-p2dtxtv_i:hover,.tp-p3dtxtv_i:hover,.tp-txtv_i:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_i:focus,.tp-cswv_sw:focus,.tp-p2dpadv_p:focus,.tp-p2dtxtv_i:focus,.tp-p3dtxtv_i:focus,.tp-txtv_i:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_i:active,.tp-cswv_sw:active,.tp-p2dpadv_p:active,.tp-p2dtxtv_i:active,.tp-p3dtxtv_i:active,.tp-txtv_i:active{background-color:var(--input-background-color-active)}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-btnv{padding:0 4px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_m{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_m::before{background-color:var(--input-foreground-color);border-radius:2px;bottom:4px;content:\'\';display:block;left:4px;opacity:0;position:absolute;right:4px;top:4px}.tp-ckbv_i:hover+.tp-ckbv_m{background-color:var(--input-background-color-hover)}.tp-ckbv_i:focus+.tp-ckbv_m{background-color:var(--input-background-color-focus)}.tp-ckbv_i:active+.tp-ckbv_m{background-color:var(--input-background-color-active)}.tp-ckbv_i:checked+.tp-ckbv_m::before{opacity:1}.tp-cctxtsv{display:flex;width:100%}.tp-cctxtsv_m{margin-right:4px;position:relative}.tp-cctxtsv_ms{border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cctxtsv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_ms:active{background-color:var(--input-background-color-active)}.tp-cctxtsv_mm{border-color:var(--label-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-cctxtsv_w{display:flex;flex:1}.tp-cctxtsv_i{border-radius:0;flex:1;padding:0 4px}.tp-cctxtsv_i:first-child{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-cctxtsv_i:last-child{border-bottom-right-radius:2px;border-top-right-radius:2px}.tp-cctxtsv_i+.tp-cctxtsv_i{margin-left:2px}.tp-clpv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded{display:block;visibility:visible}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-cswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-cswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-cswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-cswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-cswtxtv{display:flex;position:relative}.tp-cswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-cswtxtv_t{flex:1;margin-left:4px}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grlv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grlv_t.tp-grlv_t-valid{visibility:visible}.tp-grlv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:160px}.tp-lstv{position:relative}.tp-lstv_s{padding:0 18px 0 4px;width:100%}.tp-lstv_m{border-color:var(--button-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px 4px 4px calc(4px * 2 + var(--unit-size));position:relative;visibility:hidden;z-index:1000}.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{stroke:var(--input-guide-color)}.tp-p2dpadv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-p2dtxtv{display:flex}.tp-p2dtxtv_w{align-items:center;display:flex}.tp-p2dtxtv_w+.tp-p2dtxtv_w{margin-left:2px}.tp-p2dtxtv_i{padding:0 4px;width:100%}.tp-p2dtxtv_w:nth-child(1) .tp-p2dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p2dtxtv_w:nth-child(2) .tp-p2dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-p3dtxtv{display:flex}.tp-p3dtxtv_w{align-items:center;display:flex}.tp-p3dtxtv_w+.tp-p3dtxtv_w{margin-left:2px}.tp-p3dtxtv_i{padding:0 4px;width:100%}.tp-p3dtxtv_w:first-child .tp-p3dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p3dtxtv_w:not(:first-child):not(:last-child) .tp-p3dtxtv_i{border-radius:0}.tp-p3dtxtv_w:last-child .tp-p3dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(47,49,55,0.5));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, #26272c);--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, #26272c)}.tp-rotv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_o{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_o::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_i{height:100%;left:0;position:absolute;top:0}.tp-sldv_i::before{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_o:hover .tp-sldv_i::before{background-color:var(--button-background-color-hover)}.tp-sldv_o:focus .tp-sldv_i::before{background-color:var(--button-background-color-focus)}.tp-sldv_o:active .tp-sldv_i::before{background-color:var(--button-background-color-active)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv_i{padding:0 4px}.tp-v.tp-v-hidden{display:none}');
+        embedStyle(doc, 'default', '.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cctxtsv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b{background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-btnv_b:hover,.tp-lstv_s:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--button-background-color-hover)}.tp-btnv_b:focus,.tp-lstv_s:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--button-background-color-focus)}.tp-btnv_b:active,.tp-lstv_s:active,.tp-p2dpadtxtv_b:active{background-color:var(--button-background-color-active)}.tp-fldv_t,.tp-rotv_t{background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i{background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cctxtsv_i:hover,.tp-cswv_sw:hover,.tp-p2dpadv_p:hover,.tp-p2dtxtv_i:hover,.tp-p3dtxtv_i:hover,.tp-txtv_i:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_i:focus,.tp-cswv_sw:focus,.tp-p2dpadv_p:focus,.tp-p2dtxtv_i:focus,.tp-p3dtxtv_i:focus,.tp-txtv_i:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_i:active,.tp-cswv_sw:active,.tp-p2dpadv_p:active,.tp-p2dtxtv_i:active,.tp-p3dtxtv_i:active,.tp-txtv_i:active{background-color:var(--input-background-color-active)}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-btnv{padding:0 4px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_m{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_m::before{background-color:var(--input-foreground-color);border-radius:2px;bottom:4px;content:\'\';display:block;left:4px;opacity:0;position:absolute;right:4px;top:4px}.tp-ckbv_i:hover+.tp-ckbv_m{background-color:var(--input-background-color-hover)}.tp-ckbv_i:focus+.tp-ckbv_m{background-color:var(--input-background-color-focus)}.tp-ckbv_i:active+.tp-ckbv_m{background-color:var(--input-background-color-active)}.tp-ckbv_i:checked+.tp-ckbv_m::before{opacity:1}.tp-cctxtsv{display:flex;width:100%}.tp-cctxtsv_m{margin-right:4px;position:relative}.tp-cctxtsv_ms{border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cctxtsv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_ms:active{background-color:var(--input-background-color-active)}.tp-cctxtsv_mm{border-color:var(--label-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-cctxtsv_w{display:flex;flex:1}.tp-cctxtsv_i{border-radius:0;flex:1;padding:0 4px}.tp-cctxtsv_i:first-child{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-cctxtsv_i:last-child{border-bottom-right-radius:2px;border-top-right-radius:2px}.tp-cctxtsv_i+.tp-cctxtsv_i{margin-left:2px}.tp-clpv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded{display:block;visibility:visible}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-cswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-cswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-cswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-cswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-cswtxtv{display:flex;position:relative}.tp-cswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-cswtxtv_t{flex:1;margin-left:4px}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grlv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grlv_t.tp-grlv_t-valid{visibility:visible}.tp-grlv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:160px}.tp-lstv{position:relative}.tp-lstv_s{padding:0 18px 0 4px;width:100%}.tp-lstv_m{border-color:var(--button-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px 4px 4px calc(4px * 2 + var(--unit-size));position:relative;visibility:hidden;z-index:1000}.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{stroke:var(--input-guide-color)}.tp-p2dpadv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-p2dtxtv{display:flex}.tp-p2dtxtv_w{align-items:center;display:flex}.tp-p2dtxtv_w+.tp-p2dtxtv_w{margin-left:2px}.tp-p2dtxtv_i{padding:0 4px;width:100%}.tp-p2dtxtv_w:nth-child(1) .tp-p2dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p2dtxtv_w:nth-child(2) .tp-p2dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-p3dtxtv{display:flex}.tp-p3dtxtv_w{align-items:center;display:flex}.tp-p3dtxtv_w+.tp-p3dtxtv_w{margin-left:2px}.tp-p3dtxtv_i{padding:0 4px;width:100%}.tp-p3dtxtv_w:first-child .tp-p3dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p3dtxtv_w:not(:first-child):not(:last-child) .tp-p3dtxtv_i{border-radius:0}.tp-p3dtxtv_w:last-child .tp-p3dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(47,49,55,0.5));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, #26272c);--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, #26272c)}.tp-rotv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_o{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_o::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_i{height:100%;left:0;position:absolute;top:0}.tp-sldv_i::before{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_o:hover .tp-sldv_i::before{background-color:var(--button-background-color-hover)}.tp-sldv_o:focus .tp-sldv_i::before{background-color:var(--button-background-color-focus)}.tp-sldv_o:active .tp-sldv_i::before{background-color:var(--button-background-color-active)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv_i{padding:0 4px}.tp-v-hidden{display:none}');
         getAllPlugins().forEach(function (plugin) {
             if (plugin.css) {
                 embedStyle(doc, "plugin-" + plugin.id, plugin.css);
@@ -5543,7 +5555,7 @@
         Object.defineProperty(Tweakpane.prototype, "document", {
             get: function () {
                 if (!this.doc_) {
-                    throw PaneError.alreadyDisposed();
+                    throw TpError.alreadyDisposed();
                 }
                 return this.doc_;
             },
@@ -5553,7 +5565,7 @@
         Tweakpane.prototype.dispose = function () {
             var containerElem = this.containerElem_;
             if (!containerElem) {
-                throw PaneError.alreadyDisposed();
+                throw TpError.alreadyDisposed();
             }
             if (this.usesDefaultWrapper_) {
                 var parentElem = containerElem.parentElement;
