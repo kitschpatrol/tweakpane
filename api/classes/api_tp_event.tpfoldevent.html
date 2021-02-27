@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>ButtonParams | tweakpane</title>
+	<title>TpFoldEvent | tweakpane</title>
 	<meta name="description" content="Documentation for tweakpane">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,27 +55,34 @@
 					<a href="../index.html">tweakpane</a>
 				</li>
 				<li>
-					<a href="../modules/api_types.html">api/types</a>
+					<a href="../modules/api_tp_event.html">api/tp-event</a>
 				</li>
 				<li>
-					<a href="api_types.buttonparams.html">ButtonParams</a>
+					<a href="api_tp_event.tpfoldevent.html">TpFoldEvent</a>
 				</li>
 			</ul>
-			<h1>Interface ButtonParams</h1>
+			<h1>Class TpFoldEvent</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>An event class for folder.</p>
+					</div>
+				</div>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="tsd-signature-type">BaseParams</span>
+						<a href="api_tp_event.tpevent.html" class="tsd-signature-type" data-tsd-kind="Class">TpEvent</a>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">ButtonParams</span>
+								<span class="target">TpFoldEvent</span>
 							</li>
 						</ul>
 					</li>
@@ -88,8 +95,8 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="api_types.buttonparams.html#index" class="tsd-kind-icon">index</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="api_types.buttonparams.html#title" class="tsd-kind-icon">title</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="api_tp_event.tpfoldevent.html#expanded" class="tsd-kind-icon">expanded</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="api_tp_event.tpfoldevent.html#target" class="tsd-kind-icon">target</a></li>
 							</ul>
 						</section>
 					</div>
@@ -97,25 +104,36 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="index" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> index</h3>
-					<div class="tsd-signature tsd-kind-icon">index<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="expanded" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> expanded</h3>
+					<div class="tsd-signature tsd-kind-icon">expanded<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a55c0c5/lib/api/types.ts#L2">api/types.ts:2</a></li>
+							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a55c0c5/lib/api/tp-event.ts#L75">api/tp-event.ts:75</a></li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The current state of the folder expansion.</p>
+						</div>
+					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="title" class="tsd-anchor"></a>
-					<h3>title</h3>
-					<div class="tsd-signature tsd-kind-icon">title<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="target" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> target</h3>
+					<div class="tsd-signature tsd-kind-icon">target<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="api_tp_event.tpevent.html">TpEvent</a>.<a href="api_tp_event.tpevent.html#target">target</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a55c0c5/lib/api/types.ts#L99">api/types.ts:99</a></li>
+							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a55c0c5/lib/api/tp-event.ts#L8">api/tp-event.ts:8</a></li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The event dispatcher.</p>
+						</div>
+					</div>
 				</section>
 			</section>
 		</div>
@@ -158,10 +176,10 @@
 					<li class=" tsd-kind-module">
 						<a href="../modules/api_separator.html">api/separator</a>
 					</li>
-					<li class=" tsd-kind-module">
+					<li class="current tsd-kind-module">
 						<a href="../modules/api_tp_event.html">api/tp-<wbr>event</a>
 					</li>
-					<li class="current tsd-kind-module">
+					<li class=" tsd-kind-module">
 						<a href="../modules/api_types.html">api/types</a>
 					</li>
 					<li class=" tsd-kind-module">
@@ -177,77 +195,29 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.baseinputparams.html" class="tsd-kind-icon">Base<wbr>Input<wbr>Params</a>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="api_tp_event.tpchangeevent.html" class="tsd-kind-icon">Tp<wbr>Change<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.basemonitorparams.html" class="tsd-kind-icon">Base<wbr>Monitor<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.booleaninputparams.html" class="tsd-kind-icon">Boolean<wbr>Input<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.booleanmonitorparams.html" class="tsd-kind-icon">Boolean<wbr>Monitor<wbr>Params</a>
+					<li class=" tsd-kind-class tsd-parent-kind-module">
+						<a href="api_tp_event.tpevent.html" class="tsd-kind-icon">Tp<wbr>Event</a>
 					</li>
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.buttonparams.html" class="tsd-kind-icon">Button<wbr>Params</a>
+					<li class="current tsd-kind-class tsd-parent-kind-module">
+						<a href="api_tp_event.tpfoldevent.html" class="tsd-kind-icon">Tp<wbr>Fold<wbr>Event</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="api_types.buttonparams.html#index" class="tsd-kind-icon">index</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="api_tp_event.tpfoldevent.html#expanded" class="tsd-kind-icon">expanded</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="api_types.buttonparams.html#title" class="tsd-kind-icon">title</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="api_tp_event.tpfoldevent.html#target" class="tsd-kind-icon">target</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.folderparams.html" class="tsd-kind-icon">Folder<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
-						<a href="api_types.inputparamsoption.html" class="tsd-kind-icon">Input<wbr>Params<wbr>Option</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
-						<a href="api_types.inputparamsoptiondictionary.html" class="tsd-kind-icon">Input<wbr>Params<wbr>Option<wbr>Dictionary</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.numberinputparams.html" class="tsd-kind-icon">Number<wbr>Input<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.numbermonitorparams.html" class="tsd-kind-icon">Number<wbr>Monitor<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.point2dinputparams.html" class="tsd-kind-icon">Point2d<wbr>Input<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.point2dyparams.html" class="tsd-kind-icon">Point2dYParams</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.point3dinputparams.html" class="tsd-kind-icon">Point3d<wbr>Input<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.pointdimensionparams.html" class="tsd-kind-icon">Point<wbr>Dimension<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.stringinputparams.html" class="tsd-kind-icon">String<wbr>Input<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="api_types.stringmonitorparams.html" class="tsd-kind-icon">String<wbr>Monitor<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
-						<a href="../modules/api_types.html#inputparams" class="tsd-kind-icon">Input<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
-						<a href="../modules/api_types.html#monitorparams" class="tsd-kind-icon">Monitor<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
-						<a href="../modules/api_types.html#separatorparams" class="tsd-kind-icon">Separator<wbr>Params</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
-						<a href="../modules/api_types.html#stringinputtype" class="tsd-kind-icon">String<wbr>Input<wbr>Type</a>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="api_tp_event.tpupdateevent.html" class="tsd-kind-icon">Tp<wbr>Update<wbr>Event</a>
 					</li>
 				</ul>
 			</nav>
@@ -264,13 +234,16 @@
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
-				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
-			</ul>
-			<ul class="tsd-legend">
 				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
 				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
+				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
 			</ul>
 		</div>
 	</div>

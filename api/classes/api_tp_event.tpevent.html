@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>api/event-handler-adapters | tweakpane</title>
+	<title>TpEvent | tweakpane</title>
 	<meta name="description" content="Documentation for tweakpane">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,62 +55,74 @@
 					<a href="../index.html">tweakpane</a>
 				</li>
 				<li>
-					<a href="api_event_handler_adapters.html">api/event-handler-adapters</a>
+					<a href="../modules/api_tp_event.html">api/tp-event</a>
+				</li>
+				<li>
+					<a href="api_tp_event.tpevent.html">TpEvent</a>
 				</li>
 			</ul>
-			<h1>Module api/event-handler-adapters</h1>
+			<h1>Class TpEvent</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>A base class of Tweakpane API events.</p>
+					</div>
+				</div>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">TpEvent</span>
+						<ul class="tsd-hierarchy">
+							<li>
+								<a href="api_tp_event.tpchangeevent.html" class="tsd-signature-type" data-tsd-kind="Class">TpChangeEvent</a>
+							</li>
+							<li>
+								<a href="api_tp_event.tpupdateevent.html" class="tsd-signature-type" data-tsd-kind="Class">TpUpdateEvent</a>
+							</li>
+							<li>
+								<a href="api_tp_event.tpfoldevent.html" class="tsd-signature-type" data-tsd-kind="Class">TpFoldEvent</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
-							<h3>Type aliases</h3>
+							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="api_event_handler_adapters.html#foldereventname" class="tsd-kind-icon">Folder<wbr>Event<wbr>Name</a></li>
-								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="api_event_handler_adapters.html#inputeventname" class="tsd-kind-icon">Input<wbr>Event<wbr>Name</a></li>
-								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="api_event_handler_adapters.html#monitoreventname" class="tsd-kind-icon">Monitor<wbr>Event<wbr>Name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="api_tp_event.tpevent.html#target" class="tsd-kind-icon">target</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Type aliases</h2>
-				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">
-					<a name="foldereventname" class="tsd-anchor"></a>
-					<h3>Folder<wbr>Event<wbr>Name</h3>
-					<div class="tsd-signature tsd-kind-icon">Folder<wbr>Event<wbr>Name<span class="tsd-signature-symbol">:</span> <a href="api_event_handler_adapters.html#inputeventname" class="tsd-signature-type" data-tsd-kind="Type alias">InputEventName</a><span class="tsd-signature-symbol"> | </span><a href="api_event_handler_adapters.html#monitoreventname" class="tsd-signature-type" data-tsd-kind="Type alias">MonitorEventName</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;fold&quot;</span></div>
+				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="target" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> target</h3>
+					<div class="tsd-signature tsd-kind-icon">target<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/0e82cf6/lib/api/event-handler-adapters.ts#L15">api/event-handler-adapters.ts:15</a></li>
+							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a55c0c5/lib/api/tp-event.ts#L8">api/tp-event.ts:8</a></li>
 						</ul>
 					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">
-					<a name="inputeventname" class="tsd-anchor"></a>
-					<h3>Input<wbr>Event<wbr>Name</h3>
-					<div class="tsd-signature tsd-kind-icon">Input<wbr>Event<wbr>Name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;change&quot;</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/0e82cf6/lib/api/event-handler-adapters.ts#L13">api/event-handler-adapters.ts:13</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">
-					<a name="monitoreventname" class="tsd-anchor"></a>
-					<h3>Monitor<wbr>Event<wbr>Name</h3>
-					<div class="tsd-signature tsd-kind-icon">Monitor<wbr>Event<wbr>Name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;update&quot;</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/0e82cf6/lib/api/event-handler-adapters.ts#L14">api/event-handler-adapters.ts:14</a></li>
-						</ul>
-					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The event dispatcher.</p>
+						</div>
+					</div>
 				</section>
 			</section>
 		</div>
@@ -121,65 +133,77 @@
 						<a href="../index.html">Exports</a>
 					</li>
 					<li class=" tsd-kind-module">
-						<a href="api_button.html">api/button</a>
+						<a href="../modules/api_button.html">api/button</a>
 					</li>
 					<li class=" tsd-kind-module">
-						<a href="api_component_api.html">api/component-<wbr>api</a>
+						<a href="../modules/api_component_api.html">api/component-<wbr>api</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_folder.html">api/folder</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_input_binding.html">api/input-<wbr>binding</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_input_binding_controllers.html">api/input-<wbr>binding-<wbr>controllers</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_monitor_binding.html">api/monitor-<wbr>binding</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_monitor_binding_controllers.html">api/monitor-<wbr>binding-<wbr>controllers</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_plugins.html">api/plugins</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_preset.html">api/preset</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_root.html">api/root</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="../modules/api_separator.html">api/separator</a>
 					</li>
 					<li class="current tsd-kind-module">
-						<a href="api_event_handler_adapters.html">api/event-<wbr>handler-<wbr>adapters</a>
+						<a href="../modules/api_tp_event.html">api/tp-<wbr>event</a>
 					</li>
 					<li class=" tsd-kind-module">
-						<a href="api_folder.html">api/folder</a>
+						<a href="../modules/api_types.html">api/types</a>
 					</li>
 					<li class=" tsd-kind-module">
-						<a href="api_input_binding.html">api/input-<wbr>binding</a>
+						<a href="../modules/api_util.html">api/util</a>
 					</li>
 					<li class=" tsd-kind-module">
-						<a href="api_input_binding_controllers.html">api/input-<wbr>binding-<wbr>controllers</a>
+						<a href="../modules/index.html">index</a>
 					</li>
 					<li class=" tsd-kind-module">
-						<a href="api_monitor_binding.html">api/monitor-<wbr>binding</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="api_monitor_binding_controllers.html">api/monitor-<wbr>binding-<wbr>controllers</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="api_plugins.html">api/plugins</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="api_preset.html">api/preset</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="api_root.html">api/root</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="api_separator.html">api/separator</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="api_types.html">api/types</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="api_util.html">api/util</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="index.html">index</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="pane_tweakpane_config.html">pane/tweakpane-<wbr>config</a>
+						<a href="../modules/pane_tweakpane_config.html">pane/tweakpane-<wbr>config</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
-					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
-						<a href="api_event_handler_adapters.html#foldereventname" class="tsd-kind-icon">Folder<wbr>Event<wbr>Name</a>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="api_tp_event.tpchangeevent.html" class="tsd-kind-icon">Tp<wbr>Change<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
-						<a href="api_event_handler_adapters.html#inputeventname" class="tsd-kind-icon">Input<wbr>Event<wbr>Name</a>
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class tsd-parent-kind-module">
+						<a href="api_tp_event.tpevent.html" class="tsd-kind-icon">Tp<wbr>Event</a>
+						<ul>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="api_tp_event.tpevent.html#target" class="tsd-kind-icon">target</a>
+							</li>
+						</ul>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
-						<a href="api_event_handler_adapters.html#monitoreventname" class="tsd-kind-icon">Monitor<wbr>Event<wbr>Name</a>
+				</ul>
+				<ul class="after-current">
+					<li class=" tsd-kind-class tsd-parent-kind-module">
+						<a href="api_tp_event.tpfoldevent.html" class="tsd-kind-icon">Tp<wbr>Fold<wbr>Event</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="api_tp_event.tpupdateevent.html" class="tsd-kind-icon">Tp<wbr>Update<wbr>Event</a>
 					</li>
 				</ul>
 			</nav>
@@ -196,12 +220,13 @@
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
-				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
-			</ul>
-			<ul class="tsd-legend">
 				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
 				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
+				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
 			</ul>
 		</div>
 	</div>
