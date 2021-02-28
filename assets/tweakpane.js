@@ -8,10 +8,12 @@
     var extendStatics = function(d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     function __extends(d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -68,7 +70,7 @@
         return fn;
     }
 
-    var className$m = ClassName('lbl');
+    var className = ClassName('lbl');
     function createLabelNode(doc, label) {
         var frag = doc.createDocumentFragment();
         var lineNodes = label.split('\n').map(function (line) {
@@ -89,13 +91,13 @@
         function LabeledView(doc, config) {
             this.label = config.label;
             this.elem_ = doc.createElement('div');
-            this.elem_.classList.add(className$m());
+            this.elem_.classList.add(className());
             var labelElem = doc.createElement('div');
-            labelElem.classList.add(className$m('l'));
+            labelElem.classList.add(className('l'));
             labelElem.appendChild(createLabelNode(doc, this.label));
             this.elem_.appendChild(labelElem);
             var viewElem = doc.createElement('div');
-            viewElem.classList.add(className$m('v'));
+            viewElem.classList.add(className('v'));
             viewElem.appendChild(config.view.element);
             this.elem_.appendChild(viewElem);
         }
@@ -120,12 +122,12 @@
         return ['first', 'last'];
     }
 
-    var className$l = ClassName('');
+    var className$1 = ClassName('');
     function setUpBladeView(view, model) {
         var elem = view.element;
         model.emitter.on('change', function (ev) {
             if (ev.propertyName === 'hidden') {
-                var hiddenClass = className$l(undefined, 'hidden');
+                var hiddenClass = className$1(undefined, 'hidden');
                 if (model.hidden) {
                     elem.classList.add(hiddenClass);
                 }
@@ -135,10 +137,10 @@
             }
             else if (ev.propertyName === 'positions') {
                 getAllBladePositions().forEach(function (pos) {
-                    elem.classList.remove(className$l(undefined, pos));
+                    elem.classList.remove(className$1(undefined, pos));
                 });
                 model.positions.forEach(function (pos) {
-                    elem.classList.add(className$l(undefined, pos));
+                    elem.classList.add(className$1(undefined, pos));
                 });
             }
         });
@@ -271,7 +273,7 @@
         return Button;
     }());
 
-    var className$k = ClassName('btn');
+    var className$2 = ClassName('btn');
     /**
      * @hidden
      */
@@ -279,9 +281,9 @@
         function ButtonView(doc, config) {
             this.button = config.button;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$k());
+            this.element.classList.add(className$2());
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$k('b'));
+            buttonElem.classList.add(className$2('b'));
             buttonElem.textContent = this.button.title;
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
@@ -935,16 +937,16 @@
         return FolderController;
     }());
 
-    var className$j = ClassName('spt');
+    var className$3 = ClassName('spt');
     /**
      * @hidden
      */
     var SeparatorView = /** @class */ (function () {
         function SeparatorView(doc) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$j());
+            this.element.classList.add(className$3());
             var hrElem = doc.createElement('hr');
-            hrElem.classList.add(className$j('r'));
+            hrElem.classList.add(className$3('r'));
             this.element.appendChild(hrElem);
         }
         return SeparatorView;
@@ -1221,7 +1223,7 @@
         return Value;
     }());
 
-    function createController$6(plugin, args) {
+    function createController(plugin, args) {
         var initialValue = plugin.accept(args.target.read(), args.params);
         if (initialValue === null) {
             return null;
@@ -1274,7 +1276,7 @@
         }
         var bc = Plugins.inputs.reduce(function (result, plugin) {
             return result ||
-                createController$6(plugin, {
+                createController(plugin, {
                     document: document,
                     target: target,
                     params: params,
@@ -1480,7 +1482,7 @@
             ? new ManualTicker()
             : new IntervalTicker(document, interval !== null && interval !== void 0 ? interval : Constants.monitor.defaultInterval);
     }
-    function createController$5(plugin, args) {
+    function createController$1(plugin, args) {
         var _a, _b;
         var initialValue = plugin.accept(args.target.read(), args.params);
         if (initialValue === null) {
@@ -1518,7 +1520,7 @@
     function createMonitorBindingController(document, target, params) {
         var bc = Plugins.monitors.reduce(function (result, plugin) {
             return result ||
-                createController$5(plugin, {
+                createController$1(plugin, {
                     document: document,
                     params: params,
                     target: target,
@@ -2058,7 +2060,7 @@
         return step !== null && step !== void 0 ? step : 1;
     }
 
-    var className$i = ClassName('lst');
+    var className$4 = ClassName('lst');
     /**
      * @hidden
      */
@@ -2067,10 +2069,10 @@
             var _this = this;
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$i());
+            this.element.classList.add(className$4());
             this.stringifyValue_ = config.stringifyValue;
             var selectElem = doc.createElement('select');
-            selectElem.classList.add(className$i('s'));
+            selectElem.classList.add(className$4('s'));
             config.options.forEach(function (item, index) {
                 var optionElem = doc.createElement('option');
                 optionElem.dataset.index = String(index);
@@ -2081,7 +2083,7 @@
             this.element.appendChild(selectElem);
             this.selectElement = selectElem;
             var markElem = doc.createElement('div');
-            markElem.classList.add(className$i('m'));
+            markElem.classList.add(className$4('m'));
             this.element.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
@@ -2124,7 +2126,7 @@
         return ListController;
     }());
 
-    var className$h = ClassName('ckb');
+    var className$5 = ClassName('ckb');
     /**
      * @hidden
      */
@@ -2132,17 +2134,17 @@
         function CheckboxView(doc, config) {
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$h());
+            this.element.classList.add(className$5());
             var labelElem = doc.createElement('label');
-            labelElem.classList.add(className$h('l'));
+            labelElem.classList.add(className$5('l'));
             this.element.appendChild(labelElem);
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$h('i'));
+            inputElem.classList.add(className$5('i'));
             inputElem.type = 'checkbox';
             labelElem.appendChild(inputElem);
             this.inputElement = inputElem;
             var markElem = doc.createElement('div');
-            markElem.classList.add(className$h('m'));
+            markElem.classList.add(className$5('m'));
             labelElem.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
@@ -2177,7 +2179,7 @@
         return CheckboxController;
     }());
 
-    function createConstraint$4(params) {
+    function createConstraint(params) {
         var constraints = [];
         var lc = createListConstraint(params, boolFromUnknown);
         if (lc) {
@@ -2185,7 +2187,7 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createController$4(doc, value) {
+    function createController$2(doc, value) {
         var _a;
         var c = value.constraint;
         if (c && findConstraint(c, ListConstraint)) {
@@ -2207,16 +2209,16 @@
         accept: function (value) { return (typeof value === 'boolean' ? value : null); },
         binding: {
             reader: function (_args) { return boolFromUnknown; },
-            constraint: function (args) { return createConstraint$4(args.params); },
+            constraint: function (args) { return createConstraint(args.params); },
             equals: equalsPrimitive,
             writer: function (_args) { return writePrimitive; },
         },
         controller: function (args) {
-            return createController$4(args.document, args.value);
+            return createController$2(args.document, args.value);
         },
     };
 
-    var className$g = ClassName('txt');
+    var className$6 = ClassName('txt');
     /**
      * @hidden
      */
@@ -2225,9 +2227,9 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$g());
+            this.element.classList.add(className$6());
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$g('i'));
+            inputElem.classList.add(className$6('i'));
             inputElem.type = 'text';
             this.element.appendChild(inputElem);
             this.inputElement = inputElem;
@@ -2270,21 +2272,21 @@
         return TextController;
     }());
 
-    var className$f = ClassName('cswtxt');
+    var className$7 = ClassName('cswtxt');
     /**
      * @hidden
      */
     var ColorSwatchTextView = /** @class */ (function () {
         function ColorSwatchTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$f());
+            this.element.classList.add(className$7());
             var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$f('s'));
+            swatchElem.classList.add(className$7('s'));
             this.swatchView_ = config.swatchView;
             swatchElem.appendChild(this.swatchView_.element);
             this.element.appendChild(swatchElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$f('t'));
+            textElem.classList.add(className$7('t'));
             this.textView = config.textView;
             textElem.appendChild(this.textView.element);
             this.element.appendChild(textElem);
@@ -2886,7 +2888,7 @@
         return NOTATION_TO_STRINGIFIER_MAP[notation];
     }
 
-    var className$e = ClassName('csw');
+    var className$8 = ClassName('csw');
     /**
      * @hidden
      */
@@ -2896,17 +2898,17 @@
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$e());
+            this.element.classList.add(className$8());
             var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$e('sw'));
+            swatchElem.classList.add(className$8('sw'));
             this.element.appendChild(swatchElem);
             this.swatchElem_ = swatchElem;
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$e('b'));
+            buttonElem.classList.add(className$8('b'));
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var pickerElem = doc.createElement('div');
-            pickerElem.classList.add(className$e('p'));
+            pickerElem.classList.add(className$8('p'));
             this.pickerView_ = config.pickerView;
             pickerElem.appendChild(this.pickerView_.element);
             this.element.appendChild(pickerElem);
@@ -3033,7 +3035,7 @@
         return NumberTextController;
     }(TextController));
 
-    var className$d = ClassName('clp');
+    var className$9 = ClassName('clp');
     /**
      * @hidden
      */
@@ -3047,22 +3049,22 @@
             this.foldable = config.foldable;
             this.foldable.emitter.on('change', this.onFoldableChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$d());
+            this.element.classList.add(className$9());
             var hsvElem = doc.createElement('div');
-            hsvElem.classList.add(className$d('hsv'));
+            hsvElem.classList.add(className$9('hsv'));
             var svElem = doc.createElement('div');
-            svElem.classList.add(className$d('sv'));
+            svElem.classList.add(className$9('sv'));
             this.svPaletteView_ = config.svPaletteView;
             svElem.appendChild(this.svPaletteView_.element);
             hsvElem.appendChild(svElem);
             var hElem = doc.createElement('div');
-            hElem.classList.add(className$d('h'));
+            hElem.classList.add(className$9('h'));
             this.hPaletteView_ = config.hPaletteView;
             hElem.appendChild(this.hPaletteView_.element);
             hsvElem.appendChild(hElem);
             this.element.appendChild(hsvElem);
             var rgbElem = doc.createElement('div');
-            rgbElem.classList.add(className$d('rgb'));
+            rgbElem.classList.add(className$9('rgb'));
             this.compTextsView_ = config.componentTextsView;
             rgbElem.appendChild(this.compTextsView_.element);
             this.element.appendChild(rgbElem);
@@ -3072,13 +3074,13 @@
                     text: config.alphaViews.text,
                 };
                 var aElem = doc.createElement('div');
-                aElem.classList.add(className$d('a'));
+                aElem.classList.add(className$9('a'));
                 var apElem = doc.createElement('div');
-                apElem.classList.add(className$d('ap'));
+                apElem.classList.add(className$9('ap'));
                 apElem.appendChild(this.alphaViews_.palette.element);
                 aElem.appendChild(apElem);
                 var atElem = doc.createElement('div');
-                atElem.classList.add(className$d('at'));
+                atElem.classList.add(className$9('at'));
                 atElem.appendChild(this.alphaViews_.text.element);
                 aElem.appendChild(atElem);
                 this.element.appendChild(aElem);
@@ -3108,10 +3110,10 @@
         });
         ColorPickerView.prototype.update = function () {
             if (this.foldable.expanded) {
-                this.element.classList.add(className$d(undefined, 'expanded'));
+                this.element.classList.add(className$9(undefined, 'expanded'));
             }
             else {
-                this.element.classList.remove(className$d(undefined, 'expanded'));
+                this.element.classList.remove(className$9(undefined, 'expanded'));
             }
         };
         ColorPickerView.prototype.onValueChange_ = function () {
@@ -3225,7 +3227,7 @@
         return forAlpha ? 0.1 : 1;
     }
 
-    var className$c = ClassName('apl');
+    var className$a = ClassName('apl');
     /**
      * @hidden
      */
@@ -3235,21 +3237,21 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$c());
+            this.element.classList.add(className$a());
             this.element.tabIndex = 0;
             var barElem = doc.createElement('div');
-            barElem.classList.add(className$c('b'));
+            barElem.classList.add(className$a('b'));
             this.element.appendChild(barElem);
             var colorElem = doc.createElement('div');
-            colorElem.classList.add(className$c('c'));
+            colorElem.classList.add(className$a('c'));
             barElem.appendChild(colorElem);
             this.colorElem_ = colorElem;
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$c('m'));
+            markerElem.classList.add(className$a('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             var previewElem = doc.createElement('div');
-            previewElem.classList.add(className$c('p'));
+            previewElem.classList.add(className$a('p'));
             this.markerElem_.appendChild(previewElem);
             this.previewElem_ = previewElem;
             this.update();
@@ -3490,7 +3492,7 @@
         return ColorComponentTextsController;
     }());
 
-    var className$a = ClassName('hpl');
+    var className$c = ClassName('hpl');
     /**
      * @hidden
      */
@@ -3500,13 +3502,13 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$a());
+            this.element.classList.add(className$c());
             this.element.tabIndex = 0;
             var colorElem = doc.createElement('div');
-            colorElem.classList.add(className$a('c'));
+            colorElem.classList.add(className$c('c'));
             this.element.appendChild(colorElem);
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$a('m'));
+            markerElem.classList.add(className$c('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             this.update();
@@ -3568,7 +3570,7 @@
         return HPaletteController;
     }());
 
-    var className$9 = ClassName('svp');
+    var className$d = ClassName('svp');
     var CANVAS_RESOL = 64;
     /**
      * @hidden
@@ -3579,16 +3581,16 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$9());
+            this.element.classList.add(className$d());
             this.element.tabIndex = 0;
             var canvasElem = doc.createElement('canvas');
             canvasElem.height = CANVAS_RESOL;
             canvasElem.width = CANVAS_RESOL;
-            canvasElem.classList.add(className$9('c'));
+            canvasElem.classList.add(className$d('c'));
             this.element.appendChild(canvasElem);
             this.canvasElement = canvasElem;
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$9('m'));
+            markerElem.classList.add(className$d('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             this.update();
@@ -3926,7 +3928,7 @@
         return supportsAlpha ? writeRgbaColorObject : writeRgbColorObject;
     }
 
-    function shouldSupportAlpha$1(inputParams) {
+    function shouldSupportAlpha(inputParams) {
         return 'input' in inputParams && inputParams.input === 'color.rgba';
     }
     /**
@@ -3950,17 +3952,17 @@
         },
         binding: {
             reader: function (args) {
-                return shouldSupportAlpha$1(args.params)
+                return shouldSupportAlpha(args.params)
                     ? colorFromRgbaNumber
                     : colorFromRgbNumber;
             },
             equals: Color.equals,
             writer: function (args) {
-                return createColorNumberWriter(shouldSupportAlpha$1(args.params));
+                return createColorNumberWriter(shouldSupportAlpha(args.params));
             },
         },
         controller: function (args) {
-            var supportsAlpha = shouldSupportAlpha$1(args.params);
+            var supportsAlpha = shouldSupportAlpha(args.params);
             var formatter = supportsAlpha
                 ? colorToHexRgbaString
                 : colorToHexRgbString;
@@ -3973,7 +3975,7 @@
         },
     };
 
-    function shouldSupportAlpha(initialValue) {
+    function shouldSupportAlpha$1(initialValue) {
         return Color.isRgbaColorObject(initialValue);
     }
     /**
@@ -3986,7 +3988,7 @@
             reader: function (_args) { return colorFromObject; },
             equals: Color.equals,
             writer: function (args) {
-                return createColorObjectWriter(shouldSupportAlpha(args.initialValue));
+                return createColorObjectWriter(shouldSupportAlpha$1(args.initialValue));
             },
         },
         controller: function (args) {
@@ -4068,21 +4070,21 @@
         return RangeConstraint;
     }());
 
-    var className$8 = ClassName('sldtxt');
+    var className$e = ClassName('sldtxt');
     /**
      * @hidden
      */
     var SliderTextView = /** @class */ (function () {
         function SliderTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$8());
+            this.element.classList.add(className$e());
             var sliderElem = doc.createElement('div');
-            sliderElem.classList.add(className$8('s'));
+            sliderElem.classList.add(className$e('s'));
             this.sliderView_ = config.sliderView;
             sliderElem.appendChild(this.sliderView_.element);
             this.element.appendChild(sliderElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$8('t'));
+            textElem.classList.add(className$e('t'));
             this.textView_ = config.textView;
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
@@ -4101,7 +4103,7 @@
         return SliderTextView;
     }());
 
-    var className$7 = ClassName('sld');
+    var className$f = ClassName('sld');
     /**
      * @hidden
      */
@@ -4111,14 +4113,14 @@
             this.minValue_ = config.minValue;
             this.maxValue_ = config.maxValue;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$7());
+            this.element.classList.add(className$f());
             var outerElem = doc.createElement('div');
-            outerElem.classList.add(className$7('o'));
+            outerElem.classList.add(className$f('o'));
             outerElem.tabIndex = 0;
             this.element.appendChild(outerElem);
             this.outerElement = outerElem;
             var innerElem = doc.createElement('div');
-            innerElem.classList.add(className$7('i'));
+            innerElem.classList.add(className$f('i'));
             this.outerElement.appendChild(innerElem);
             this.innerElement = innerElem;
             config.value.emitter.on('change', this.onValueChange_);
@@ -4241,7 +4243,7 @@
         }
         return null;
     }
-    function createConstraint$3(params) {
+    function createConstraint$1(params) {
         var constraints = [];
         var sc = createStepConstraint(params);
         if (sc) {
@@ -4290,7 +4292,7 @@
         accept: function (value) { return (typeof value === 'number' ? value : null); },
         binding: {
             reader: function (_args) { return numberFromUnknown; },
-            constraint: function (args) { return createConstraint$3(args.params); },
+            constraint: function (args) { return createConstraint$1(args.params); },
             equals: equalsPrimitive,
             writer: function (_args) { return writePrimitive; },
         },
@@ -4346,29 +4348,29 @@
         return Point2dConstraint;
     }());
 
-    var className$6 = ClassName('p2dpadtxt');
+    var className$g = ClassName('p2dpadtxt');
     /**
      * @hidden
      */
     var Point2dPadTextView = /** @class */ (function () {
         function Point2dPadTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$6());
+            this.element.classList.add(className$g());
             var padWrapperElem = doc.createElement('div');
-            padWrapperElem.classList.add(className$6('w'));
+            padWrapperElem.classList.add(className$g('w'));
             this.element.appendChild(padWrapperElem);
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$6('b'));
+            buttonElem.classList.add(className$g('b'));
             buttonElem.appendChild(createSvgIconElement(doc, 'p2dpad'));
             padWrapperElem.appendChild(buttonElem);
             this.padButtonElem_ = buttonElem;
             var padElem = doc.createElement('div');
-            padElem.classList.add(className$6('p'));
+            padElem.classList.add(className$g('p'));
             padWrapperElem.appendChild(padElem);
             this.padView_ = config.padView;
             padElem.appendChild(this.padView_.element);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$6('t'));
+            textElem.classList.add(className$g('t'));
             this.textView_ = config.textView;
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
@@ -4394,7 +4396,7 @@
         return Point2dPadTextView;
     }());
 
-    var className$5 = ClassName('p2dpad');
+    var className$h = ClassName('p2dpad');
     /**
      * @hidden
      */
@@ -4407,38 +4409,38 @@
             this.invertsY_ = config.invertsY;
             this.maxValue_ = config.maxValue;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$5());
+            this.element.classList.add(className$h());
             var padElem = doc.createElement('div');
             padElem.tabIndex = 0;
-            padElem.classList.add(className$5('p'));
+            padElem.classList.add(className$h('p'));
             this.element.appendChild(padElem);
             this.padElement = padElem;
             var svgElem = doc.createElementNS(SVG_NS, 'svg');
-            svgElem.classList.add(className$5('g'));
+            svgElem.classList.add(className$h('g'));
             this.padElement.appendChild(svgElem);
             this.svgElem_ = svgElem;
             var xAxisElem = doc.createElementNS(SVG_NS, 'line');
-            xAxisElem.classList.add(className$5('ax'));
+            xAxisElem.classList.add(className$h('ax'));
             xAxisElem.setAttributeNS(null, 'x1', '0');
             xAxisElem.setAttributeNS(null, 'y1', '50%');
             xAxisElem.setAttributeNS(null, 'x2', '100%');
             xAxisElem.setAttributeNS(null, 'y2', '50%');
             this.svgElem_.appendChild(xAxisElem);
             var yAxisElem = doc.createElementNS(SVG_NS, 'line');
-            yAxisElem.classList.add(className$5('ax'));
+            yAxisElem.classList.add(className$h('ax'));
             yAxisElem.setAttributeNS(null, 'x1', '50%');
             yAxisElem.setAttributeNS(null, 'y1', '0');
             yAxisElem.setAttributeNS(null, 'x2', '50%');
             yAxisElem.setAttributeNS(null, 'y2', '100%');
             this.svgElem_.appendChild(yAxisElem);
             var lineElem = doc.createElementNS(SVG_NS, 'line');
-            lineElem.classList.add(className$5('l'));
+            lineElem.classList.add(className$h('l'));
             lineElem.setAttributeNS(null, 'x1', '50%');
             lineElem.setAttributeNS(null, 'y1', '50%');
             this.svgElem_.appendChild(lineElem);
             this.lineElem_ = lineElem;
             var markerElem = doc.createElementNS(SVG_NS, 'circle');
-            markerElem.classList.add(className$5('m'));
+            markerElem.classList.add(className$h('m'));
             markerElem.setAttributeNS(null, 'r', '2px');
             this.svgElem_.appendChild(markerElem);
             this.markerElem_ = markerElem;
@@ -4455,10 +4457,10 @@
         });
         Point2dPadView.prototype.update = function () {
             if (this.foldable.expanded) {
-                this.element.classList.add(className$5(undefined, 'expanded'));
+                this.element.classList.add(className$h(undefined, 'expanded'));
             }
             else {
-                this.element.classList.remove(className$5(undefined, 'expanded'));
+                this.element.classList.remove(className$h(undefined, 'expanded'));
             }
             var _a = this.value.rawValue.getComponents(), x = _a[0], y = _a[1];
             var max = this.maxValue_;
@@ -4561,7 +4563,7 @@
         return Point2dPadController;
     }());
 
-    var className$4 = ClassName('p2dtxt');
+    var className$i = ClassName('p2dtxt');
     /**
      * @hidden
      */
@@ -4571,16 +4573,16 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.formatters_ = config.formatters;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$4());
+            this.element.classList.add(className$i());
             var inputElems = [0, 1].map(function () {
                 var inputElem = doc.createElement('input');
-                inputElem.classList.add(className$4('i'));
+                inputElem.classList.add(className$i('i'));
                 inputElem.type = 'text';
                 return inputElem;
             });
             [0, 1].forEach(function (_, index) {
                 var elem = doc.createElement('div');
-                elem.classList.add(className$4('w'));
+                elem.classList.add(className$i('w'));
                 elem.appendChild(inputElems[index]);
                 _this.element.appendChild(elem);
             });
@@ -4735,7 +4737,7 @@
         target.writeProperty('y', value.y);
     }
 
-    function createDimensionConstraint$1(params) {
+    function createDimensionConstraint(params) {
         if (!params) {
             return undefined;
         }
@@ -4753,8 +4755,8 @@
     }
     function createConstraint$2(params) {
         return new Point2dConstraint({
-            x: createDimensionConstraint$1('x' in params ? params.x : undefined),
-            y: createDimensionConstraint$1('y' in params ? params.y : undefined),
+            x: createDimensionConstraint('x' in params ? params.x : undefined),
+            y: createDimensionConstraint('y' in params ? params.y : undefined),
         });
     }
     function getSuitableMaxDimensionValue(constraint, rawValue) {
@@ -4775,7 +4777,7 @@
         var yr = getSuitableMaxDimensionValue(yc, initialValue.y);
         return Math.max(xr, yr);
     }
-    function createController$2(document, value, invertsY) {
+    function createController$4(document, value, invertsY) {
         var c = value.constraint;
         if (!(c instanceof Point2dConstraint)) {
             throw TpError.shouldNeverHappen();
@@ -4820,7 +4822,7 @@
             writer: function (_args) { return writePoint2d; },
         },
         controller: function (args) {
-            return createController$2(args.document, args.value, shouldInvertY(args.params));
+            return createController$4(args.document, args.value, shouldInvertY(args.params));
         },
     };
 
@@ -4878,7 +4880,7 @@
         return Point3dConstraint;
     }());
 
-    var className$3 = ClassName('p3dtxt');
+    var className$j = ClassName('p3dtxt');
     /**
      * @hidden
      */
@@ -4888,16 +4890,16 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.formatters_ = config.formatters;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$3());
+            this.element.classList.add(className$j());
             var inputElems = [0, 1, 2].map(function () {
                 var inputElem = doc.createElement('input');
-                inputElem.classList.add(className$3('i'));
+                inputElem.classList.add(className$j('i'));
                 inputElem.type = 'text';
                 return inputElem;
             });
             [0, 1, 2].forEach(function (_, index) {
                 var elem = doc.createElement('div');
-                elem.classList.add(className$3('w'));
+                elem.classList.add(className$j('w'));
                 elem.appendChild(inputElems[index]);
                 _this.element.appendChild(elem);
             });
@@ -5011,7 +5013,7 @@
         target.writeProperty('z', value.z);
     }
 
-    function createDimensionConstraint(params) {
+    function createDimensionConstraint$1(params) {
         if (!params) {
             return undefined;
         }
@@ -5027,11 +5029,11 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createConstraint$1(params) {
+    function createConstraint$3(params) {
         return new Point3dConstraint({
-            x: createDimensionConstraint('x' in params ? params.x : undefined),
-            y: createDimensionConstraint('y' in params ? params.y : undefined),
-            z: createDimensionConstraint('z' in params ? params.z : undefined),
+            x: createDimensionConstraint$1('x' in params ? params.x : undefined),
+            y: createDimensionConstraint$1('y' in params ? params.y : undefined),
+            z: createDimensionConstraint$1('z' in params ? params.z : undefined),
         });
     }
     /**
@@ -5043,7 +5045,7 @@
             formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
         };
     }
-    function createController$1(document, value) {
+    function createController$5(document, value) {
         var c = value.constraint;
         if (!(c instanceof Point3dConstraint)) {
             throw TpError.shouldNeverHappen();
@@ -5066,12 +5068,12 @@
         accept: function (value, _params) { return (Point3d.isObject(value) ? value : null); },
         binding: {
             reader: function (_args) { return point3dFromUnknown; },
-            constraint: function (args) { return createConstraint$1(args.params); },
+            constraint: function (args) { return createConstraint$3(args.params); },
             equals: Point3d.equals,
             writer: function (_args) { return writePoint3d; },
         },
         controller: function (args) {
-            return createController$1(args.document, args.value);
+            return createController$5(args.document, args.value);
         },
     };
 
@@ -5088,7 +5090,7 @@
         return value;
     }
 
-    function createConstraint(params) {
+    function createConstraint$4(params) {
         var constraints = [];
         var lc = createListConstraint(params, stringFromUnknown);
         if (lc) {
@@ -5096,7 +5098,7 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createController(doc, value) {
+    function createController$6(doc, value) {
         var _a;
         var c = value.constraint;
         if (c && findConstraint(c, ListConstraint)) {
@@ -5120,16 +5122,16 @@
         accept: function (value, _params) { return (typeof value === 'string' ? value : null); },
         binding: {
             reader: function (_args) { return stringFromUnknown; },
-            constraint: function (args) { return createConstraint(args.params); },
+            constraint: function (args) { return createConstraint$4(args.params); },
             equals: equalsPrimitive,
             writer: function (_args) { return writePrimitive; },
         },
         controller: function (params) {
-            return createController(params.document, params.value);
+            return createController$6(params.document, params.value);
         },
     };
 
-    var className$2 = ClassName('mll');
+    var className$k = ClassName('mll');
     /**
      * @hidden
      */
@@ -5138,9 +5140,9 @@
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$2());
+            this.element.classList.add(className$k());
             var textareaElem = doc.createElement('textarea');
-            textareaElem.classList.add(className$2('i'));
+            textareaElem.classList.add(className$k('i'));
             textareaElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
             textareaElem.readOnly = true;
             this.element.appendChild(textareaElem);
@@ -5183,7 +5185,7 @@
         return MultiLogController;
     }());
 
-    var className$1 = ClassName('sgl');
+    var className$l = ClassName('sgl');
     /**
      * @hidden
      */
@@ -5192,9 +5194,9 @@
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$1());
+            this.element.classList.add(className$l());
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$1('i'));
+            inputElem.classList.add(className$l('i'));
             inputElem.readOnly = true;
             inputElem.type = 'text';
             this.element.appendChild(inputElem);
@@ -5282,7 +5284,7 @@
         return GraphCursor;
     }());
 
-    var className = ClassName('grl');
+    var className$m = ClassName('grl');
     /**
      * @hidden
      */
@@ -5291,14 +5293,14 @@
             this.onCursorChange_ = this.onCursorChange_.bind(this);
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className());
+            this.element.classList.add(className$m());
             this.formatter_ = config.formatter;
             this.minValue_ = config.minValue;
             this.maxValue_ = config.maxValue;
             this.cursor_ = config.cursor;
             this.cursor_.emitter.on('change', this.onCursorChange_);
             var svgElem = doc.createElementNS(SVG_NS, 'svg');
-            svgElem.classList.add(className('g'));
+            svgElem.classList.add(className$m('g'));
             svgElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
             this.element.appendChild(svgElem);
             this.svgElem_ = svgElem;
@@ -5306,7 +5308,7 @@
             this.svgElem_.appendChild(lineElem);
             this.lineElem_ = lineElem;
             var tooltipElem = doc.createElement('div');
-            tooltipElem.classList.add(className('t'));
+            tooltipElem.classList.add(className$m('t'));
             this.element.appendChild(tooltipElem);
             this.tooltipElem_ = tooltipElem;
             config.value.emitter.on('change', this.onValueUpdate_);
@@ -5340,10 +5342,10 @@
             var tooltipElem = this.tooltipElem_;
             var value = this.value.rawValue[this.cursor_.index];
             if (value === undefined) {
-                tooltipElem.classList.remove(className('t', 'valid'));
+                tooltipElem.classList.remove(className$m('t', 'valid'));
                 return;
             }
-            tooltipElem.classList.add(className('t', 'valid'));
+            tooltipElem.classList.add(className$m('t', 'valid'));
             var tx = mapRange(this.cursor_.index, 0, maxIndex, 0, bounds.width);
             var ty = mapRange(value, min, max, bounds.height, 0);
             tooltipElem.style.left = tx + "px";
