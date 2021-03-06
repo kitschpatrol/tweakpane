@@ -1,4 +1,4 @@
-/*! Tweakpane 2.0.0 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.0.1 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -28,12 +28,10 @@
         };
         return __assign.apply(this, arguments);
     };
-    function __spreadArrays() {
-        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-        for (var r = Array(s), k = 0, i = 0; i < il; i++)
-            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-                r[k] = a[j];
-        return r;
+    function __spreadArray(to, from) {
+        for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+            to[j] = from[i];
+        return to;
     }
 
     var Plugins = {
@@ -41,7 +39,7 @@
         monitors: [],
     };
     function getAllPlugins() {
-        return __spreadArrays(Plugins.inputs, Plugins.monitors);
+        return __spreadArray(__spreadArray([], Plugins.inputs), Plugins.monitors);
     }
 
     var PREFIX = 'tp';
@@ -70,7 +68,7 @@
         return fn;
     }
 
-    var className = ClassName('lbl');
+    var className$m = ClassName('lbl');
     function createLabelNode(doc, label) {
         var frag = doc.createDocumentFragment();
         var lineNodes = label.split('\n').map(function (line) {
@@ -91,13 +89,13 @@
         function LabeledView(doc, config) {
             this.label = config.label;
             this.elem_ = doc.createElement('div');
-            this.elem_.classList.add(className());
+            this.elem_.classList.add(className$m());
             var labelElem = doc.createElement('div');
-            labelElem.classList.add(className('l'));
+            labelElem.classList.add(className$m('l'));
             labelElem.appendChild(createLabelNode(doc, this.label));
             this.elem_.appendChild(labelElem);
             var viewElem = doc.createElement('div');
-            viewElem.classList.add(className('v'));
+            viewElem.classList.add(className$m('v'));
             viewElem.appendChild(config.view.element);
             this.elem_.appendChild(viewElem);
         }
@@ -122,12 +120,12 @@
         return ['first', 'last'];
     }
 
-    var className$1 = ClassName('');
+    var className$l = ClassName('');
     function setUpBladeView(view, model) {
         var elem = view.element;
         model.emitter.on('change', function (ev) {
             if (ev.propertyName === 'hidden') {
-                var hiddenClass = className$1(undefined, 'hidden');
+                var hiddenClass = className$l(undefined, 'hidden');
                 if (model.hidden) {
                     elem.classList.add(hiddenClass);
                 }
@@ -137,10 +135,10 @@
             }
             else if (ev.propertyName === 'positions') {
                 getAllBladePositions().forEach(function (pos) {
-                    elem.classList.remove(className$1(undefined, pos));
+                    elem.classList.remove(className$l(undefined, pos));
                 });
                 model.positions.forEach(function (pos) {
-                    elem.classList.add(className$1(undefined, pos));
+                    elem.classList.add(className$l(undefined, pos));
                 });
             }
         });
@@ -273,7 +271,7 @@
         return Button;
     }());
 
-    var className$2 = ClassName('btn');
+    var className$k = ClassName('btn');
     /**
      * @hidden
      */
@@ -281,9 +279,9 @@
         function ButtonView(doc, config) {
             this.button = config.button;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$2());
+            this.element.classList.add(className$k());
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$2('b'));
+            buttonElem.classList.add(className$k('b'));
             buttonElem.textContent = this.button.title;
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
@@ -428,7 +426,9 @@
         return isBrowser() ? canvasElement.getContext('2d') : null;
     }
     var ICON_ID_TO_INNER_HTML_MAP = {
-        p2dpad: '<path d="M8 2V14" stroke="currentColor" stroke-width="1.5"/><path d="M2 8H14" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/>',
+        check: '<path d="M2 8l4 4l8 -8"/>',
+        dropdown: '<path d="M5 7h6l-3 3 z"/>',
+        p2dpad: '<path d="M8 4v8"/><path d="M4 8h8"/><circle cx="12" cy="12" r="1.2"/>',
     };
     function createSvgIconElement(document, iconId) {
         var elem = document.createElementNS(SVG_NS, 'svg');
@@ -937,16 +937,16 @@
         return FolderController;
     }());
 
-    var className$3 = ClassName('spt');
+    var className$j = ClassName('spt');
     /**
      * @hidden
      */
     var SeparatorView = /** @class */ (function () {
         function SeparatorView(doc) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$3());
+            this.element.classList.add(className$j());
             var hrElem = doc.createElement('hr');
-            hrElem.classList.add(className$3('r'));
+            hrElem.classList.add(className$j('r'));
             this.element.appendChild(hrElem);
         }
         return SeparatorView;
@@ -1115,17 +1115,17 @@
     var TpError = /** @class */ (function () {
         function TpError(config) {
             var _a;
-            this.message = (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
+            this.message =
+                (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
             this.name = this.constructor.name;
             this.stack = new Error(this.message).stack;
             this.type = config.type;
         }
         TpError.alreadyDisposed = function () {
-            return new TpError({ context: {}, type: 'alreadydisposed' });
+            return new TpError({ type: 'alreadydisposed' });
         };
         TpError.notBindable = function () {
             return new TpError({
-                context: {},
                 type: 'notbindable',
             });
         };
@@ -1138,7 +1138,7 @@
             });
         };
         TpError.shouldNeverHappen = function () {
-            return new TpError({ context: {}, type: 'shouldneverhappen' });
+            return new TpError({ type: 'shouldneverhappen' });
         };
         return TpError;
     }());
@@ -1223,7 +1223,7 @@
         return Value;
     }());
 
-    function createController(plugin, args) {
+    function createController$6(plugin, args) {
         var initialValue = plugin.accept(args.target.read(), args.params);
         if (initialValue === null) {
             return null;
@@ -1276,7 +1276,7 @@
         }
         var bc = Plugins.inputs.reduce(function (result, plugin) {
             return result ||
-                createController(plugin, {
+                createController$6(plugin, {
                     document: document,
                     target: target,
                     params: params,
@@ -1366,7 +1366,7 @@
      * @hidden
      */
     function createPushedBuffer(buffer, newValue) {
-        var newBuffer = __spreadArrays(createTrimmedBuffer(buffer), [newValue]);
+        var newBuffer = __spreadArray(__spreadArray([], createTrimmedBuffer(buffer)), [newValue]);
         if (newBuffer.length > buffer.length) {
             newBuffer.splice(0, newBuffer.length - buffer.length);
         }
@@ -1482,7 +1482,7 @@
             ? new ManualTicker()
             : new IntervalTicker(document, interval !== null && interval !== void 0 ? interval : Constants.monitor.defaultInterval);
     }
-    function createController$1(plugin, args) {
+    function createController$5(plugin, args) {
         var _a, _b;
         var initialValue = plugin.accept(args.target.read(), args.params);
         if (initialValue === null) {
@@ -1520,7 +1520,7 @@
     function createMonitorBindingController(document, target, params) {
         var bc = Plugins.monitors.reduce(function (result, plugin) {
             return result ||
-                createController$1(plugin, {
+                createController$5(plugin, {
                     document: document,
                     params: params,
                     target: target,
@@ -1852,6 +1852,22 @@
         return RootApi;
     }(FolderApi));
 
+    /***
+     * A simple semantic versioning perser.
+     */
+    var Semver = /** @class */ (function () {
+        function Semver(text) {
+            var comps = text.split('.');
+            this.major = parseInt(comps[0], 10);
+            this.minor = parseInt(comps[1], 10);
+            this.patch = parseInt(comps[2], 10);
+        }
+        Semver.prototype.toString = function () {
+            return [this.major, this.minor, this.patch].join('.');
+        };
+        return Semver;
+    }());
+
     var RootController = /** @class */ (function (_super) {
         __extends(RootController, _super);
         function RootController(doc, config) {
@@ -2060,7 +2076,7 @@
         return step !== null && step !== void 0 ? step : 1;
     }
 
-    var className$4 = ClassName('lst');
+    var className$i = ClassName('lst');
     /**
      * @hidden
      */
@@ -2069,10 +2085,10 @@
             var _this = this;
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$4());
+            this.element.classList.add(className$i());
             this.stringifyValue_ = config.stringifyValue;
             var selectElem = doc.createElement('select');
-            selectElem.classList.add(className$4('s'));
+            selectElem.classList.add(className$i('s'));
             config.options.forEach(function (item, index) {
                 var optionElem = doc.createElement('option');
                 optionElem.dataset.index = String(index);
@@ -2083,7 +2099,8 @@
             this.element.appendChild(selectElem);
             this.selectElement = selectElem;
             var markElem = doc.createElement('div');
-            markElem.classList.add(className$4('m'));
+            markElem.classList.add(className$i('m'));
+            markElem.appendChild(createSvgIconElement(doc, 'dropdown'));
             this.element.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
@@ -2126,7 +2143,7 @@
         return ListController;
     }());
 
-    var className$5 = ClassName('ckb');
+    var className$h = ClassName('ckb');
     /**
      * @hidden
      */
@@ -2134,18 +2151,20 @@
         function CheckboxView(doc, config) {
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$5());
+            this.element.classList.add(className$h());
             var labelElem = doc.createElement('label');
-            labelElem.classList.add(className$5('l'));
+            labelElem.classList.add(className$h('l'));
             this.element.appendChild(labelElem);
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$5('i'));
+            inputElem.classList.add(className$h('i'));
             inputElem.type = 'checkbox';
             labelElem.appendChild(inputElem);
             this.inputElement = inputElem;
-            var markElem = doc.createElement('div');
-            markElem.classList.add(className$5('m'));
-            labelElem.appendChild(markElem);
+            var wrapperElem = doc.createElement('div');
+            wrapperElem.classList.add(className$h('w'));
+            labelElem.appendChild(wrapperElem);
+            var markElem = createSvgIconElement(doc, 'check');
+            wrapperElem.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
             this.update();
@@ -2179,7 +2198,7 @@
         return CheckboxController;
     }());
 
-    function createConstraint(params) {
+    function createConstraint$4(params) {
         var constraints = [];
         var lc = createListConstraint(params, boolFromUnknown);
         if (lc) {
@@ -2187,7 +2206,7 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createController$2(doc, value) {
+    function createController$4(doc, value) {
         var _a;
         var c = value.constraint;
         if (c && findConstraint(c, ListConstraint)) {
@@ -2209,16 +2228,16 @@
         accept: function (value) { return (typeof value === 'boolean' ? value : null); },
         binding: {
             reader: function (_args) { return boolFromUnknown; },
-            constraint: function (args) { return createConstraint(args.params); },
+            constraint: function (args) { return createConstraint$4(args.params); },
             equals: equalsPrimitive,
             writer: function (_args) { return writePrimitive; },
         },
         controller: function (args) {
-            return createController$2(args.document, args.value);
+            return createController$4(args.document, args.value);
         },
     };
 
-    var className$6 = ClassName('txt');
+    var className$g = ClassName('txt');
     /**
      * @hidden
      */
@@ -2227,9 +2246,9 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$6());
+            this.element.classList.add(className$g());
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$6('i'));
+            inputElem.classList.add(className$g('i'));
             inputElem.type = 'text';
             this.element.appendChild(inputElem);
             this.inputElement = inputElem;
@@ -2272,21 +2291,21 @@
         return TextController;
     }());
 
-    var className$7 = ClassName('cswtxt');
+    var className$f = ClassName('clswtxt');
     /**
      * @hidden
      */
     var ColorSwatchTextView = /** @class */ (function () {
         function ColorSwatchTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$7());
+            this.element.classList.add(className$f());
             var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$7('s'));
+            swatchElem.classList.add(className$f('s'));
             this.swatchView_ = config.swatchView;
             swatchElem.appendChild(this.swatchView_.element);
             this.element.appendChild(swatchElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$7('t'));
+            textElem.classList.add(className$f('t'));
             this.textView = config.textView;
             textElem.appendChild(this.textView.element);
             this.element.appendChild(textElem);
@@ -2888,7 +2907,7 @@
         return NOTATION_TO_STRINGIFIER_MAP[notation];
     }
 
-    var className$8 = ClassName('csw');
+    var className$e = ClassName('clsw');
     /**
      * @hidden
      */
@@ -2898,17 +2917,17 @@
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$8());
+            this.element.classList.add(className$e());
             var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$8('sw'));
+            swatchElem.classList.add(className$e('sw'));
             this.element.appendChild(swatchElem);
             this.swatchElem_ = swatchElem;
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$8('b'));
+            buttonElem.classList.add(className$e('b'));
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var pickerElem = doc.createElement('div');
-            pickerElem.classList.add(className$8('p'));
+            pickerElem.classList.add(className$e('p'));
             this.pickerView_ = config.pickerView;
             pickerElem.appendChild(this.pickerView_.element);
             this.element.appendChild(pickerElem);
@@ -3035,7 +3054,7 @@
         return NumberTextController;
     }(TextController));
 
-    var className$9 = ClassName('clp');
+    var className$d = ClassName('clp');
     /**
      * @hidden
      */
@@ -3049,24 +3068,24 @@
             this.foldable = config.foldable;
             this.foldable.emitter.on('change', this.onFoldableChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$9());
+            this.element.classList.add(className$d());
             var hsvElem = doc.createElement('div');
-            hsvElem.classList.add(className$9('hsv'));
+            hsvElem.classList.add(className$d('hsv'));
             var svElem = doc.createElement('div');
-            svElem.classList.add(className$9('sv'));
+            svElem.classList.add(className$d('sv'));
             this.svPaletteView_ = config.svPaletteView;
             svElem.appendChild(this.svPaletteView_.element);
             hsvElem.appendChild(svElem);
             var hElem = doc.createElement('div');
-            hElem.classList.add(className$9('h'));
+            hElem.classList.add(className$d('h'));
             this.hPaletteView_ = config.hPaletteView;
             hElem.appendChild(this.hPaletteView_.element);
             hsvElem.appendChild(hElem);
             this.element.appendChild(hsvElem);
             var rgbElem = doc.createElement('div');
-            rgbElem.classList.add(className$9('rgb'));
-            this.compTextsView_ = config.componentTextsView;
-            rgbElem.appendChild(this.compTextsView_.element);
+            rgbElem.classList.add(className$d('rgb'));
+            this.textView_ = config.textView;
+            rgbElem.appendChild(this.textView_.element);
             this.element.appendChild(rgbElem);
             if (config.alphaViews) {
                 this.alphaViews_ = {
@@ -3074,13 +3093,13 @@
                     text: config.alphaViews.text,
                 };
                 var aElem = doc.createElement('div');
-                aElem.classList.add(className$9('a'));
+                aElem.classList.add(className$d('a'));
                 var apElem = doc.createElement('div');
-                apElem.classList.add(className$9('ap'));
+                apElem.classList.add(className$d('ap'));
                 apElem.appendChild(this.alphaViews_.palette.element);
                 aElem.appendChild(apElem);
                 var atElem = doc.createElement('div');
-                atElem.classList.add(className$9('at'));
+                atElem.classList.add(className$d('at'));
                 atElem.appendChild(this.alphaViews_.text.element);
                 aElem.appendChild(atElem);
                 this.element.appendChild(aElem);
@@ -3089,10 +3108,10 @@
         }
         Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
             get: function () {
-                var elems = __spreadArrays([
+                var elems = __spreadArray([
                     this.svPaletteView_.element,
                     this.hPaletteView_.element
-                ], this.compTextsView_.inputElements);
+                ], this.textView_.inputElements);
                 if (this.alphaViews_) {
                     elems.push(this.alphaViews_.palette.element, this.alphaViews_.text.inputElement);
                 }
@@ -3110,10 +3129,10 @@
         });
         ColorPickerView.prototype.update = function () {
             if (this.foldable.expanded) {
-                this.element.classList.add(className$9(undefined, 'expanded'));
+                this.element.classList.add(className$d(undefined, 'expanded'));
             }
             else {
-                this.element.classList.remove(className$9(undefined, 'expanded'));
+                this.element.classList.remove(className$d(undefined, 'expanded'));
             }
         };
         ColorPickerView.prototype.onValueChange_ = function () {
@@ -3227,7 +3246,7 @@
         return forAlpha ? 0.1 : 1;
     }
 
-    var className$a = ClassName('apl');
+    var className$c = ClassName('apl');
     /**
      * @hidden
      */
@@ -3237,21 +3256,21 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$a());
+            this.element.classList.add(className$c());
             this.element.tabIndex = 0;
             var barElem = doc.createElement('div');
-            barElem.classList.add(className$a('b'));
+            barElem.classList.add(className$c('b'));
             this.element.appendChild(barElem);
             var colorElem = doc.createElement('div');
-            colorElem.classList.add(className$a('c'));
+            colorElem.classList.add(className$c('c'));
             barElem.appendChild(colorElem);
             this.colorElem_ = colorElem;
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$a('m'));
+            markerElem.classList.add(className$c('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             var previewElem = doc.createElement('div');
-            previewElem.classList.add(className$a('p'));
+            previewElem.classList.add(className$c('p'));
             this.markerElem_.appendChild(previewElem);
             this.previewElem_ = previewElem;
             this.update();
@@ -3321,7 +3340,7 @@
         return APaletteController;
     }());
 
-    var className$b = ClassName('cctxts');
+    var className$b = ClassName('cltxt');
     var FORMATTER = createNumberFormatter(0);
     function createModeSelectElement(doc) {
         var selectElem = doc.createElement('select');
@@ -3342,8 +3361,8 @@
     /**
      * @hidden
      */
-    var ColorComponentTextsView = /** @class */ (function () {
-        function ColorComponentTextsView(doc, config) {
+    var ColorTextView = /** @class */ (function () {
+        function ColorTextView(doc, config) {
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className$b());
@@ -3354,6 +3373,7 @@
             modeElem.appendChild(this.modeSelectElement);
             var modeMarkerElem = doc.createElement('div');
             modeMarkerElem.classList.add(className$b('mm'));
+            modeMarkerElem.appendChild(createSvgIconElement(doc, 'dropdown'));
             modeElem.appendChild(modeMarkerElem);
             this.element.appendChild(modeElem);
             var wrapperElem = doc.createElement('div');
@@ -3373,28 +3393,28 @@
             this.pickedColor.emitter.on('change', this.onValueChange_);
             this.update();
         }
-        Object.defineProperty(ColorComponentTextsView.prototype, "modeSelectElement", {
+        Object.defineProperty(ColorTextView.prototype, "modeSelectElement", {
             get: function () {
                 return this.modeElem_;
             },
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(ColorComponentTextsView.prototype, "inputElements", {
+        Object.defineProperty(ColorTextView.prototype, "inputElements", {
             get: function () {
                 return this.inputElems_;
             },
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(ColorComponentTextsView.prototype, "value", {
+        Object.defineProperty(ColorTextView.prototype, "value", {
             get: function () {
                 return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
         });
-        ColorComponentTextsView.prototype.update = function () {
+        ColorTextView.prototype.update = function () {
             var _this = this;
             this.modeElem_.value = this.pickedColor.mode;
             var comps = this.pickedColor.value.rawValue.getComponents(this.pickedColor.mode);
@@ -3406,24 +3426,24 @@
                 inputElem.value = FORMATTER(comp);
             });
         };
-        ColorComponentTextsView.prototype.onValueChange_ = function () {
+        ColorTextView.prototype.onValueChange_ = function () {
             this.update();
         };
-        return ColorComponentTextsView;
+        return ColorTextView;
     }());
 
     /**
      * @hidden
      */
-    var ColorComponentTextsController = /** @class */ (function () {
-        function ColorComponentTextsController(doc, config) {
+    var ColorTextController = /** @class */ (function () {
+        function ColorTextController(doc, config) {
             var _this = this;
             this.onModeSelectChange_ = this.onModeSelectChange_.bind(this);
             this.onInputChange_ = this.onInputChange_.bind(this);
             this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
             this.parser_ = config.parser;
             this.pickedColor = config.pickedColor;
-            this.view = new ColorComponentTextsView(doc, {
+            this.view = new ColorTextView(doc, {
                 pickedColor: this.pickedColor,
             });
             this.view.inputElements.forEach(function (inputElem) {
@@ -3432,14 +3452,14 @@
             });
             this.view.modeSelectElement.addEventListener('change', this.onModeSelectChange_);
         }
-        Object.defineProperty(ColorComponentTextsController.prototype, "value", {
+        Object.defineProperty(ColorTextController.prototype, "value", {
             get: function () {
                 return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
         });
-        ColorComponentTextsController.prototype.findIndexOfInputElem_ = function (inputElem) {
+        ColorTextController.prototype.findIndexOfInputElem_ = function (inputElem) {
             var inputElems = this.view.inputElements;
             for (var i = 0; i < inputElems.length; i++) {
                 if (inputElems[i] === inputElem) {
@@ -3448,7 +3468,7 @@
             }
             return null;
         };
-        ColorComponentTextsController.prototype.updateComponent_ = function (index, newValue) {
+        ColorTextController.prototype.updateComponent_ = function (index, newValue) {
             var mode = this.pickedColor.mode;
             var comps = this.value.rawValue.getComponents(mode);
             var newComps = comps.map(function (comp, i) {
@@ -3457,7 +3477,7 @@
             this.value.rawValue = new Color(newComps, mode);
             this.view.update();
         };
-        ColorComponentTextsController.prototype.onInputChange_ = function (e) {
+        ColorTextController.prototype.onInputChange_ = function (e) {
             var inputElem = forceCast(e.currentTarget);
             var parsedValue = this.parser_(inputElem.value);
             if (isEmpty(parsedValue)) {
@@ -3469,7 +3489,7 @@
             }
             this.updateComponent_(compIndex, parsedValue);
         };
-        ColorComponentTextsController.prototype.onInputKeyDown_ = function (e) {
+        ColorTextController.prototype.onInputKeyDown_ = function (e) {
             var compIndex = this.findIndexOfInputElem_(e.currentTarget);
             var step = getStepForKey(getBaseStepForColor(compIndex === 3), getVerticalStepKeys(e));
             if (step === 0) {
@@ -3485,14 +3505,14 @@
             }
             this.updateComponent_(compIndex, parsedValue + step);
         };
-        ColorComponentTextsController.prototype.onModeSelectChange_ = function (ev) {
+        ColorTextController.prototype.onModeSelectChange_ = function (ev) {
             var selectElem = ev.currentTarget;
             this.pickedColor.mode = selectElem.value;
         };
-        return ColorComponentTextsController;
+        return ColorTextController;
     }());
 
-    var className$c = ClassName('hpl');
+    var className$a = ClassName('hpl');
     /**
      * @hidden
      */
@@ -3502,13 +3522,13 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$c());
+            this.element.classList.add(className$a());
             this.element.tabIndex = 0;
             var colorElem = doc.createElement('div');
-            colorElem.classList.add(className$c('c'));
+            colorElem.classList.add(className$a('c'));
             this.element.appendChild(colorElem);
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$c('m'));
+            markerElem.classList.add(className$a('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             this.update();
@@ -3570,7 +3590,7 @@
         return HPaletteController;
     }());
 
-    var className$d = ClassName('svp');
+    var className$9 = ClassName('svp');
     var CANVAS_RESOL = 64;
     /**
      * @hidden
@@ -3581,16 +3601,16 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$d());
+            this.element.classList.add(className$9());
             this.element.tabIndex = 0;
             var canvasElem = doc.createElement('canvas');
             canvasElem.height = CANVAS_RESOL;
             canvasElem.width = CANVAS_RESOL;
-            canvasElem.classList.add(className$d('c'));
+            canvasElem.classList.add(className$9('c'));
             this.element.appendChild(canvasElem);
             this.canvasElement = canvasElem;
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$d('m'));
+            markerElem.classList.add(className$9('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             this.update();
@@ -3725,7 +3745,7 @@
                     },
                 });
             }
-            this.compTextsIc_ = new ColorComponentTextsController(doc, {
+            this.textIc_ = new ColorTextController(doc, {
                 parser: parseNumber,
                 pickedColor: this.pickedColor,
             });
@@ -3736,12 +3756,12 @@
                         text: this.alphaIcs_.text.view,
                     }
                     : null,
-                componentTextsView: this.compTextsIc_.view,
                 foldable: this.foldable,
                 hPaletteView: this.hPaletteIc_.view,
                 pickedColor: this.pickedColor,
                 supportsAlpha: config.supportsAlpha,
                 svPaletteView: this.svPaletteIc_.view,
+                textView: this.textIc_.view,
             });
             this.view.element.addEventListener('keydown', this.onKeyDown_);
             this.view.allFocusableElements.forEach(function (elem) {
@@ -3928,7 +3948,7 @@
         return supportsAlpha ? writeRgbaColorObject : writeRgbColorObject;
     }
 
-    function shouldSupportAlpha(inputParams) {
+    function shouldSupportAlpha$1(inputParams) {
         return 'input' in inputParams && inputParams.input === 'color.rgba';
     }
     /**
@@ -3952,17 +3972,17 @@
         },
         binding: {
             reader: function (args) {
-                return shouldSupportAlpha(args.params)
+                return shouldSupportAlpha$1(args.params)
                     ? colorFromRgbaNumber
                     : colorFromRgbNumber;
             },
             equals: Color.equals,
             writer: function (args) {
-                return createColorNumberWriter(shouldSupportAlpha(args.params));
+                return createColorNumberWriter(shouldSupportAlpha$1(args.params));
             },
         },
         controller: function (args) {
-            var supportsAlpha = shouldSupportAlpha(args.params);
+            var supportsAlpha = shouldSupportAlpha$1(args.params);
             var formatter = supportsAlpha
                 ? colorToHexRgbaString
                 : colorToHexRgbString;
@@ -3975,7 +3995,7 @@
         },
     };
 
-    function shouldSupportAlpha$1(initialValue) {
+    function shouldSupportAlpha(initialValue) {
         return Color.isRgbaColorObject(initialValue);
     }
     /**
@@ -3988,7 +4008,7 @@
             reader: function (_args) { return colorFromObject; },
             equals: Color.equals,
             writer: function (args) {
-                return createColorObjectWriter(shouldSupportAlpha$1(args.initialValue));
+                return createColorObjectWriter(shouldSupportAlpha(args.initialValue));
             },
         },
         controller: function (args) {
@@ -4070,21 +4090,21 @@
         return RangeConstraint;
     }());
 
-    var className$e = ClassName('sldtxt');
+    var className$8 = ClassName('sldtxt');
     /**
      * @hidden
      */
     var SliderTextView = /** @class */ (function () {
         function SliderTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$e());
+            this.element.classList.add(className$8());
             var sliderElem = doc.createElement('div');
-            sliderElem.classList.add(className$e('s'));
+            sliderElem.classList.add(className$8('s'));
             this.sliderView_ = config.sliderView;
             sliderElem.appendChild(this.sliderView_.element);
             this.element.appendChild(sliderElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$e('t'));
+            textElem.classList.add(className$8('t'));
             this.textView_ = config.textView;
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
@@ -4103,7 +4123,7 @@
         return SliderTextView;
     }());
 
-    var className$f = ClassName('sld');
+    var className$7 = ClassName('sld');
     /**
      * @hidden
      */
@@ -4113,23 +4133,23 @@
             this.minValue_ = config.minValue;
             this.maxValue_ = config.maxValue;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$f());
-            var outerElem = doc.createElement('div');
-            outerElem.classList.add(className$f('o'));
-            outerElem.tabIndex = 0;
-            this.element.appendChild(outerElem);
-            this.outerElement = outerElem;
-            var innerElem = doc.createElement('div');
-            innerElem.classList.add(className$f('i'));
-            this.outerElement.appendChild(innerElem);
-            this.innerElement = innerElem;
+            this.element.classList.add(className$7());
+            var trackElem = doc.createElement('div');
+            trackElem.classList.add(className$7('t'));
+            trackElem.tabIndex = 0;
+            this.element.appendChild(trackElem);
+            this.trackElement = trackElem;
+            var knobElem = doc.createElement('div');
+            knobElem.classList.add(className$7('k'));
+            this.trackElement.appendChild(knobElem);
+            this.knobElement = knobElem;
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
             this.update();
         }
         SliderView.prototype.update = function () {
             var p = constrainRange(mapRange(this.value.rawValue, this.minValue_, this.maxValue_, 0, 100), 0, 100);
-            this.innerElement.style.width = p + "%";
+            this.knobElement.style.width = p + "%";
         };
         SliderView.prototype.onValueChange_ = function () {
             this.update();
@@ -4169,11 +4189,11 @@
                 minValue: this.minValue_,
                 value: this.value,
             });
-            this.ptHandler_ = new PointerHandler(this.view.outerElement);
+            this.ptHandler_ = new PointerHandler(this.view.trackElement);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
-            this.view.outerElement.addEventListener('keydown', this.onKeyDown_);
+            this.view.trackElement.addEventListener('keydown', this.onKeyDown_);
         }
         SliderController.prototype.handlePointerEvent_ = function (d) {
             this.value.rawValue = mapRange(d.x, 0, d.bounds.width, this.minValue_, this.maxValue_);
@@ -4243,7 +4263,7 @@
         }
         return null;
     }
-    function createConstraint$1(params) {
+    function createConstraint$3(params) {
         var constraints = [];
         var sc = createStepConstraint(params);
         if (sc) {
@@ -4292,7 +4312,7 @@
         accept: function (value) { return (typeof value === 'number' ? value : null); },
         binding: {
             reader: function (_args) { return numberFromUnknown; },
-            constraint: function (args) { return createConstraint$1(args.params); },
+            constraint: function (args) { return createConstraint$3(args.params); },
             equals: equalsPrimitive,
             writer: function (_args) { return writePrimitive; },
         },
@@ -4348,29 +4368,29 @@
         return Point2dConstraint;
     }());
 
-    var className$g = ClassName('p2dpadtxt');
+    var className$6 = ClassName('p2dpadtxt');
     /**
      * @hidden
      */
     var Point2dPadTextView = /** @class */ (function () {
         function Point2dPadTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$g());
+            this.element.classList.add(className$6());
             var padWrapperElem = doc.createElement('div');
-            padWrapperElem.classList.add(className$g('w'));
+            padWrapperElem.classList.add(className$6('w'));
             this.element.appendChild(padWrapperElem);
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$g('b'));
+            buttonElem.classList.add(className$6('b'));
             buttonElem.appendChild(createSvgIconElement(doc, 'p2dpad'));
             padWrapperElem.appendChild(buttonElem);
             this.padButtonElem_ = buttonElem;
             var padElem = doc.createElement('div');
-            padElem.classList.add(className$g('p'));
+            padElem.classList.add(className$6('p'));
             padWrapperElem.appendChild(padElem);
             this.padView_ = config.padView;
             padElem.appendChild(this.padView_.element);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$g('t'));
+            textElem.classList.add(className$6('t'));
             this.textView_ = config.textView;
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
@@ -4396,7 +4416,7 @@
         return Point2dPadTextView;
     }());
 
-    var className$h = ClassName('p2dpad');
+    var className$5 = ClassName('p2dpad');
     /**
      * @hidden
      */
@@ -4409,38 +4429,38 @@
             this.invertsY_ = config.invertsY;
             this.maxValue_ = config.maxValue;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$h());
+            this.element.classList.add(className$5());
             var padElem = doc.createElement('div');
             padElem.tabIndex = 0;
-            padElem.classList.add(className$h('p'));
+            padElem.classList.add(className$5('p'));
             this.element.appendChild(padElem);
             this.padElement = padElem;
             var svgElem = doc.createElementNS(SVG_NS, 'svg');
-            svgElem.classList.add(className$h('g'));
+            svgElem.classList.add(className$5('g'));
             this.padElement.appendChild(svgElem);
             this.svgElem_ = svgElem;
             var xAxisElem = doc.createElementNS(SVG_NS, 'line');
-            xAxisElem.classList.add(className$h('ax'));
+            xAxisElem.classList.add(className$5('ax'));
             xAxisElem.setAttributeNS(null, 'x1', '0');
             xAxisElem.setAttributeNS(null, 'y1', '50%');
             xAxisElem.setAttributeNS(null, 'x2', '100%');
             xAxisElem.setAttributeNS(null, 'y2', '50%');
             this.svgElem_.appendChild(xAxisElem);
             var yAxisElem = doc.createElementNS(SVG_NS, 'line');
-            yAxisElem.classList.add(className$h('ax'));
+            yAxisElem.classList.add(className$5('ax'));
             yAxisElem.setAttributeNS(null, 'x1', '50%');
             yAxisElem.setAttributeNS(null, 'y1', '0');
             yAxisElem.setAttributeNS(null, 'x2', '50%');
             yAxisElem.setAttributeNS(null, 'y2', '100%');
             this.svgElem_.appendChild(yAxisElem);
             var lineElem = doc.createElementNS(SVG_NS, 'line');
-            lineElem.classList.add(className$h('l'));
+            lineElem.classList.add(className$5('l'));
             lineElem.setAttributeNS(null, 'x1', '50%');
             lineElem.setAttributeNS(null, 'y1', '50%');
             this.svgElem_.appendChild(lineElem);
             this.lineElem_ = lineElem;
             var markerElem = doc.createElementNS(SVG_NS, 'circle');
-            markerElem.classList.add(className$h('m'));
+            markerElem.classList.add(className$5('m'));
             markerElem.setAttributeNS(null, 'r', '2px');
             this.svgElem_.appendChild(markerElem);
             this.markerElem_ = markerElem;
@@ -4457,10 +4477,10 @@
         });
         Point2dPadView.prototype.update = function () {
             if (this.foldable.expanded) {
-                this.element.classList.add(className$h(undefined, 'expanded'));
+                this.element.classList.add(className$5(undefined, 'expanded'));
             }
             else {
-                this.element.classList.remove(className$h(undefined, 'expanded'));
+                this.element.classList.remove(className$5(undefined, 'expanded'));
             }
             var _a = this.value.rawValue.getComponents(), x = _a[0], y = _a[1];
             var max = this.maxValue_;
@@ -4563,7 +4583,7 @@
         return Point2dPadController;
     }());
 
-    var className$i = ClassName('p2dtxt');
+    var className$4 = ClassName('p2dtxt');
     /**
      * @hidden
      */
@@ -4573,18 +4593,15 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.formatters_ = config.formatters;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$i());
+            this.element.classList.add(className$4());
             var inputElems = [0, 1].map(function () {
                 var inputElem = doc.createElement('input');
-                inputElem.classList.add(className$i('i'));
+                inputElem.classList.add(className$4('i'));
                 inputElem.type = 'text';
                 return inputElem;
             });
-            [0, 1].forEach(function (_, index) {
-                var elem = doc.createElement('div');
-                elem.classList.add(className$i('w'));
-                elem.appendChild(inputElems[index]);
-                _this.element.appendChild(elem);
+            inputElems.forEach(function (inputElem) {
+                _this.element.appendChild(inputElem);
             });
             this.inputElems_ = [inputElems[0], inputElems[1]];
             config.value.emitter.on('change', this.onValueChange_);
@@ -4737,7 +4754,7 @@
         target.writeProperty('y', value.y);
     }
 
-    function createDimensionConstraint(params) {
+    function createDimensionConstraint$1(params) {
         if (!params) {
             return undefined;
         }
@@ -4755,8 +4772,8 @@
     }
     function createConstraint$2(params) {
         return new Point2dConstraint({
-            x: createDimensionConstraint('x' in params ? params.x : undefined),
-            y: createDimensionConstraint('y' in params ? params.y : undefined),
+            x: createDimensionConstraint$1('x' in params ? params.x : undefined),
+            y: createDimensionConstraint$1('y' in params ? params.y : undefined),
         });
     }
     function getSuitableMaxDimensionValue(constraint, rawValue) {
@@ -4777,7 +4794,7 @@
         var yr = getSuitableMaxDimensionValue(yc, initialValue.y);
         return Math.max(xr, yr);
     }
-    function createController$4(document, value, invertsY) {
+    function createController$2(document, value, invertsY) {
         var c = value.constraint;
         if (!(c instanceof Point2dConstraint)) {
             throw TpError.shouldNeverHappen();
@@ -4822,7 +4839,7 @@
             writer: function (_args) { return writePoint2d; },
         },
         controller: function (args) {
-            return createController$4(args.document, args.value, shouldInvertY(args.params));
+            return createController$2(args.document, args.value, shouldInvertY(args.params));
         },
     };
 
@@ -4880,7 +4897,7 @@
         return Point3dConstraint;
     }());
 
-    var className$j = ClassName('p3dtxt');
+    var className$3 = ClassName('p3dtxt');
     /**
      * @hidden
      */
@@ -4890,18 +4907,15 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.formatters_ = config.formatters;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$j());
+            this.element.classList.add(className$3());
             var inputElems = [0, 1, 2].map(function () {
                 var inputElem = doc.createElement('input');
-                inputElem.classList.add(className$j('i'));
+                inputElem.classList.add(className$3('i'));
                 inputElem.type = 'text';
                 return inputElem;
             });
-            [0, 1, 2].forEach(function (_, index) {
-                var elem = doc.createElement('div');
-                elem.classList.add(className$j('w'));
-                elem.appendChild(inputElems[index]);
-                _this.element.appendChild(elem);
+            inputElems.forEach(function (inputElem) {
+                _this.element.appendChild(inputElem);
             });
             this.inputElems_ = [inputElems[0], inputElems[1], inputElems[2]];
             config.value.emitter.on('change', this.onValueChange_);
@@ -5013,7 +5027,7 @@
         target.writeProperty('z', value.z);
     }
 
-    function createDimensionConstraint$1(params) {
+    function createDimensionConstraint(params) {
         if (!params) {
             return undefined;
         }
@@ -5029,11 +5043,11 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createConstraint$3(params) {
+    function createConstraint$1(params) {
         return new Point3dConstraint({
-            x: createDimensionConstraint$1('x' in params ? params.x : undefined),
-            y: createDimensionConstraint$1('y' in params ? params.y : undefined),
-            z: createDimensionConstraint$1('z' in params ? params.z : undefined),
+            x: createDimensionConstraint('x' in params ? params.x : undefined),
+            y: createDimensionConstraint('y' in params ? params.y : undefined),
+            z: createDimensionConstraint('z' in params ? params.z : undefined),
         });
     }
     /**
@@ -5045,7 +5059,7 @@
             formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
         };
     }
-    function createController$5(document, value) {
+    function createController$1(document, value) {
         var c = value.constraint;
         if (!(c instanceof Point3dConstraint)) {
             throw TpError.shouldNeverHappen();
@@ -5068,12 +5082,12 @@
         accept: function (value, _params) { return (Point3d.isObject(value) ? value : null); },
         binding: {
             reader: function (_args) { return point3dFromUnknown; },
-            constraint: function (args) { return createConstraint$3(args.params); },
+            constraint: function (args) { return createConstraint$1(args.params); },
             equals: Point3d.equals,
             writer: function (_args) { return writePoint3d; },
         },
         controller: function (args) {
-            return createController$5(args.document, args.value);
+            return createController$1(args.document, args.value);
         },
     };
 
@@ -5090,7 +5104,7 @@
         return value;
     }
 
-    function createConstraint$4(params) {
+    function createConstraint(params) {
         var constraints = [];
         var lc = createListConstraint(params, stringFromUnknown);
         if (lc) {
@@ -5098,7 +5112,7 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createController$6(doc, value) {
+    function createController(doc, value) {
         var _a;
         var c = value.constraint;
         if (c && findConstraint(c, ListConstraint)) {
@@ -5122,16 +5136,16 @@
         accept: function (value, _params) { return (typeof value === 'string' ? value : null); },
         binding: {
             reader: function (_args) { return stringFromUnknown; },
-            constraint: function (args) { return createConstraint$4(args.params); },
+            constraint: function (args) { return createConstraint(args.params); },
             equals: equalsPrimitive,
             writer: function (_args) { return writePrimitive; },
         },
         controller: function (params) {
-            return createController$6(params.document, params.value);
+            return createController(params.document, params.value);
         },
     };
 
-    var className$k = ClassName('mll');
+    var className$2 = ClassName('mll');
     /**
      * @hidden
      */
@@ -5140,9 +5154,9 @@
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$k());
+            this.element.classList.add(className$2());
             var textareaElem = doc.createElement('textarea');
-            textareaElem.classList.add(className$k('i'));
+            textareaElem.classList.add(className$2('i'));
             textareaElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
             textareaElem.readOnly = true;
             this.element.appendChild(textareaElem);
@@ -5185,7 +5199,7 @@
         return MultiLogController;
     }());
 
-    var className$l = ClassName('sgl');
+    var className$1 = ClassName('sgl');
     /**
      * @hidden
      */
@@ -5194,9 +5208,9 @@
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$l());
+            this.element.classList.add(className$1());
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$l('i'));
+            inputElem.classList.add(className$1('i'));
             inputElem.readOnly = true;
             inputElem.type = 'text';
             this.element.appendChild(inputElem);
@@ -5284,7 +5298,7 @@
         return GraphCursor;
     }());
 
-    var className$m = ClassName('grl');
+    var className = ClassName('grl');
     /**
      * @hidden
      */
@@ -5293,14 +5307,14 @@
             this.onCursorChange_ = this.onCursorChange_.bind(this);
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$m());
+            this.element.classList.add(className());
             this.formatter_ = config.formatter;
             this.minValue_ = config.minValue;
             this.maxValue_ = config.maxValue;
             this.cursor_ = config.cursor;
             this.cursor_.emitter.on('change', this.onCursorChange_);
             var svgElem = doc.createElementNS(SVG_NS, 'svg');
-            svgElem.classList.add(className$m('g'));
+            svgElem.classList.add(className('g'));
             svgElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
             this.element.appendChild(svgElem);
             this.svgElem_ = svgElem;
@@ -5308,7 +5322,7 @@
             this.svgElem_.appendChild(lineElem);
             this.lineElem_ = lineElem;
             var tooltipElem = doc.createElement('div');
-            tooltipElem.classList.add(className$m('t'));
+            tooltipElem.classList.add(className('t'));
             this.element.appendChild(tooltipElem);
             this.tooltipElem_ = tooltipElem;
             config.value.emitter.on('change', this.onValueUpdate_);
@@ -5342,10 +5356,10 @@
             var tooltipElem = this.tooltipElem_;
             var value = this.value.rawValue[this.cursor_.index];
             if (value === undefined) {
-                tooltipElem.classList.remove(className$m('t', 'valid'));
+                tooltipElem.classList.remove(className('t', 'valid'));
                 return;
             }
-            tooltipElem.classList.add(className$m('t', 'valid'));
+            tooltipElem.classList.add(className('t', 'valid'));
             var tx = mapRange(this.cursor_.index, 0, maxIndex, 0, bounds.width);
             var ty = mapRange(value, min, max, bounds.height, 0);
             tooltipElem.style.left = tx + "px";
@@ -5489,7 +5503,7 @@
         doc.head.appendChild(styleElem);
     }
     function embedDefaultStyleIfNeeded(doc) {
-        embedStyle(doc, 'default', '.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cctxtsv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-btnv_b,.tp-lstv_s,.tp-p2dpadtxtv_b{background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-btnv_b:hover,.tp-lstv_s:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--button-background-color-hover)}.tp-btnv_b:focus,.tp-lstv_s:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--button-background-color-focus)}.tp-btnv_b:active,.tp-lstv_s:active,.tp-p2dpadtxtv_b:active{background-color:var(--button-background-color-active)}.tp-fldv_t,.tp-rotv_t{background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-cctxtsv_i,.tp-cswv_sw,.tp-p2dpadv_p,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-txtv_i{background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cctxtsv_i:hover,.tp-cswv_sw:hover,.tp-p2dpadv_p:hover,.tp-p2dtxtv_i:hover,.tp-p3dtxtv_i:hover,.tp-txtv_i:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_i:focus,.tp-cswv_sw:focus,.tp-p2dpadv_p:focus,.tp-p2dtxtv_i:focus,.tp-p3dtxtv_i:focus,.tp-txtv_i:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_i:active,.tp-cswv_sw:active,.tp-p2dpadv_p:active,.tp-p2dtxtv_i:active,.tp-p3dtxtv_i:active,.tp-txtv_i:active{background-color:var(--input-background-color-active)}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-btnv{padding:0 4px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_m{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_m::before{background-color:var(--input-foreground-color);border-radius:2px;bottom:4px;content:\'\';display:block;left:4px;opacity:0;position:absolute;right:4px;top:4px}.tp-ckbv_i:hover+.tp-ckbv_m{background-color:var(--input-background-color-hover)}.tp-ckbv_i:focus+.tp-ckbv_m{background-color:var(--input-background-color-focus)}.tp-ckbv_i:active+.tp-ckbv_m{background-color:var(--input-background-color-active)}.tp-ckbv_i:checked+.tp-ckbv_m::before{opacity:1}.tp-cctxtsv{display:flex;width:100%}.tp-cctxtsv_m{margin-right:4px;position:relative}.tp-cctxtsv_ms{border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cctxtsv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cctxtsv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cctxtsv_ms:active{background-color:var(--input-background-color-active)}.tp-cctxtsv_mm{border-color:var(--label-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-cctxtsv_w{display:flex;flex:1}.tp-cctxtsv_i{border-radius:0;flex:1;padding:0 4px}.tp-cctxtsv_i:first-child{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-cctxtsv_i:last-child{border-bottom-right-radius:2px;border-top-right-radius:2px}.tp-cctxtsv_i+.tp-cctxtsv_i{margin-left:2px}.tp-clpv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded{display:block;visibility:visible}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-cswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-cswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-cswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-cswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-cswtxtv{display:flex;position:relative}.tp-cswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-cswtxtv_t{flex:1;margin-left:4px}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grlv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grlv_t.tp-grlv_t-valid{visibility:visible}.tp-grlv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:160px}.tp-lstv{position:relative}.tp-lstv_s{padding:0 18px 0 4px;width:100%}.tp-lstv_m{border-color:var(--button-foreground-color) transparent transparent;border-style:solid;border-width:3px;box-sizing:border-box;height:6px;pointer-events:none;width:6px;bottom:0;margin:auto;position:absolute;right:6px;top:3px}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;padding:4px 4px 4px calc(4px * 2 + var(--unit-size));position:relative;visibility:hidden;z-index:1000}.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{stroke:var(--input-guide-color)}.tp-p2dpadv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-p2dtxtv{display:flex}.tp-p2dtxtv_w{align-items:center;display:flex}.tp-p2dtxtv_w+.tp-p2dtxtv_w{margin-left:2px}.tp-p2dtxtv_i{padding:0 4px;width:100%}.tp-p2dtxtv_w:nth-child(1) .tp-p2dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p2dtxtv_w:nth-child(2) .tp-p2dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-p3dtxtv{display:flex}.tp-p3dtxtv_w{align-items:center;display:flex}.tp-p3dtxtv_w+.tp-p3dtxtv_w{margin-left:2px}.tp-p3dtxtv_i{padding:0 4px;width:100%}.tp-p3dtxtv_w:first-child .tp-p3dtxtv_i{border-top-right-radius:0;border-bottom-right-radius:0}.tp-p3dtxtv_w:not(:first-child):not(:last-child) .tp-p3dtxtv_i{border-radius:0}.tp-p3dtxtv_w:last-child .tp-p3dtxtv_i{border-top-left-radius:0;border-bottom-left-radius:0}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(47,49,55,0.5));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, #26272c);--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, #26272c)}.tp-rotv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_o{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_o::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_i{height:100%;left:0;position:absolute;top:0}.tp-sldv_i::before{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_o:hover .tp-sldv_i::before{background-color:var(--button-background-color-hover)}.tp-sldv_o:focus .tp-sldv_i::before{background-color:var(--button-background-color-focus)}.tp-sldv_o:active .tp-sldv_i::before{background-color:var(--button-background-color-active)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv_i{padding:0 4px}');
+        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-cltxtv_i,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--button-background-color-hover)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--button-background-color-focus)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--button-background-color-active)}.tp-fldv_t,.tp-rotv_t{background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-cltxtv_i,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cltxtv_i:hover,.tp-p2dtxtv_i:hover,.tp-p3dtxtv_i:hover,.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--input-background-color-hover)}.tp-cltxtv_i:focus,.tp-p2dtxtv_i:focus,.tp-p3dtxtv_i:focus,.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--input-background-color-focus)}.tp-cltxtv_i:active,.tp-p2dtxtv_i:active,.tp-p3dtxtv_i:active,.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--input-background-color-active)}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;max-width:168px;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-p2dtxtv,.tp-p3dtxtv{display:flex}.tp-cltxtv_i,.tp-p2dtxtv_i,.tp-p3dtxtv_i{padding:0 4px;width:100%}.tp-cltxtv_i+.tp-cltxtv_i,.tp-p2dtxtv_i+.tp-cltxtv_i,.tp-p3dtxtv_i+.tp-cltxtv_i,.tp-cltxtv_i+.tp-p2dtxtv_i,.tp-p2dtxtv_i+.tp-p2dtxtv_i,.tp-p3dtxtv_i+.tp-p2dtxtv_i,.tp-cltxtv_i+.tp-p3dtxtv_i,.tp-p2dtxtv_i+.tp-p3dtxtv_i,.tp-p3dtxtv_i+.tp-p3dtxtv_i{margin-left:2px}.tp-cltxtv_i:first-child,.tp-p2dtxtv_i:first-child,.tp-p3dtxtv_i:first-child{border-top-right-radius:0;border-bottom-right-radius:0}.tp-cltxtv_i:not(:first-child):not(:last-child),.tp-p2dtxtv_i:not(:first-child):not(:last-child),.tp-p3dtxtv_i:not(:first-child):not(:last-child){border-radius:0}.tp-cltxtv_i:last-child,.tp-p2dtxtv_i:last-child,.tp-p3dtxtv_i:last-child{border-top-left-radius:0;border-bottom-left-radius:0}.tp-btnv{padding:0 4px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--input-foreground-color);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--input-background-color-hover)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--input-background-color-focus)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--input-background-color-active)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cltxtv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cltxtv_ms:active{background-color:var(--input-background-color-active)}.tp-cltxtv_mm{color:var(--label-foreground-color)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{overflow:hidden;position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grlv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grlv_t.tp-grlv_t-valid{visibility:visible}.tp-grlv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv_m{color:var(--button-foreground-color)}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{padding-left:calc(4px * 2 + var(--unit-size))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{stroke:var(--input-guide-color)}.tp-p2dpadv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--value-width: var(--tp-value-width, 160px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(0,0,0,0.2));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, rgba(0,0,0,0.2))}.tp-rotv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px;padding-right:28px;text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--input-foreground-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--button-background-color-hover)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--button-background-color-focus)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--button-background-color-active)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv_i{padding:0 4px}');
         getAllPlugins().forEach(function (plugin) {
             if (plugin.css) {
                 embedStyle(doc, "plugin-" + plugin.id, plugin.css);
@@ -5541,6 +5555,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
+        Tweakpane.version = new Semver('2.0.1');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
