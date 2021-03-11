@@ -1,4 +1,4 @@
-/*! Tweakpane 2.0.1 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.1.0 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -68,7 +68,7 @@
         return fn;
     }
 
-    var className$m = ClassName('lbl');
+    var className$n = ClassName('lbl');
     function createLabelNode(doc, label) {
         var frag = doc.createDocumentFragment();
         var lineNodes = label.split('\n').map(function (line) {
@@ -88,24 +88,22 @@
     var LabeledView = /** @class */ (function () {
         function LabeledView(doc, config) {
             this.label = config.label;
-            this.elem_ = doc.createElement('div');
-            this.elem_.classList.add(className$m());
-            var labelElem = doc.createElement('div');
-            labelElem.classList.add(className$m('l'));
-            labelElem.appendChild(createLabelNode(doc, this.label));
-            this.elem_.appendChild(labelElem);
-            var viewElem = doc.createElement('div');
-            viewElem.classList.add(className$m('v'));
-            viewElem.appendChild(config.view.element);
-            this.elem_.appendChild(viewElem);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$n());
+            if (this.label !== undefined) {
+                var labelElem = doc.createElement('div');
+                labelElem.classList.add(className$n('l'));
+                labelElem.appendChild(createLabelNode(doc, this.label));
+                this.element.appendChild(labelElem);
+            }
+            else {
+                this.element.classList.add(className$n(undefined, 'nol'));
+            }
+            var valueElem = doc.createElement('div');
+            valueElem.classList.add(className$n('v'));
+            this.element.appendChild(valueElem);
+            this.valueElement = valueElem;
         }
-        Object.defineProperty(LabeledView.prototype, "element", {
-            get: function () {
-                return this.elem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
         return LabeledView;
     }());
 
@@ -120,12 +118,12 @@
         return ['first', 'last'];
     }
 
-    var className$l = ClassName('');
+    var className$m = ClassName('');
     function setUpBladeView(view, model) {
         var elem = view.element;
         model.emitter.on('change', function (ev) {
             if (ev.propertyName === 'hidden') {
-                var hiddenClass = className$l(undefined, 'hidden');
+                var hiddenClass = className$m(undefined, 'hidden');
                 if (model.hidden) {
                     elem.classList.add(hiddenClass);
                 }
@@ -135,10 +133,10 @@
             }
             else if (ev.propertyName === 'positions') {
                 getAllBladePositions().forEach(function (pos) {
-                    elem.classList.remove(className$l(undefined, pos));
+                    elem.classList.remove(className$m(undefined, pos));
                 });
                 model.positions.forEach(function (pos) {
-                    elem.classList.add(className$l(undefined, pos));
+                    elem.classList.add(className$m(undefined, pos));
                 });
             }
         });
@@ -159,8 +157,8 @@
             this.controller = config.controller;
             this.view = new LabeledView(doc, {
                 label: config.label,
-                view: this.controller.view,
             });
+            this.view.valueElement.appendChild(this.controller.view.element);
             this.blade = config.blade;
             setUpBladeView(this.view, this.blade);
         }
@@ -177,8 +175,8 @@
             this.controller = config.controller;
             this.view = new LabeledView(doc, {
                 label: config.label,
-                view: this.controller.view,
             });
+            this.view.valueElement.appendChild(this.controller.view.element);
             this.blade = config.blade;
             this.blade.emitter.on('dispose', function () {
                 _this.binding.dispose();
@@ -271,7 +269,7 @@
         return Button;
     }());
 
-    var className$k = ClassName('btn');
+    var className$l = ClassName('btn');
     /**
      * @hidden
      */
@@ -279,9 +277,9 @@
         function ButtonView(doc, config) {
             this.button = config.button;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$k());
+            this.element.classList.add(className$l());
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$k('b'));
+            buttonElem.classList.add(className$l('b'));
             buttonElem.textContent = this.button.title;
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
@@ -296,12 +294,10 @@
         function ButtonController(doc, config) {
             this.onButtonClick_ = this.onButtonClick_.bind(this);
             this.button = new Button(config.title);
-            this.blade = config.blade;
             this.view = new ButtonView(doc, {
                 button: this.button,
             });
             this.view.buttonElement.addEventListener('click', this.onButtonClick_);
-            setUpBladeView(this.view, this.blade);
         }
         ButtonController.prototype.onButtonClick_ = function () {
             this.button.click();
@@ -937,16 +933,29 @@
         return FolderController;
     }());
 
-    var className$j = ClassName('spt');
+    var LabeledController = /** @class */ (function () {
+        function LabeledController(doc, config) {
+            this.blade = config.blade;
+            this.valueController = config.valueController;
+            this.view = new LabeledView(doc, {
+                label: config.label,
+            });
+            this.view.valueElement.appendChild(this.valueController.view.element);
+            setUpBladeView(this.view, this.blade);
+        }
+        return LabeledController;
+    }());
+
+    var className$k = ClassName('spt');
     /**
      * @hidden
      */
     var SeparatorView = /** @class */ (function () {
         function SeparatorView(doc) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$j());
+            this.element.classList.add(className$k());
             var hrElem = doc.createElement('hr');
-            hrElem.classList.add(className$j('r'));
+            hrElem.classList.add(className$k('r'));
             this.element.appendChild(hrElem);
         }
         return SeparatorView;
@@ -985,7 +994,7 @@
             this.controller.blade.dispose();
         };
         ButtonApi.prototype.on = function (eventName, handler) {
-            var emitter = this.controller.button.emitter;
+            var emitter = this.controller.valueController.button.emitter;
             // TODO: Type-safe
             emitter.on(eventName, forceCast(handler.bind(this)));
             return this;
@@ -1353,8 +1362,8 @@
     /**
      * @hidden
      */
-    function initializeBuffer(initialValue, bufferSize) {
-        var buffer = [initialValue];
+    function initializeBuffer(bufferSize) {
+        var buffer = [];
         fillBuffer(buffer, bufferSize);
         return new Value(buffer);
     }
@@ -1500,7 +1509,7 @@
             reader: reader,
             target: args.target,
             ticker: createTicker(args.document, args.params.interval),
-            value: initializeBuffer(reader(initialValue), bufferSize),
+            value: initializeBuffer(bufferSize),
         });
         return new MonitorBindingController(args.document, {
             binding: binding,
@@ -1695,7 +1704,12 @@
             return new FolderApi(bc);
         };
         FolderApi.prototype.addButton = function (params) {
-            var bc = new ButtonController(this.controller.document, __assign(__assign({}, params), { blade: new Blade() }));
+            var doc = this.controller.document;
+            var bc = new LabeledController(doc, {
+                blade: new Blade(),
+                label: params.label,
+                valueController: new ButtonController(doc, params),
+            });
             this.controller.bladeRack.add(bc, params.index);
             return new ButtonApi(bc);
         };
@@ -2075,8 +2089,17 @@
         var step = findStep(constraint);
         return step !== null && step !== void 0 ? step : 1;
     }
+    /**
+     * @hidden
+     */
+    function getSuitableDraggingScale(constraint, rawValue) {
+        var _a;
+        var sc = constraint && findConstraint(constraint, StepConstraint);
+        var base = Math.abs((_a = sc === null || sc === void 0 ? void 0 : sc.step) !== null && _a !== void 0 ? _a : rawValue);
+        return base === 0 ? 0.1 : Math.pow(10, Math.floor(Math.log10(base)) - 1);
+    }
 
-    var className$i = ClassName('lst');
+    var className$j = ClassName('lst');
     /**
      * @hidden
      */
@@ -2085,10 +2108,10 @@
             var _this = this;
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$i());
+            this.element.classList.add(className$j());
             this.stringifyValue_ = config.stringifyValue;
             var selectElem = doc.createElement('select');
-            selectElem.classList.add(className$i('s'));
+            selectElem.classList.add(className$j('s'));
             config.options.forEach(function (item, index) {
                 var optionElem = doc.createElement('option');
                 optionElem.dataset.index = String(index);
@@ -2099,7 +2122,7 @@
             this.element.appendChild(selectElem);
             this.selectElement = selectElem;
             var markElem = doc.createElement('div');
-            markElem.classList.add(className$i('m'));
+            markElem.classList.add(className$j('m'));
             markElem.appendChild(createSvgIconElement(doc, 'dropdown'));
             this.element.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
@@ -2143,7 +2166,7 @@
         return ListController;
     }());
 
-    var className$h = ClassName('ckb');
+    var className$i = ClassName('ckb');
     /**
      * @hidden
      */
@@ -2151,17 +2174,17 @@
         function CheckboxView(doc, config) {
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$h());
+            this.element.classList.add(className$i());
             var labelElem = doc.createElement('label');
-            labelElem.classList.add(className$h('l'));
+            labelElem.classList.add(className$i('l'));
             this.element.appendChild(labelElem);
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$h('i'));
+            inputElem.classList.add(className$i('i'));
             inputElem.type = 'checkbox';
             labelElem.appendChild(inputElem);
             this.inputElement = inputElem;
             var wrapperElem = doc.createElement('div');
-            wrapperElem.classList.add(className$h('w'));
+            wrapperElem.classList.add(className$i('w'));
             labelElem.appendChild(wrapperElem);
             var markElem = createSvgIconElement(doc, 'check');
             wrapperElem.appendChild(markElem);
@@ -2237,18 +2260,21 @@
         },
     };
 
-    var className$g = ClassName('txt');
+    var className$h = ClassName('txt');
     /**
      * @hidden
      */
     var TextView = /** @class */ (function () {
         function TextView(doc, config) {
             this.onValueChange_ = this.onValueChange_.bind(this);
-            this.formatter_ = config.formatter;
+            this.formatter = config.formatter;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$g());
+            this.element.classList.add(className$h());
+            if (config.arrayPosition) {
+                this.element.classList.add(className$h(undefined, config.arrayPosition));
+            }
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$g('i'));
+            inputElem.classList.add(className$h('i'));
             inputElem.type = 'text';
             this.element.appendChild(inputElem);
             this.inputElement = inputElem;
@@ -2257,7 +2283,7 @@
             this.update();
         }
         TextView.prototype.update = function () {
-            this.inputElement.value = this.formatter_(this.value.rawValue);
+            this.inputElement.value = this.formatter(this.value.rawValue);
         };
         TextView.prototype.onValueChange_ = function () {
             this.update();
@@ -2291,21 +2317,21 @@
         return TextController;
     }());
 
-    var className$f = ClassName('clswtxt');
+    var className$g = ClassName('clswtxt');
     /**
      * @hidden
      */
     var ColorSwatchTextView = /** @class */ (function () {
         function ColorSwatchTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$f());
+            this.element.classList.add(className$g());
             var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$f('s'));
+            swatchElem.classList.add(className$g('s'));
             this.swatchView_ = config.swatchView;
             swatchElem.appendChild(this.swatchView_.element);
             this.element.appendChild(swatchElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$f('t'));
+            textElem.classList.add(className$g('t'));
             this.textView = config.textView;
             textElem.appendChild(this.textView.element);
             this.element.appendChild(textElem);
@@ -2358,15 +2384,384 @@
         return PickedColor;
     }());
 
+    var NumberLiteralNode = /** @class */ (function () {
+        function NumberLiteralNode(text) {
+            this.text = text;
+        }
+        NumberLiteralNode.prototype.evaluate = function () {
+            return Number(this.text);
+        };
+        NumberLiteralNode.prototype.toString = function () {
+            return this.text;
+        };
+        return NumberLiteralNode;
+    }());
+    var BINARY_OPERATION_MAP = {
+        '**': function (v1, v2) { return Math.pow(v1, v2); },
+        '*': function (v1, v2) { return v1 * v2; },
+        '/': function (v1, v2) { return v1 / v2; },
+        '%': function (v1, v2) { return v1 % v2; },
+        '+': function (v1, v2) { return v1 + v2; },
+        '-': function (v1, v2) { return v1 - v2; },
+        '<<': function (v1, v2) { return v1 << v2; },
+        '>>': function (v1, v2) { return v1 >> v2; },
+        '>>>': function (v1, v2) { return v1 >>> v2; },
+        '&': function (v1, v2) { return v1 & v2; },
+        '^': function (v1, v2) { return v1 ^ v2; },
+        '|': function (v1, v2) { return v1 | v2; },
+    };
+    var BinaryOperationNode = /** @class */ (function () {
+        function BinaryOperationNode(operator, left, right) {
+            this.left = left;
+            this.operator = operator;
+            this.right = right;
+        }
+        BinaryOperationNode.prototype.evaluate = function () {
+            var op = BINARY_OPERATION_MAP[this.operator];
+            if (!op) {
+                throw new Error("unexpected binary operator: '" + this.operator);
+            }
+            return op(this.left.evaluate(), this.right.evaluate());
+        };
+        BinaryOperationNode.prototype.toString = function () {
+            return [
+                'b(',
+                this.left.toString(),
+                this.operator,
+                this.right.toString(),
+                ')',
+            ].join(' ');
+        };
+        return BinaryOperationNode;
+    }());
+    var UNARY_OPERATION_MAP = {
+        '+': function (v) { return v; },
+        '-': function (v) { return -v; },
+        '~': function (v) { return ~v; },
+    };
+    var UnaryOperationNode = /** @class */ (function () {
+        function UnaryOperationNode(operator, expr) {
+            this.operator = operator;
+            this.expression = expr;
+        }
+        UnaryOperationNode.prototype.evaluate = function () {
+            var op = UNARY_OPERATION_MAP[this.operator];
+            if (!op) {
+                throw new Error("unexpected unary operator: '" + this.operator);
+            }
+            return op(this.expression.evaluate());
+        };
+        UnaryOperationNode.prototype.toString = function () {
+            return ['u(', this.operator, this.expression.toString(), ')'].join(' ');
+        };
+        return UnaryOperationNode;
+    }());
+
+    function combineReader(parsers) {
+        return function (text, cursor) {
+            for (var i = 0; i < parsers.length; i++) {
+                var result = parsers[i](text, cursor);
+                if (result !== '') {
+                    return result;
+                }
+            }
+            return '';
+        };
+    }
+    function readWhitespace(text, cursor) {
+        var _a;
+        var m = text.substr(cursor).match(/^\s+/);
+        return (_a = (m && m[0])) !== null && _a !== void 0 ? _a : '';
+    }
+    function readNonZeroDigit(text, cursor) {
+        var ch = text.substr(cursor, 1);
+        return ch.match(/^[1-9]$/) ? ch : '';
+    }
+    function readDecimalDigits(text, cursor) {
+        var _a;
+        var m = text.substr(cursor).match(/^[0-9]+/);
+        return (_a = (m && m[0])) !== null && _a !== void 0 ? _a : '';
+    }
+    function readSignedInteger(text, cursor) {
+        var ds = readDecimalDigits(text, cursor);
+        if (ds !== '') {
+            return ds;
+        }
+        var sign = text.substr(cursor, 1);
+        cursor += 1;
+        if (sign !== '-' && sign !== '+') {
+            return '';
+        }
+        var sds = readDecimalDigits(text, cursor);
+        if (sds === '') {
+            return '';
+        }
+        return sign + sds;
+    }
+    function readExponentPart(text, cursor) {
+        var e = text.substr(cursor, 1);
+        cursor += 1;
+        if (e.toLowerCase() !== 'e') {
+            return '';
+        }
+        var si = readSignedInteger(text, cursor);
+        if (si === '') {
+            return '';
+        }
+        return e + si;
+    }
+    function readDecimalIntegerLiteral(text, cursor) {
+        var ch = text.substr(cursor, 1);
+        if (ch === '0') {
+            return ch;
+        }
+        var nzd = readNonZeroDigit(text, cursor);
+        cursor += nzd.length;
+        if (nzd === '') {
+            return '';
+        }
+        return nzd + readDecimalDigits(text, cursor);
+    }
+    function readDecimalLiteral1(text, cursor) {
+        var dil = readDecimalIntegerLiteral(text, cursor);
+        cursor += dil.length;
+        if (dil === '') {
+            return '';
+        }
+        var dot = text.substr(cursor, 1);
+        cursor += dot.length;
+        if (dot !== '.') {
+            return '';
+        }
+        var dds = readDecimalDigits(text, cursor);
+        cursor += dds.length;
+        return dil + dot + dds + readExponentPart(text, cursor);
+    }
+    function readDecimalLiteral2(text, cursor) {
+        var dot = text.substr(cursor, 1);
+        cursor += dot.length;
+        if (dot !== '.') {
+            return '';
+        }
+        var dds = readDecimalDigits(text, cursor);
+        cursor += dds.length;
+        if (dds === '') {
+            return '';
+        }
+        return dot + dds + readExponentPart(text, cursor);
+    }
+    function readDecimalLiteral3(text, cursor) {
+        var dil = readDecimalIntegerLiteral(text, cursor);
+        cursor += dil.length;
+        if (dil === '') {
+            return '';
+        }
+        return dil + readExponentPart(text, cursor);
+    }
+    var readDecimalLiteral = combineReader([
+        readDecimalLiteral1,
+        readDecimalLiteral2,
+        readDecimalLiteral3,
+    ]);
+    function parseBinaryDigits(text, cursor) {
+        var _a;
+        var m = text.substr(cursor).match(/^[01]+/);
+        return (_a = (m && m[0])) !== null && _a !== void 0 ? _a : '';
+    }
+    function readBinaryIntegerLiteral(text, cursor) {
+        var prefix = text.substr(cursor, 2);
+        cursor += prefix.length;
+        if (prefix.toLowerCase() !== '0b') {
+            return '';
+        }
+        var bds = parseBinaryDigits(text, cursor);
+        if (bds === '') {
+            return '';
+        }
+        return prefix + bds;
+    }
+    function readOctalDigits(text, cursor) {
+        var _a;
+        var m = text.substr(cursor).match(/^[0-7]+/);
+        return (_a = (m && m[0])) !== null && _a !== void 0 ? _a : '';
+    }
+    function readOctalIntegerLiteral(text, cursor) {
+        var prefix = text.substr(cursor, 2);
+        cursor += prefix.length;
+        if (prefix.toLowerCase() !== '0o') {
+            return '';
+        }
+        var ods = readOctalDigits(text, cursor);
+        if (ods === '') {
+            return '';
+        }
+        return prefix + ods;
+    }
+    function readHexDigits(text, cursor) {
+        var _a;
+        var m = text.substr(cursor).match(/^[0-9a-f]+/i);
+        return (_a = (m && m[0])) !== null && _a !== void 0 ? _a : '';
+    }
+    function readHexIntegerLiteral(text, cursor) {
+        var prefix = text.substr(cursor, 2);
+        cursor += prefix.length;
+        if (prefix.toLowerCase() !== '0x') {
+            return '';
+        }
+        var hds = readHexDigits(text, cursor);
+        if (hds === '') {
+            return '';
+        }
+        return prefix + hds;
+    }
+    var readNonDecimalIntegerLiteral = combineReader([
+        readBinaryIntegerLiteral,
+        readOctalIntegerLiteral,
+        readHexIntegerLiteral,
+    ]);
+    var readNumericLiteral = combineReader([
+        readNonDecimalIntegerLiteral,
+        readDecimalLiteral,
+    ]);
+
+    function parseLiteral(text, cursor) {
+        var num = readNumericLiteral(text, cursor);
+        cursor += num.length;
+        if (num === '') {
+            return null;
+        }
+        return {
+            evaluable: new NumberLiteralNode(num),
+            cursor: cursor,
+        };
+    }
+    function parseParenthesizedExpression(text, cursor) {
+        var op = text.substr(cursor, 1);
+        cursor += op.length;
+        if (op !== '(') {
+            return null;
+        }
+        var expr = parseExpression(text, cursor);
+        if (!expr) {
+            return null;
+        }
+        cursor = expr.cursor;
+        cursor += readWhitespace(text, cursor).length;
+        var cl = text.substr(cursor, 1);
+        cursor += cl.length;
+        if (cl !== ')') {
+            return null;
+        }
+        return {
+            evaluable: expr.evaluable,
+            cursor: cursor,
+        };
+    }
+    function parsePrimaryExpression(text, cursor) {
+        return (parseLiteral(text, cursor) || parseParenthesizedExpression(text, cursor));
+    }
+    function parseUnaryExpression(text, cursor) {
+        var expr = parsePrimaryExpression(text, cursor);
+        if (expr) {
+            return expr;
+        }
+        var op = text.substr(cursor, 1);
+        cursor += op.length;
+        if (op !== '+' && op !== '-' && op !== '~') {
+            return null;
+        }
+        var num = parseUnaryExpression(text, cursor);
+        if (!num) {
+            return null;
+        }
+        cursor = num.cursor;
+        return {
+            cursor: cursor,
+            evaluable: new UnaryOperationNode(op, num.evaluable),
+        };
+    }
+    function readBinaryOperator(ops, text, cursor) {
+        cursor += readWhitespace(text, cursor).length;
+        var op = ops.filter(function (op) { return text.startsWith(op, cursor); })[0];
+        if (!op) {
+            return null;
+        }
+        cursor += op.length;
+        cursor += readWhitespace(text, cursor).length;
+        return {
+            cursor: cursor,
+            operator: op,
+        };
+    }
+    function createBinaryOperationExpressionParser(exprParser, ops) {
+        return function (text, cursor) {
+            var firstExpr = exprParser(text, cursor);
+            if (!firstExpr) {
+                return null;
+            }
+            cursor = firstExpr.cursor;
+            var expr = firstExpr.evaluable;
+            for (;;) {
+                var op = readBinaryOperator(ops, text, cursor);
+                if (!op) {
+                    break;
+                }
+                cursor = op.cursor;
+                var nextExpr = exprParser(text, cursor);
+                if (!nextExpr) {
+                    return null;
+                }
+                cursor = nextExpr.cursor;
+                expr = new BinaryOperationNode(op.operator, expr, nextExpr.evaluable);
+            }
+            return expr
+                ? {
+                    cursor: cursor,
+                    evaluable: expr,
+                }
+                : null;
+        };
+    }
+    var parseBinaryOperationExpression = [
+        ['**'],
+        ['*', '/', '%'],
+        ['+', '-'],
+        ['<<', '>>>', '>>'],
+        ['&'],
+        ['^'],
+        ['|'],
+    ].reduce(function (parser, ops) {
+        return createBinaryOperationExpressionParser(parser, ops);
+    }, parseUnaryExpression);
+    function parseExpression(text, cursor) {
+        cursor += readWhitespace(text, cursor).length;
+        return parseBinaryOperationExpression(text, cursor);
+    }
+    /**
+     * Parse ECMAScript expression with numeric literals.
+     * https://262.ecma-international.org/
+     * @param text The string to be parsed.
+     * @return A parsing result, or null if failed.
+     */
+    function parseEcmaNumberExpression(text) {
+        var expr = parseExpression(text, 0);
+        if (!expr) {
+            return null;
+        }
+        var cursor = expr.cursor + readWhitespace(text, expr.cursor).length;
+        if (cursor !== text.length) {
+            return null;
+        }
+        return expr.evaluable;
+    }
+
     /**
      * @hidden
      */
     function parseNumber(text) {
-        var num = parseFloat(text);
-        if (isNaN(num)) {
-            return null;
-        }
-        return num;
+        var _a;
+        var r = parseEcmaNumberExpression(text);
+        return (_a = r === null || r === void 0 ? void 0 : r.evaluate()) !== null && _a !== void 0 ? _a : null;
     }
     /**
      * @hidden
@@ -2907,7 +3302,7 @@
         return NOTATION_TO_STRINGIFIER_MAP[notation];
     }
 
-    var className$e = ClassName('clsw');
+    var className$f = ClassName('clsw');
     /**
      * @hidden
      */
@@ -2917,17 +3312,17 @@
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$e());
+            this.element.classList.add(className$f());
             var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$e('sw'));
+            swatchElem.classList.add(className$f('sw'));
             this.element.appendChild(swatchElem);
             this.swatchElem_ = swatchElem;
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$e('b'));
+            buttonElem.classList.add(className$f('b'));
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var pickerElem = doc.createElement('div');
-            pickerElem.classList.add(className$e('p'));
+            pickerElem.classList.add(className$f('p'));
             this.pickerView_ = config.pickerView;
             pickerElem.appendChild(this.pickerView_.element);
             this.element.appendChild(pickerElem);
@@ -2941,6 +3336,27 @@
             this.update();
         };
         return ColorSwatchView;
+    }());
+
+    /**
+     * A number range constraint.
+     */
+    var RangeConstraint = /** @class */ (function () {
+        function RangeConstraint(config) {
+            this.maxValue = config.max;
+            this.minValue = config.min;
+        }
+        RangeConstraint.prototype.constrain = function (value) {
+            var result = value;
+            if (!isEmpty(this.minValue)) {
+                result = Math.max(result, this.minValue);
+            }
+            if (!isEmpty(this.maxValue)) {
+                result = Math.min(result, this.maxValue);
+            }
+            return result;
+        };
+        return RangeConstraint;
     }());
 
     /**
@@ -2971,17 +3387,39 @@
     }());
 
     /**
-     * @hidden
+     * Synchronizes two values.
      */
-    function connect(_a) {
+    function connectValues(_a) {
         var primary = _a.primary, secondary = _a.secondary, forward = _a.forward, backward = _a.backward;
+        // Prevents an event firing loop
+        // e.g.
+        // primary changed
+        // -> applies changes to secondary
+        // -> secondary changed
+        // -> applies changes to primary
+        // -> ...
+        var changing = false;
+        function preventFeedback(callback) {
+            if (changing) {
+                return;
+            }
+            changing = true;
+            callback();
+            changing = false;
+        }
         primary.emitter.on('change', function () {
-            secondary.rawValue = forward(primary, secondary);
+            preventFeedback(function () {
+                secondary.rawValue = forward(primary, secondary);
+            });
         });
         secondary.emitter.on('change', function () {
-            primary.rawValue = backward(primary, secondary);
+            preventFeedback(function () {
+                primary.rawValue = backward(primary, secondary);
+            });
         });
-        secondary.rawValue = forward(primary, secondary);
+        preventFeedback(function () {
+            secondary.rawValue = forward(primary, secondary);
+        });
     }
 
     /**
@@ -3032,18 +3470,219 @@
         return isVerticalArrowKey(keyCode) || keyCode === 37 || keyCode === 39;
     }
 
+    function computeOffset(ev, elem) {
+        // NOTE: OffsetX/Y should be computed from page and window properties to capture mouse events
+        var win = elem.ownerDocument.defaultView;
+        var rect = elem.getBoundingClientRect();
+        return {
+            x: ev.pageX - (((win && win.scrollX) || 0) + rect.left),
+            y: ev.pageY - (((win && win.scrollY) || 0) + rect.top),
+        };
+    }
+    /**
+     * A utility class to handle both mouse and touch events.
+     */
+    var PointerHandler = /** @class */ (function () {
+        function PointerHandler(element) {
+            this.onDocumentMouseMove_ = this.onDocumentMouseMove_.bind(this);
+            this.onDocumentMouseUp_ = this.onDocumentMouseUp_.bind(this);
+            this.onMouseDown_ = this.onMouseDown_.bind(this);
+            this.onTouchEnd_ = this.onTouchEnd_.bind(this);
+            this.onTouchMove_ = this.onTouchMove_.bind(this);
+            this.onTouchStart_ = this.onTouchStart_.bind(this);
+            this.element = element;
+            this.emitter = new Emitter();
+            this.pressed_ = false;
+            var doc = this.element.ownerDocument;
+            if (supportsTouch(doc)) {
+                element.addEventListener('touchstart', this.onTouchStart_);
+                element.addEventListener('touchmove', this.onTouchMove_);
+                element.addEventListener('touchend', this.onTouchEnd_);
+            }
+            else {
+                element.addEventListener('mousedown', this.onMouseDown_);
+                doc.addEventListener('mousemove', this.onDocumentMouseMove_);
+                doc.addEventListener('mouseup', this.onDocumentMouseUp_);
+            }
+        }
+        PointerHandler.prototype.computePosition_ = function (offset) {
+            var rect = this.element.getBoundingClientRect();
+            return {
+                bounds: {
+                    width: rect.width,
+                    height: rect.height,
+                },
+                point: offset
+                    ? {
+                        x: offset.x,
+                        y: offset.y,
+                    }
+                    : null,
+            };
+        };
+        PointerHandler.prototype.onMouseDown_ = function (e) {
+            var _a;
+            // Prevent native text selection
+            e.preventDefault();
+            (_a = e.currentTarget) === null || _a === void 0 ? void 0 : _a.focus();
+            this.pressed_ = true;
+            this.emitter.emit('down', {
+                data: this.computePosition_(computeOffset(e, this.element)),
+                sender: this,
+            });
+        };
+        PointerHandler.prototype.onDocumentMouseMove_ = function (e) {
+            if (!this.pressed_) {
+                return;
+            }
+            this.emitter.emit('move', {
+                data: this.computePosition_(computeOffset(e, this.element)),
+                sender: this,
+            });
+        };
+        PointerHandler.prototype.onDocumentMouseUp_ = function (e) {
+            if (!this.pressed_) {
+                return;
+            }
+            this.pressed_ = false;
+            this.emitter.emit('up', {
+                data: this.computePosition_(computeOffset(e, this.element)),
+                sender: this,
+            });
+        };
+        PointerHandler.prototype.onTouchStart_ = function (e) {
+            // Prevent native page scroll
+            e.preventDefault();
+            var touch = e.targetTouches.item(0);
+            var rect = this.element.getBoundingClientRect();
+            this.emitter.emit('down', {
+                data: this.computePosition_(touch
+                    ? {
+                        x: touch.clientX - rect.left,
+                        y: touch.clientY - rect.top,
+                    }
+                    : undefined),
+                sender: this,
+            });
+        };
+        PointerHandler.prototype.onTouchMove_ = function (e) {
+            var touch = e.targetTouches.item(0);
+            var rect = this.element.getBoundingClientRect();
+            this.emitter.emit('move', {
+                data: this.computePosition_(touch
+                    ? {
+                        x: touch.clientX - rect.left,
+                        y: touch.clientY - rect.top,
+                    }
+                    : undefined),
+                sender: this,
+            });
+        };
+        PointerHandler.prototype.onTouchEnd_ = function (e) {
+            var touch = e.targetTouches.item(0);
+            var rect = this.element.getBoundingClientRect();
+            this.emitter.emit('up', {
+                data: this.computePosition_(touch
+                    ? {
+                        x: touch.clientX - rect.left,
+                        y: touch.clientY - rect.top,
+                    }
+                    : undefined),
+                sender: this,
+            });
+        };
+        return PointerHandler;
+    }());
+
+    var className$e = ClassName('txt');
+    var NumberTextView = /** @class */ (function (_super) {
+        __extends(NumberTextView, _super);
+        function NumberTextView(doc, config) {
+            var _this = _super.call(this, doc, config) || this;
+            _this.element.classList.add(className$e(undefined, 'num'));
+            _this.onDraggingChange_ = _this.onDraggingChange_.bind(_this);
+            _this.dragging_ = config.dragging;
+            _this.draggingScale_ = config.draggingScale;
+            _this.dragging_.emitter.on('change', _this.onDraggingChange_);
+            _this.element.classList.add(className$e());
+            _this.inputElement.classList.add(className$e('i'));
+            var knobElem = doc.createElement('div');
+            knobElem.classList.add(className$e('k'));
+            _this.element.appendChild(knobElem);
+            _this.knobElement = knobElem;
+            var guideElem = doc.createElementNS(SVG_NS, 'svg');
+            guideElem.classList.add(className$e('g'));
+            _this.knobElement.appendChild(guideElem);
+            var bodyElem = doc.createElementNS(SVG_NS, 'path');
+            bodyElem.classList.add(className$e('gb'));
+            guideElem.appendChild(bodyElem);
+            _this.guideBodyElem_ = bodyElem;
+            var headElem = doc.createElementNS(SVG_NS, 'path');
+            headElem.classList.add(className$e('gh'));
+            guideElem.appendChild(headElem);
+            _this.guideHeadElem_ = headElem;
+            var tooltipElem = doc.createElement('div');
+            tooltipElem.classList.add(ClassName('tt')());
+            _this.knobElement.appendChild(tooltipElem);
+            _this.tooltipElem_ = tooltipElem;
+            return _this;
+        }
+        NumberTextView.prototype.onDraggingChange_ = function (ev) {
+            if (ev.rawValue === null) {
+                this.element.classList.remove(className$e(undefined, 'drg'));
+                return;
+            }
+            this.element.classList.add(className$e(undefined, 'drg'));
+            var x = ev.rawValue / this.draggingScale_;
+            var aox = x + (x > 0 ? -1 : x < 0 ? +1 : 0);
+            var adx = constrainRange(-aox, -4, +4);
+            this.guideHeadElem_.setAttributeNS(null, 'd', ["M " + (aox + adx) + ",0 L" + aox + ",4 L" + (aox + adx) + ",8", "M " + x + ",-1 L" + x + ",9"].join(' '));
+            this.guideBodyElem_.setAttributeNS(null, 'd', "M 0,4 L" + x + ",4");
+            this.tooltipElem_.textContent = this.formatter(this.value.rawValue);
+            this.tooltipElem_.style.left = x + "px";
+        };
+        return NumberTextView;
+    }(TextView));
+
     /**
      * @hidden
      */
-    var NumberTextController = /** @class */ (function (_super) {
-        __extends(NumberTextController, _super);
+    var NumberTextController = /** @class */ (function () {
         function NumberTextController(doc, config) {
-            var _this = _super.call(this, doc, config) || this;
-            _this.onInputKeyDown_ = _this.onInputKeyDown_.bind(_this);
-            _this.baseStep_ = config.baseStep;
-            _this.view.inputElement.addEventListener('keydown', _this.onInputKeyDown_);
-            return _this;
+            this.originRawValue_ = 0;
+            this.onInputChange_ = this.onInputChange_.bind(this);
+            this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
+            this.onPointerDown_ = this.onPointerDown_.bind(this);
+            this.onPointerMove_ = this.onPointerMove_.bind(this);
+            this.onPointerUp_ = this.onPointerUp_.bind(this);
+            this.parser_ = config.parser;
+            this.value = config.value;
+            this.baseStep_ = config.baseStep;
+            this.draggingScale_ = config.draggingScale;
+            this.dragging_ = new Value(null);
+            this.view = new NumberTextView(doc, {
+                arrayPosition: config.arrayPosition,
+                formatter: config.formatter,
+                dragging: this.dragging_,
+                draggingScale: this.draggingScale_,
+                value: this.value,
+            });
+            this.view.inputElement.addEventListener('change', this.onInputChange_);
+            this.view.inputElement.addEventListener('keydown', this.onInputKeyDown_);
+            var ph = new PointerHandler(this.view.knobElement);
+            ph.emitter.on('down', this.onPointerDown_);
+            ph.emitter.on('move', this.onPointerMove_);
+            ph.emitter.on('up', this.onPointerUp_);
         }
+        NumberTextController.prototype.onInputChange_ = function (e) {
+            var inputElem = forceCast(e.currentTarget);
+            var value = inputElem.value;
+            var parsedValue = this.parser_(value);
+            if (!isEmpty(parsedValue)) {
+                this.value.rawValue = parsedValue;
+            }
+            this.view.update();
+        };
         NumberTextController.prototype.onInputKeyDown_ = function (e) {
             var step = getStepForKey(this.baseStep_, getVerticalStepKeys(e));
             if (step !== 0) {
@@ -3051,8 +3690,23 @@
                 this.view.update();
             }
         };
+        NumberTextController.prototype.onPointerDown_ = function () {
+            this.originRawValue_ = this.value.rawValue;
+            this.dragging_.rawValue = 0;
+        };
+        NumberTextController.prototype.onPointerMove_ = function (ev) {
+            if (!ev.data.point) {
+                return;
+            }
+            var dx = ev.data.point.x - ev.data.bounds.width / 2;
+            this.value.rawValue = this.originRawValue_ + dx * this.draggingScale_;
+            this.dragging_.rawValue = this.value.rawValue - this.originRawValue_;
+        };
+        NumberTextController.prototype.onPointerUp_ = function () {
+            this.dragging_.rawValue = null;
+        };
         return NumberTextController;
-    }(TextController));
+    }());
 
     var className$d = ClassName('clp');
     /**
@@ -3111,7 +3765,7 @@
                 var elems = __spreadArray([
                     this.svPaletteView_.element,
                     this.hPaletteView_.element
-                ], this.textView_.inputElements);
+                ], this.textView_.textViews.map(function (v) { return v.inputElement; }));
                 if (this.alphaViews_) {
                     elems.push(this.alphaViews_.palette.element, this.alphaViews_.text.inputElement);
                 }
@@ -3142,101 +3796,6 @@
             this.update();
         };
         return ColorPickerView;
-    }());
-
-    function computeOffset(ev, elem) {
-        // NOTE: OffsetX/Y should be computed from page and window properties to capture mouse events
-        var win = elem.ownerDocument.defaultView;
-        var rect = elem.getBoundingClientRect();
-        return [
-            ev.pageX - (((win && win.scrollX) || 0) + rect.left),
-            ev.pageY - (((win && win.scrollY) || 0) + rect.top),
-        ];
-    }
-    /**
-     * A utility class to handle both mouse and touch events.
-     */
-    var PointerHandler = /** @class */ (function () {
-        function PointerHandler(element) {
-            this.onDocumentMouseMove_ = this.onDocumentMouseMove_.bind(this);
-            this.onDocumentMouseUp_ = this.onDocumentMouseUp_.bind(this);
-            this.onMouseDown_ = this.onMouseDown_.bind(this);
-            this.onTouchMove_ = this.onTouchMove_.bind(this);
-            this.onTouchStart_ = this.onTouchStart_.bind(this);
-            this.element = element;
-            this.emitter = new Emitter();
-            this.pressed_ = false;
-            var doc = this.element.ownerDocument;
-            if (supportsTouch(doc)) {
-                element.addEventListener('touchstart', this.onTouchStart_);
-                element.addEventListener('touchmove', this.onTouchMove_);
-            }
-            else {
-                element.addEventListener('mousedown', this.onMouseDown_);
-                doc.addEventListener('mousemove', this.onDocumentMouseMove_);
-                doc.addEventListener('mouseup', this.onDocumentMouseUp_);
-            }
-        }
-        PointerHandler.prototype.computePosition_ = function (offsetX, offsetY) {
-            var rect = this.element.getBoundingClientRect();
-            return {
-                bounds: {
-                    width: rect.width,
-                    height: rect.height,
-                },
-                x: offsetX,
-                y: offsetY,
-            };
-        };
-        PointerHandler.prototype.onMouseDown_ = function (e) {
-            var _a;
-            // Prevent native text selection
-            e.preventDefault();
-            (_a = e.currentTarget) === null || _a === void 0 ? void 0 : _a.focus();
-            this.pressed_ = true;
-            this.emitter.emit('down', {
-                data: this.computePosition_.apply(this, computeOffset(e, this.element)),
-                sender: this,
-            });
-        };
-        PointerHandler.prototype.onDocumentMouseMove_ = function (e) {
-            if (!this.pressed_) {
-                return;
-            }
-            this.emitter.emit('move', {
-                data: this.computePosition_.apply(this, computeOffset(e, this.element)),
-                sender: this,
-            });
-        };
-        PointerHandler.prototype.onDocumentMouseUp_ = function (e) {
-            if (!this.pressed_) {
-                return;
-            }
-            this.pressed_ = false;
-            this.emitter.emit('up', {
-                data: this.computePosition_.apply(this, computeOffset(e, this.element)),
-                sender: this,
-            });
-        };
-        PointerHandler.prototype.onTouchStart_ = function (e) {
-            // Prevent native page scroll
-            e.preventDefault();
-            var touch = e.targetTouches[0];
-            var rect = this.element.getBoundingClientRect();
-            this.emitter.emit('down', {
-                data: this.computePosition_(touch.clientX - rect.left, touch.clientY - rect.top),
-                sender: this,
-            });
-        };
-        PointerHandler.prototype.onTouchMove_ = function (e) {
-            var touch = e.targetTouches[0];
-            var rect = this.element.getBoundingClientRect();
-            this.emitter.emit('move', {
-                data: this.computePosition_(touch.clientX - rect.left, touch.clientY - rect.top),
-                sender: this,
-            });
-        };
-        return PointerHandler;
     }());
 
     /**
@@ -3316,7 +3875,10 @@
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
         APaletteController.prototype.handlePointerEvent_ = function (d) {
-            var alpha = d.x / d.bounds.width;
+            if (!d.point) {
+                return;
+            }
+            var alpha = d.point.x / d.bounds.width;
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), h = _a[0], s = _a[1], v = _a[2];
             this.value.rawValue = new Color([h, s, v, alpha], 'hsv');
@@ -3341,7 +3903,6 @@
     }());
 
     var className$b = ClassName('cltxt');
-    var FORMATTER = createNumberFormatter(0);
     function createModeSelectElement(doc) {
         var selectElem = doc.createElement('select');
         var items = [
@@ -3376,19 +3937,12 @@
             modeMarkerElem.appendChild(createSvgIconElement(doc, 'dropdown'));
             modeElem.appendChild(modeMarkerElem);
             this.element.appendChild(modeElem);
-            var wrapperElem = doc.createElement('div');
-            wrapperElem.classList.add(className$b('w'));
-            this.element.appendChild(wrapperElem);
-            var inputElems = [0, 1, 2].map(function () {
-                var inputElem = doc.createElement('input');
-                inputElem.classList.add(className$b('i'));
-                inputElem.type = 'text';
-                return inputElem;
-            });
-            inputElems.forEach(function (elem) {
-                wrapperElem.appendChild(elem);
-            });
-            this.inputElems_ = [inputElems[0], inputElems[1], inputElems[2]];
+            var textsElem = doc.createElement('div');
+            textsElem.classList.add(className$b('w'));
+            this.element.appendChild(textsElem);
+            this.textsElem_ = textsElem;
+            this.textViews_ = config.textViews;
+            this.applyTextViews_();
             this.pickedColor = config.pickedColor;
             this.pickedColor.emitter.on('change', this.onValueChange_);
             this.update();
@@ -3400,9 +3954,13 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(ColorTextView.prototype, "inputElements", {
+        Object.defineProperty(ColorTextView.prototype, "textViews", {
             get: function () {
-                return this.inputElems_;
+                return this.textViews_;
+            },
+            set: function (textViews) {
+                this.textViews_ = textViews;
+                this.applyTextViews_();
             },
             enumerable: false,
             configurable: true
@@ -3415,15 +3973,19 @@
             configurable: true
         });
         ColorTextView.prototype.update = function () {
-            var _this = this;
             this.modeElem_.value = this.pickedColor.mode;
-            var comps = this.pickedColor.value.rawValue.getComponents(this.pickedColor.mode);
-            comps.forEach(function (comp, index) {
-                var inputElem = _this.inputElems_[index];
-                if (!inputElem) {
-                    return;
-                }
-                inputElem.value = FORMATTER(comp);
+        };
+        ColorTextView.prototype.applyTextViews_ = function () {
+            var _this = this;
+            while (this.textsElem_.children.length > 0) {
+                this.textsElem_.removeChild(this.textsElem_.children[0]);
+            }
+            var doc = this.element.ownerDocument;
+            this.textViews_.forEach(function (v) {
+                var compElem = doc.createElement('div');
+                compElem.classList.add(className$b('c'));
+                compElem.appendChild(v.element);
+                _this.textsElem_.appendChild(compElem);
             });
         };
         ColorTextView.prototype.onValueChange_ = function () {
@@ -3432,23 +3994,46 @@
         return ColorTextView;
     }());
 
+    var FORMATTER = createNumberFormatter(0);
+    var MODE_TO_CONSTRAINT_MAP = {
+        rgb: function () {
+            return new RangeConstraint({ min: 0, max: 255 });
+        },
+        hsl: function (index) {
+            return index === 0
+                ? new RangeConstraint({ min: 0, max: 360 })
+                : new RangeConstraint({ min: 0, max: 100 });
+        },
+        hsv: function (index) {
+            return index === 0
+                ? new RangeConstraint({ min: 0, max: 360 })
+                : new RangeConstraint({ min: 0, max: 100 });
+        },
+    };
+    function createComponentController(doc, config, index) {
+        return new NumberTextController(doc, {
+            arrayPosition: index === 0 ? 'fst' : index === 3 - 1 ? 'lst' : 'mid',
+            baseStep: getBaseStepForColor(false),
+            draggingScale: 1,
+            formatter: FORMATTER,
+            parser: config.parser,
+            value: new Value(0, {
+                constraint: MODE_TO_CONSTRAINT_MAP[config.colorMode](index),
+            }),
+        });
+    }
     /**
      * @hidden
      */
     var ColorTextController = /** @class */ (function () {
         function ColorTextController(doc, config) {
-            var _this = this;
             this.onModeSelectChange_ = this.onModeSelectChange_.bind(this);
-            this.onInputChange_ = this.onInputChange_.bind(this);
-            this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
             this.parser_ = config.parser;
             this.pickedColor = config.pickedColor;
+            this.ccs_ = this.createComponentControllers_(doc);
             this.view = new ColorTextView(doc, {
                 pickedColor: this.pickedColor,
-            });
-            this.view.inputElements.forEach(function (inputElem) {
-                inputElem.addEventListener('change', _this.onInputChange_);
-                inputElem.addEventListener('keydown', _this.onInputKeyDown_);
+                textViews: [this.ccs_[0].view, this.ccs_[1].view, this.ccs_[2].view],
             });
             this.view.modeSelectElement.addEventListener('change', this.onModeSelectChange_);
         }
@@ -3459,55 +4044,45 @@
             enumerable: false,
             configurable: true
         });
-        ColorTextController.prototype.findIndexOfInputElem_ = function (inputElem) {
-            var inputElems = this.view.inputElements;
-            for (var i = 0; i < inputElems.length; i++) {
-                if (inputElems[i] === inputElem) {
-                    return i;
-                }
-            }
-            return null;
-        };
-        ColorTextController.prototype.updateComponent_ = function (index, newValue) {
-            var mode = this.pickedColor.mode;
-            var comps = this.value.rawValue.getComponents(mode);
-            var newComps = comps.map(function (comp, i) {
-                return i === index ? newValue : comp;
+        ColorTextController.prototype.createComponentControllers_ = function (doc) {
+            var _this = this;
+            var cc = {
+                colorMode: this.pickedColor.mode,
+                parser: this.parser_,
+            };
+            var ccs = [
+                createComponentController(doc, cc, 0),
+                createComponentController(doc, cc, 1),
+                createComponentController(doc, cc, 2),
+            ];
+            ccs.forEach(function (cs, index) {
+                connectValues({
+                    primary: _this.value,
+                    secondary: cs.value,
+                    forward: function (p) {
+                        return p.rawValue.getComponents(_this.pickedColor.mode)[index];
+                    },
+                    backward: function (p, s) {
+                        var rawMode = p.rawValue.mode;
+                        var pickedMode = _this.pickedColor.mode;
+                        var comps = p.rawValue.getComponents(pickedMode);
+                        comps[index] = s.rawValue;
+                        var newComps = convertColorMode(removeAlphaComponent(comps), pickedMode, rawMode);
+                        return new Color(appendAlphaComponent(newComps, comps[3]), rawMode);
+                    },
+                });
             });
-            this.value.rawValue = new Color(newComps, mode);
-            this.view.update();
-        };
-        ColorTextController.prototype.onInputChange_ = function (e) {
-            var inputElem = forceCast(e.currentTarget);
-            var parsedValue = this.parser_(inputElem.value);
-            if (isEmpty(parsedValue)) {
-                return;
-            }
-            var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (isEmpty(compIndex)) {
-                return;
-            }
-            this.updateComponent_(compIndex, parsedValue);
-        };
-        ColorTextController.prototype.onInputKeyDown_ = function (e) {
-            var compIndex = this.findIndexOfInputElem_(e.currentTarget);
-            var step = getStepForKey(getBaseStepForColor(compIndex === 3), getVerticalStepKeys(e));
-            if (step === 0) {
-                return;
-            }
-            var inputElem = forceCast(e.currentTarget);
-            var parsedValue = this.parser_(inputElem.value);
-            if (isEmpty(parsedValue)) {
-                return;
-            }
-            if (isEmpty(compIndex)) {
-                return;
-            }
-            this.updateComponent_(compIndex, parsedValue + step);
+            return ccs;
         };
         ColorTextController.prototype.onModeSelectChange_ = function (ev) {
             var selectElem = ev.currentTarget;
             this.pickedColor.mode = selectElem.value;
+            this.ccs_ = this.createComponentControllers_(this.view.element.ownerDocument);
+            this.view.textViews = [
+                this.ccs_[0].view,
+                this.ccs_[1].view,
+                this.ccs_[2].view,
+            ];
         };
         return ColorTextController;
     }());
@@ -3566,7 +4141,10 @@
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
         HPaletteController.prototype.handlePointerEvent_ = function (d) {
-            var hue = mapRange(d.x, 0, d.bounds.width, 0, 360);
+            if (!d.point) {
+                return;
+            }
+            var hue = mapRange(d.point.x, 0, d.bounds.width, 0, 360);
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), s = _a[1], v = _a[2], a = _a[3];
             this.value.rawValue = new Color([hue, s, v, a], 'hsv');
@@ -3670,8 +4248,11 @@
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
         SvPaletteController.prototype.handlePointerEvent_ = function (d) {
-            var saturation = mapRange(d.x, 0, d.bounds.width, 0, 100);
-            var value = mapRange(d.y, 0, d.bounds.height, 100, 0);
+            if (!d.point) {
+                return;
+            }
+            var saturation = mapRange(d.point.x, 0, d.bounds.width, 0, 100);
+            var value = mapRange(d.point.y, 0, d.bounds.height, 100, 0);
             var _a = this.value.rawValue.getComponents('hsv'), h = _a[0], a = _a[3];
             this.value.rawValue = new Color([h, saturation, value, a], 'hsv');
             this.view.update();
@@ -3724,15 +4305,18 @@
                         value: this.pickedColor.value,
                     }),
                     text: new NumberTextController(doc, {
+                        draggingScale: 0.01,
                         formatter: createNumberFormatter(2),
                         parser: parseNumber,
                         baseStep: 0.1,
-                        value: new Value(0),
+                        value: new Value(0, {
+                            constraint: new RangeConstraint({ min: 0, max: 1 }),
+                        }),
                     }),
                 }
                 : null;
             if (this.alphaIcs_) {
-                connect({
+                connectValues({
                     primary: this.pickedColor.value,
                     secondary: this.alphaIcs_.text.value,
                     forward: function (p) {
@@ -4069,27 +4653,6 @@
         },
     };
 
-    /**
-     * A number range constraint.
-     */
-    var RangeConstraint = /** @class */ (function () {
-        function RangeConstraint(config) {
-            this.maxValue = config.max;
-            this.minValue = config.min;
-        }
-        RangeConstraint.prototype.constrain = function (value) {
-            var result = value;
-            if (!isEmpty(this.minValue)) {
-                result = Math.max(result, this.minValue);
-            }
-            if (!isEmpty(this.maxValue)) {
-                result = Math.min(result, this.maxValue);
-            }
-            return result;
-        };
-        return RangeConstraint;
-    }());
-
     var className$8 = ClassName('sldtxt');
     /**
      * @hidden
@@ -4196,7 +4759,10 @@
             this.view.trackElement.addEventListener('keydown', this.onKeyDown_);
         }
         SliderController.prototype.handlePointerEvent_ = function (d) {
-            this.value.rawValue = mapRange(d.x, 0, d.bounds.width, this.minValue_, this.maxValue_);
+            if (!d.point) {
+                return;
+            }
+            this.value.rawValue = mapRange(d.point.x, 0, d.bounds.width, this.minValue_, this.maxValue_);
         };
         SliderController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
@@ -4225,6 +4791,7 @@
             });
             this.textIc_ = new NumberTextController(doc, {
                 baseStep: config.baseStep,
+                draggingScale: config.draggingScale,
                 formatter: config.formatter,
                 parser: config.parser,
                 value: config.value,
@@ -4292,6 +4859,7 @@
         if (c && findConstraint(c, RangeConstraint)) {
             return new SliderTextController(doc, {
                 baseStep: getBaseStep(c),
+                draggingScale: getSuitableDraggingScale(value.constraint, value.rawValue),
                 formatter: createNumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
                 parser: parseNumber,
                 value: value,
@@ -4299,6 +4867,7 @@
         }
         return new NumberTextController(doc, {
             baseStep: getBaseStep(c),
+            draggingScale: getSuitableDraggingScale(value.constraint, value.rawValue),
             formatter: createNumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue)),
             parser: parseNumber,
             value: value,
@@ -4536,9 +5105,12 @@
             });
         }
         Point2dPadController.prototype.handlePointerEvent_ = function (d) {
+            if (!d.point) {
+                return;
+            }
             var max = this.maxValue_;
-            var px = mapRange(d.x, 0, d.bounds.width, -max, +max);
-            var py = mapRange(this.invertsY_ ? d.bounds.height - d.y : d.y, 0, d.bounds.height, -max, +max);
+            var px = mapRange(d.point.x, 0, d.bounds.width, -max, +max);
+            var py = mapRange(this.invertsY_ ? d.bounds.height - d.point.y : d.point.y, 0, d.bounds.height, -max, +max);
             this.value.rawValue = new Point2d(px, py);
             this.view.update();
         };
@@ -4590,110 +5162,72 @@
     var Point2dTextView = /** @class */ (function () {
         function Point2dTextView(doc, config) {
             var _this = this;
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.formatters_ = config.formatters;
+            this.textViews = config.textViews;
             this.element = doc.createElement('div');
             this.element.classList.add(className$4());
-            var inputElems = [0, 1].map(function () {
-                var inputElem = doc.createElement('input');
-                inputElem.classList.add(className$4('i'));
-                inputElem.type = 'text';
-                return inputElem;
+            this.textViews.forEach(function (v) {
+                var axisElem = doc.createElement('div');
+                axisElem.classList.add(className$4('a'));
+                axisElem.appendChild(v.element);
+                _this.element.appendChild(axisElem);
             });
-            inputElems.forEach(function (inputElem) {
-                _this.element.appendChild(inputElem);
-            });
-            this.inputElems_ = [inputElems[0], inputElems[1]];
-            config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
-            this.update();
         }
-        Object.defineProperty(Point2dTextView.prototype, "inputElements", {
-            get: function () {
-                return this.inputElems_;
-            },
-            enumerable: false,
-            configurable: true
-        });
         Point2dTextView.prototype.update = function () {
-            var _this = this;
-            var xyComps = this.value.rawValue.getComponents();
-            xyComps.forEach(function (comp, index) {
-                var inputElem = _this.inputElems_[index];
-                inputElem.value = _this.formatters_[index](comp);
-            });
-        };
-        Point2dTextView.prototype.onValueChange_ = function () {
-            this.update();
+            // Each text view will be connected by ValueSync, so nothing to do here
         };
         return Point2dTextView;
     }());
 
+    function findAxisConstraint$1(config, index) {
+        var pc = config.value.constraint;
+        if (!(pc instanceof Point2dConstraint)) {
+            return undefined;
+        }
+        return [pc.x, pc.y][index];
+    }
+    function createAxisController$1(doc, config, index) {
+        return new NumberTextController(doc, {
+            arrayPosition: index === 0 ? 'fst' : 'lst',
+            baseStep: config.axes[index].baseStep,
+            formatter: config.axes[index].formatter,
+            draggingScale: config.axes[index].draggingScale,
+            parser: config.parser,
+            value: new Value(0, {
+                constraint: findAxisConstraint$1(config, index),
+            }),
+        });
+    }
     /**
      * @hidden
      */
     var Point2dTextController = /** @class */ (function () {
         function Point2dTextController(doc, config) {
             var _this = this;
-            this.onInputChange_ = this.onInputChange_.bind(this);
-            this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
-            this.parser_ = config.parser;
             this.value = config.value;
-            this.baseSteps_ = [config.axes[0].baseStep, config.axes[1].baseStep];
+            this.acs_ = [
+                createAxisController$1(doc, config, 0),
+                createAxisController$1(doc, config, 1),
+            ];
+            this.acs_.forEach(function (c, index) {
+                connectValues({
+                    primary: _this.value,
+                    secondary: c.value,
+                    forward: function (p) {
+                        return p.rawValue.getComponents()[index];
+                    },
+                    backward: function (p, s) {
+                        var comps = p.rawValue.getComponents();
+                        comps[index] = s.rawValue;
+                        return new Point2d(comps[0], comps[1]);
+                    },
+                });
+            });
             this.view = new Point2dTextView(doc, {
-                formatters: [config.axes[0].formatter, config.axes[1].formatter],
+                textViews: [this.acs_[0].view, this.acs_[1].view],
                 value: this.value,
             });
-            this.view.inputElements.forEach(function (inputElem) {
-                inputElem.addEventListener('change', _this.onInputChange_);
-                inputElem.addEventListener('keydown', _this.onInputKeyDown_);
-            });
         }
-        Point2dTextController.prototype.findIndexOfInputElem_ = function (inputElem) {
-            var inputElems = this.view.inputElements;
-            for (var i = 0; i < inputElems.length; i++) {
-                if (inputElems[i] === inputElem) {
-                    return i;
-                }
-            }
-            return null;
-        };
-        Point2dTextController.prototype.updateComponent_ = function (index, newValue) {
-            var comps = this.value.rawValue.getComponents();
-            var newComps = comps.map(function (comp, i) {
-                return i === index ? newValue : comp;
-            });
-            this.value.rawValue = new Point2d(newComps[0], newComps[1]);
-            this.view.update();
-        };
-        Point2dTextController.prototype.onInputChange_ = function (e) {
-            var inputElem = forceCast(e.currentTarget);
-            var parsedValue = this.parser_(inputElem.value);
-            if (isEmpty(parsedValue)) {
-                return;
-            }
-            var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (isEmpty(compIndex)) {
-                return;
-            }
-            this.updateComponent_(compIndex, parsedValue);
-        };
-        Point2dTextController.prototype.onInputKeyDown_ = function (e) {
-            var inputElem = forceCast(e.currentTarget);
-            var parsedValue = this.parser_(inputElem.value);
-            if (isEmpty(parsedValue)) {
-                return;
-            }
-            var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (isEmpty(compIndex)) {
-                return;
-            }
-            var step = getStepForKey(this.baseSteps_[compIndex], getVerticalStepKeys(e));
-            if (step === 0) {
-                return;
-            }
-            this.updateComponent_(compIndex, parsedValue + step);
-        };
         return Point2dTextController;
     }());
 
@@ -4803,10 +5337,12 @@
             axes: [
                 {
                     baseStep: getBaseStep(c.x),
+                    draggingScale: getSuitableDraggingScale(c.x, value.rawValue.x),
                     formatter: createNumberFormatter(getSuitableDecimalDigits(c.x, value.rawValue.x)),
                 },
                 {
                     baseStep: getBaseStep(c.y),
+                    draggingScale: getSuitableDraggingScale(c.y, value.rawValue.y),
                     formatter: createNumberFormatter(getSuitableDecimalDigits(c.y, value.rawValue.y)),
                 },
             ],
@@ -4904,111 +5440,73 @@
     var Point3dTextView = /** @class */ (function () {
         function Point3dTextView(doc, config) {
             var _this = this;
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.formatters_ = config.formatters;
+            this.textViews = config.textViews;
             this.element = doc.createElement('div');
             this.element.classList.add(className$3());
-            var inputElems = [0, 1, 2].map(function () {
-                var inputElem = doc.createElement('input');
-                inputElem.classList.add(className$3('i'));
-                inputElem.type = 'text';
-                return inputElem;
+            this.textViews.forEach(function (v) {
+                var axisElem = doc.createElement('div');
+                axisElem.classList.add(className$3('a'));
+                axisElem.appendChild(v.element);
+                _this.element.appendChild(axisElem);
             });
-            inputElems.forEach(function (inputElem) {
-                _this.element.appendChild(inputElem);
-            });
-            this.inputElems_ = [inputElems[0], inputElems[1], inputElems[2]];
-            config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
-            this.update();
         }
-        Object.defineProperty(Point3dTextView.prototype, "inputElements", {
-            get: function () {
-                return this.inputElems_;
-            },
-            enumerable: false,
-            configurable: true
-        });
         Point3dTextView.prototype.update = function () {
-            var _this = this;
-            var comps = this.value.rawValue.getComponents();
-            comps.forEach(function (comp, index) {
-                var inputElem = _this.inputElems_[index];
-                inputElem.value = _this.formatters_[index](comp);
-            });
-        };
-        Point3dTextView.prototype.onValueChange_ = function () {
-            this.update();
+            // Each text view will be connected by ValueSync, so nothing to do here
         };
         return Point3dTextView;
     }());
 
+    function findAxisConstraint(config, index) {
+        var pc = config.value.constraint;
+        if (!(pc instanceof Point3dConstraint)) {
+            return undefined;
+        }
+        return [pc.x, pc.y, pc.z][index];
+    }
+    function createAxisController(doc, config, index) {
+        return new NumberTextController(doc, {
+            arrayPosition: index === 0 ? 'fst' : index === 3 - 1 ? 'lst' : 'mid',
+            baseStep: config.axes[index].baseStep,
+            formatter: config.axes[index].formatter,
+            draggingScale: config.axes[index].draggingScale,
+            parser: config.parser,
+            value: new Value(0, {
+                constraint: findAxisConstraint(config, index),
+            }),
+        });
+    }
     /**
      * @hidden
      */
     var Point3dTextController = /** @class */ (function () {
         function Point3dTextController(doc, config) {
             var _this = this;
-            this.onInputChange_ = this.onInputChange_.bind(this);
-            this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
-            this.parser_ = config.parser;
             this.value = config.value;
-            var axes = config.axes;
-            this.baseSteps_ = [axes[0].baseStep, axes[1].baseStep, axes[2].baseStep];
+            this.acs_ = [
+                createAxisController(doc, config, 0),
+                createAxisController(doc, config, 1),
+                createAxisController(doc, config, 2),
+            ];
             this.view = new Point3dTextView(doc, {
-                formatters: [axes[0].formatter, axes[1].formatter, axes[2].formatter],
+                textViews: [this.acs_[0].view, this.acs_[1].view, this.acs_[2].view],
                 value: this.value,
             });
-            this.view.inputElements.forEach(function (inputElem) {
-                inputElem.addEventListener('change', _this.onInputChange_);
-                inputElem.addEventListener('keydown', _this.onInputKeyDown_);
+            this.acs_.forEach(function (c, index) {
+                connectValues({
+                    primary: _this.value,
+                    secondary: c.value,
+                    forward: function (p) {
+                        return p.rawValue.getComponents()[index];
+                    },
+                    backward: function (p, s) {
+                        var comps = p.rawValue.getComponents();
+                        comps[index] = s.rawValue;
+                        return new Point3d(comps[0], comps[1], comps[2]);
+                    },
+                });
             });
         }
-        Point3dTextController.prototype.findIndexOfInputElem_ = function (inputElem) {
-            var inputElems = this.view.inputElements;
-            for (var i = 0; i < inputElems.length; i++) {
-                if (inputElems[i] === inputElem) {
-                    return i;
-                }
-            }
-            return null;
-        };
-        Point3dTextController.prototype.updateComponent_ = function (index, newValue) {
-            var comps = this.value.rawValue.getComponents();
-            var newComps = comps.map(function (comp, i) {
-                return i === index ? newValue : comp;
-            });
-            this.value.rawValue = new Point3d(newComps[0], newComps[1], newComps[2]);
-            this.view.update();
-        };
-        Point3dTextController.prototype.onInputChange_ = function (e) {
-            var inputElem = forceCast(e.currentTarget);
-            var parsedValue = this.parser_(inputElem.value);
-            if (isEmpty(parsedValue)) {
-                return;
-            }
-            var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (isEmpty(compIndex)) {
-                return;
-            }
-            this.updateComponent_(compIndex, parsedValue);
-        };
-        Point3dTextController.prototype.onInputKeyDown_ = function (e) {
-            var inputElem = forceCast(e.currentTarget);
-            var parsedValue = this.parser_(inputElem.value);
-            if (isEmpty(parsedValue)) {
-                return;
-            }
-            var compIndex = this.findIndexOfInputElem_(inputElem);
-            if (isEmpty(compIndex)) {
-                return;
-            }
-            var step = getStepForKey(this.baseSteps_[compIndex], getVerticalStepKeys(e));
-            if (step === 0) {
-                return;
-            }
-            this.updateComponent_(compIndex, parsedValue + step);
-        };
         return Point3dTextController;
     }());
 
@@ -5056,6 +5554,7 @@
     function getAxis(initialValue, constraint) {
         return {
             baseStep: getBaseStep(constraint),
+            draggingScale: getSuitableDraggingScale(constraint, initialValue),
             formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
         };
     }
@@ -5169,11 +5668,13 @@
             var _this = this;
             var elem = this.textareaElem_;
             var shouldScroll = elem.scrollTop === elem.scrollHeight - elem.clientHeight;
-            elem.textContent = this.value.rawValue
-                .map(function (value) {
-                return value !== undefined ? _this.formatter_(value) : '';
-            })
-                .join('\n');
+            var lines = [];
+            this.value.rawValue.forEach(function (value) {
+                if (value !== undefined) {
+                    lines.push(_this.formatter_(value));
+                }
+            });
+            elem.textContent = lines.join('\n');
             if (shouldScroll) {
                 elem.scrollTop = elem.scrollHeight;
             }
@@ -5503,7 +6004,7 @@
         doc.head.appendChild(styleElem);
     }
     function embedDefaultStyleIfNeeded(doc) {
-        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-cltxtv_i,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--button-background-color-hover)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--button-background-color-focus)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--button-background-color-active)}.tp-fldv_t,.tp-rotv_t{background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-cltxtv_i,.tp-p2dtxtv_i,.tp-p3dtxtv_i,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-cltxtv_i:hover,.tp-p2dtxtv_i:hover,.tp-p3dtxtv_i:hover,.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--input-background-color-hover)}.tp-cltxtv_i:focus,.tp-p2dtxtv_i:focus,.tp-p3dtxtv_i:focus,.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--input-background-color-focus)}.tp-cltxtv_i:active,.tp-p2dtxtv_i:active,.tp-p3dtxtv_i:active,.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--input-background-color-active)}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;max-width:168px;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-p2dtxtv,.tp-p3dtxtv{display:flex}.tp-cltxtv_i,.tp-p2dtxtv_i,.tp-p3dtxtv_i{padding:0 4px;width:100%}.tp-cltxtv_i+.tp-cltxtv_i,.tp-p2dtxtv_i+.tp-cltxtv_i,.tp-p3dtxtv_i+.tp-cltxtv_i,.tp-cltxtv_i+.tp-p2dtxtv_i,.tp-p2dtxtv_i+.tp-p2dtxtv_i,.tp-p3dtxtv_i+.tp-p2dtxtv_i,.tp-cltxtv_i+.tp-p3dtxtv_i,.tp-p2dtxtv_i+.tp-p3dtxtv_i,.tp-p3dtxtv_i+.tp-p3dtxtv_i{margin-left:2px}.tp-cltxtv_i:first-child,.tp-p2dtxtv_i:first-child,.tp-p3dtxtv_i:first-child{border-top-right-radius:0;border-bottom-right-radius:0}.tp-cltxtv_i:not(:first-child):not(:last-child),.tp-p2dtxtv_i:not(:first-child):not(:last-child),.tp-p3dtxtv_i:not(:first-child):not(:last-child){border-radius:0}.tp-cltxtv_i:last-child,.tp-p2dtxtv_i:last-child,.tp-p3dtxtv_i:last-child{border-top-left-radius:0;border-bottom-left-radius:0}.tp-btnv{padding:0 4px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--input-foreground-color);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--input-background-color-hover)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--input-background-color-focus)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--input-background-color-active)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cltxtv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cltxtv_ms:active{background-color:var(--input-background-color-active)}.tp-cltxtv_mm{color:var(--label-foreground-color)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{overflow:hidden;position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grlv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grlv_t.tp-grlv_t-valid{visibility:visible}.tp-grlv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv_m{color:var(--button-foreground-color)}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{padding-left:calc(4px * 2 + var(--unit-size))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{stroke:var(--input-guide-color)}.tp-p2dpadv_l{stroke:var(--input-foreground-color);stroke-linecap:round;stroke-dasharray:1px 3px}.tp-p2dpadv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--value-width: var(--tp-value-width, 160px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(0,0,0,0.2));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, rgba(0,0,0,0.2))}.tp-rotv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px;padding-right:28px;text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--input-foreground-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--button-background-color-hover)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--button-background-color-focus)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--button-background-color-active)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv_i{padding:0 4px}');
+        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--button-background-color);border-radius:2px;color:var(--button-foreground-color);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--button-background-color-hover)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--button-background-color-focus)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--button-background-color-active)}.tp-fldv_t,.tp-rotv_t{background-color:var(--folder-background-color);color:var(--folder-foreground-color);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:28px;position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--folder-background-color-hover)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--folder-background-color-focus)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--folder-background-color-active)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--folder-foreground-color), var(--folder-foreground-color) 2px, transparent 2px, transparent 4px, var(--folder-foreground-color) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;left:13px;margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv,.tp-rotv_c>.tp-sptv:not(.tp-v-hidden)+.tp-sptv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--input-background-color);border-radius:2px;box-sizing:border-box;color:var(--input-foreground-color);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--input-background-color-hover)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--input-background-color-focus)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--input-background-color-active)}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--monitor-background-color);border-radius:2px;box-sizing:border-box;color:var(--monitor-foreground-color);height:var(--unit-size);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);display:none;max-width:168px;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-p2dtxtv,.tp-p3dtxtv{display:flex}.tp-cltxtv_c,.tp-p2dtxtv_a,.tp-p3dtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-p2dtxtv_a+.tp-cltxtv_c,.tp-p3dtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-p2dtxtv_a,.tp-p2dtxtv_a+.tp-p2dtxtv_a,.tp-p3dtxtv_a+.tp-p2dtxtv_a,.tp-cltxtv_c+.tp-p3dtxtv_a,.tp-p2dtxtv_a+.tp-p3dtxtv_a,.tp-p3dtxtv_a+.tp-p3dtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--input-background-color);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--input-foreground-color);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--input-background-color-hover)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--input-background-color-focus)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--input-background-color-active)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--separator-color);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:2px;color:var(--label-foreground-color);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--input-background-color-hover)}.tp-cltxtv_ms:focus{background-color:var(--input-background-color-focus)}.tp-cltxtv_ms:active{background-color:var(--input-background-color-active)}.tp-cltxtv_mm{color:var(--label-foreground-color)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--folder-background-color) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--folder-background-color-hover)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--folder-background-color-focus)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--folder-background-color-active)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{overflow:hidden;position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--monitor-foreground-color);stroke-linejoin:round}.tp-grlv_t{color:var(--monitor-foreground-color);font-size:0.9em;left:0;pointer-events:none;position:absolute;text-indent:4px;top:0;visibility:hidden}.tp-grlv_t.tp-grlv_t-valid{visibility:visible}.tp-grlv_t::before{background-color:var(--monitor-foreground-color);border-radius:100%;content:\'\';display:block;height:4px;left:-2px;position:absolute;top:-2px;width:4px}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--label-foreground-color);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv_m{color:var(--button-foreground-color)}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{padding-left:calc(4px * 2 + var(--unit-size))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{stroke:var(--input-guide-color)}.tp-p2dpadv_l{stroke:var(--input-foreground-color);stroke-dasharray:2px 2px}.tp-p2dpadv_m{fill:var(--input-foreground-color)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--value-width: var(--tp-value-width, 160px);--base-background-color: var(--tp-base-background-color, #2f3137);--base-shadow-color: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--button-background-color: var(--tp-button-background-color, #adafb8);--button-background-color-active: var(--tp-button-background-color-active, #d6d7db);--button-background-color-focus: var(--tp-button-background-color-focus, #c8cad0);--button-background-color-hover: var(--tp-button-background-color-hover, #bbbcc4);--button-foreground-color: var(--tp-button-foreground-color, #2f3137);--folder-background-color: var(--tp-folder-background-color, rgba(200,202,208,0.1));--folder-background-color-active: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--folder-background-color-focus: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--folder-background-color-hover: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--folder-foreground-color: var(--tp-folder-foreground-color, #c8cad0);--input-background-color: var(--tp-input-background-color, rgba(200,202,208,0.1));--input-background-color-active: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--input-background-color-focus: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--input-background-color-hover: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--input-foreground-color: var(--tp-input-foreground-color, #c8cad0);--input-guide-color: var(--tp-input-guide-color, rgba(0,0,0,0.2));--label-foreground-color: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--monitor-background-color: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--monitor-foreground-color: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--separator-color: var(--tp-separator-color, rgba(0,0,0,0.2))}.tp-rotv{background-color:var(--base-background-color);border-radius:6px;box-shadow:0 2px 4px var(--base-shadow-color);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px;padding-right:28px;text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_m{transition:none}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sptv_r{background-color:var(--separator-color);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--input-background-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--input-foreground-color);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--button-background-color);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--button-background-color-hover)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--button-background-color-focus)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--button-background-color-active)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-4px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--input-foreground-color);border-radius:2px 0 0 2px;bottom:0;content:\'\';height:var(--unit-size);left:50%;margin-bottom:auto;margin-left:-2px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:height 0.1s;width:4px}.tp-txtv.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-lst .tp-txtv_k::before{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:2px;height:4px}.tp-txtv.tp-txtv-drg.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-drg.tp-txtv-list .tp-txtv_k::before{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--input-foreground-color);stroke-dasharray:2px 2px}.tp-txtv_gh{fill:none;stroke:var(--input-foreground-color)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--input-foreground-color);border-radius:2px;color:var(--base-background-color);padding:2px 4px;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--input-foreground-color) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
         getAllPlugins().forEach(function (plugin) {
             if (plugin.css) {
                 embedStyle(doc, "plugin-" + plugin.id, plugin.css);
@@ -5555,7 +6056,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.0.1');
+        Tweakpane.version = new Semver('2.1.0');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
