@@ -2802,6 +2802,9 @@
         return innerFormatter(value) + '%';
     }
 
+    /**
+     * Converts RGB color components into HSL (cylindrical, used in CSS).
+     */
     function rgbToHsl(r, g, b) {
         var rp = constrainRange(r / 255, 0, 1);
         var gp = constrainRange(g / 255, 0, 1);
@@ -2813,7 +2816,7 @@
         var s = 0;
         var l = (cmin + cmax) / 2;
         if (c !== 0) {
-            s = l > 0.5 ? c / (2 - cmin - cmax) : c / (cmax + cmin);
+            s = c / (1 - Math.abs(cmax + cmin - 1));
             if (rp === cmax) {
                 h = (gp - bp) / c;
             }
@@ -2915,6 +2918,24 @@
     /**
      * @hidden
      */
+    function hslToHsv(h, s, l) {
+        var sd = l + (s * (100 - Math.abs(2 * l - 100))) / (2 * 100);
+        return [
+            h,
+            sd !== 0 ? (s * (100 - Math.abs(2 * l - 100))) / sd : 0,
+            l + (s * (100 - Math.abs(2 * l - 100))) / (2 * 100),
+        ];
+    }
+    /**
+     * @hidden
+     */
+    function hsvToHsl(h, s, v) {
+        var sd = 100 - Math.abs((v * (200 - s)) / 100 - 100);
+        return [h, sd !== 0 ? (s * v) / sd : 0, (v * (200 - s)) / (2 * 100)];
+    }
+    /**
+     * @hidden
+     */
     function removeAlphaComponent(comps) {
         return [comps[0], comps[1], comps[2]];
     }
@@ -2927,17 +2948,11 @@
     var MODE_CONVERTER_MAP = {
         hsl: {
             hsl: function (h, s, l) { return [h, s, l]; },
-            hsv: function (h, s, l) {
-                var _a = hslToRgb(h, s, l), r = _a[0], g = _a[1], b = _a[2];
-                return rgbToHsv(r, g, b);
-            },
+            hsv: hslToHsv,
             rgb: hslToRgb,
         },
         hsv: {
-            hsl: function (h, s, v) {
-                var _a = hsvToRgb(h, s, v), r = _a[0], g = _a[1], b = _a[2];
-                return rgbToHsl(r, g, b);
-            },
+            hsl: hsvToHsl,
             hsv: function (h, s, v) { return [h, s, v]; },
             rgb: hsvToRgb,
         },
@@ -3416,6 +3431,11 @@
         secondary.emitter.on('change', function () {
             preventFeedback(function () {
                 primary.rawValue = backward(primary, secondary);
+            });
+            // Re-update secondary value
+            // to apply change from constraint of primary value
+            preventFeedback(function () {
+                secondary.rawValue = forward(primary, secondary);
             });
         });
         preventFeedback(function () {
@@ -4064,12 +4084,10 @@
                         return p.rawValue.getComponents(_this.pickedColor.mode)[index];
                     },
                     backward: function (p, s) {
-                        var rawMode = p.rawValue.mode;
                         var pickedMode = _this.pickedColor.mode;
                         var comps = p.rawValue.getComponents(pickedMode);
                         comps[index] = s.rawValue;
-                        var newComps = convertColorMode(removeAlphaComponent(comps), pickedMode, rawMode);
-                        return new Color(appendAlphaComponent(newComps, comps[3]), rawMode);
+                        return new Color(appendAlphaComponent(removeAlphaComponent(comps), comps[3]), pickedMode);
                     },
                 });
             });
@@ -4330,7 +4348,7 @@
                     },
                 });
             }
-            this.textIc_ = new ColorTextController(doc, {
+            this.tc_ = new ColorTextController(doc, {
                 parser: parseNumber,
                 pickedColor: this.pickedColor,
             });
@@ -4346,7 +4364,7 @@
                 pickedColor: this.pickedColor,
                 supportsAlpha: config.supportsAlpha,
                 svPaletteView: this.svPaletteIc_.view,
-                textView: this.textIc_.view,
+                textView: this.tc_.view,
             });
             this.view.element.addEventListener('keydown', this.onKeyDown_);
             this.view.allFocusableElements.forEach(function (elem) {
@@ -4356,6 +4374,13 @@
         Object.defineProperty(ColorPickerController.prototype, "value", {
             get: function () {
                 return this.pickedColor.value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(ColorPickerController.prototype, "textController", {
+            get: function () {
+                return this.tc_;
             },
             enumerable: false,
             configurable: true
