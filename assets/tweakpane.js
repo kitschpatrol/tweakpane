@@ -28,10 +28,12 @@
         };
         return __assign.apply(this, arguments);
     };
-    function __spreadArray(to, from) {
-        for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-            to[j] = from[i];
-        return to;
+    function __spreadArrays() {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
     }
 
     var Plugins = {
@@ -39,7 +41,7 @@
         monitors: [],
     };
     function getAllPlugins() {
-        return __spreadArray(__spreadArray([], Plugins.inputs), Plugins.monitors);
+        return __spreadArrays(Plugins.inputs, Plugins.monitors);
     }
 
     var PREFIX = 'tp';
@@ -1124,8 +1126,7 @@
     var TpError = /** @class */ (function () {
         function TpError(config) {
             var _a;
-            this.message =
-                (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
+            this.message = (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
             this.name = this.constructor.name;
             this.stack = new Error(this.message).stack;
             this.type = config.type;
@@ -1375,7 +1376,7 @@
      * @hidden
      */
     function createPushedBuffer(buffer, newValue) {
-        var newBuffer = __spreadArray(__spreadArray([], createTrimmedBuffer(buffer)), [newValue]);
+        var newBuffer = __spreadArrays(createTrimmedBuffer(buffer), [newValue]);
         if (newBuffer.length > buffer.length) {
             newBuffer.splice(0, newBuffer.length - buffer.length);
         }
@@ -3782,7 +3783,7 @@
         }
         Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
             get: function () {
-                var elems = __spreadArray([
+                var elems = __spreadArrays([
                     this.svPaletteView_.element,
                     this.hPaletteView_.element
                 ], this.textView_.textViews.map(function (v) { return v.inputElement; }));
@@ -5041,7 +5042,7 @@
     }());
     var Point2dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point2d.bind.apply(Point2d, __spreadArray([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point2d.bind.apply(Point2d, __spreadArrays([void 0], comps)))(); },
     };
 
     var className$4 = ClassName('p2dpadtxt');
@@ -5453,7 +5454,7 @@
     }());
     var Point3dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point3d.bind.apply(Point3d, __spreadArray([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point3d.bind.apply(Point3d, __spreadArrays([void 0], comps)))(); },
     };
 
     /**
@@ -5581,7 +5582,7 @@
     }());
     var Point4dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point4d.bind.apply(Point4d, __spreadArray([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point4d.bind.apply(Point4d, __spreadArrays([void 0], comps)))(); },
     };
 
     /**
