@@ -1,4 +1,4 @@
-/*! Tweakpane 2.1.2 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.1.3 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -28,12 +28,10 @@
         };
         return __assign.apply(this, arguments);
     };
-    function __spreadArrays() {
-        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-        for (var r = Array(s), k = 0, i = 0; i < il; i++)
-            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-                r[k] = a[j];
-        return r;
+    function __spreadArray(to, from) {
+        for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+            to[j] = from[i];
+        return to;
     }
 
     var Plugins = {
@@ -41,7 +39,7 @@
         monitors: [],
     };
     function getAllPlugins() {
-        return __spreadArrays(Plugins.inputs, Plugins.monitors);
+        return __spreadArray(__spreadArray([], Plugins.inputs), Plugins.monitors);
     }
 
     var PREFIX = 'tp';
@@ -396,6 +394,138 @@
         return Blade;
     }());
 
+    var CREATE_MESSAGE_MAP = {
+        alreadydisposed: function () { return 'View has been already disposed'; },
+        invalidparams: function (context) { return "Invalid parameters for '" + context.name + "'"; },
+        nomatchingcontroller: function (context) {
+            return "No matching controller for '" + context.key + "'";
+        },
+        notbindable: function () { return "Value is not bindable"; },
+        propertynotfound: function (context) { return "Property '" + context.name + "' not found"; },
+        shouldneverhappen: function () { return 'This error should never happen'; },
+    };
+    var TpError = /** @class */ (function () {
+        function TpError(config) {
+            var _a;
+            this.message =
+                (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
+            this.name = this.constructor.name;
+            this.stack = new Error(this.message).stack;
+            this.type = config.type;
+        }
+        TpError.alreadyDisposed = function () {
+            return new TpError({ type: 'alreadydisposed' });
+        };
+        TpError.notBindable = function () {
+            return new TpError({
+                type: 'notbindable',
+            });
+        };
+        TpError.propertyNotFound = function (name) {
+            return new TpError({
+                type: 'propertynotfound',
+                context: {
+                    name: name,
+                },
+            });
+        };
+        TpError.shouldNeverHappen = function () {
+            return new TpError({ type: 'shouldneverhappen' });
+        };
+        return TpError;
+    }());
+    TpError.prototype = Object.create(Error.prototype);
+    TpError.prototype.constructor = TpError;
+
+    var NestedOrderedSet = /** @class */ (function () {
+        function NestedOrderedSet(extract) {
+            this.emitter = new Emitter();
+            this.items_ = [];
+            this.cache_ = new Set();
+            this.onSubListAdd_ = this.onSubListAdd_.bind(this);
+            this.onSubListRemove_ = this.onSubListRemove_.bind(this);
+            this.extract_ = extract;
+        }
+        Object.defineProperty(NestedOrderedSet.prototype, "items", {
+            get: function () {
+                return this.items_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        NestedOrderedSet.prototype.allItems = function () {
+            return Array.from(this.cache_);
+        };
+        NestedOrderedSet.prototype.find = function (callback) {
+            for (var _i = 0, _a = this.allItems(); _i < _a.length; _i++) {
+                var item = _a[_i];
+                if (callback(item)) {
+                    return item;
+                }
+            }
+            return null;
+        };
+        NestedOrderedSet.prototype.add = function (item, opt_index) {
+            var _this = this;
+            if (this.cache_.has(item)) {
+                throw TpError.shouldNeverHappen();
+            }
+            var index = opt_index !== undefined ? opt_index : this.items_.length;
+            this.items_.splice(index, 0, item);
+            this.cache_.add(item);
+            var subList = this.extract_(item);
+            if (subList) {
+                subList.emitter.on('add', this.onSubListAdd_);
+                subList.emitter.on('remove', this.onSubListRemove_);
+                subList.allItems().forEach(function (item) {
+                    _this.cache_.add(item);
+                });
+            }
+            this.emitter.emit('add', {
+                index: index,
+                item: item,
+                root: this,
+                target: this,
+            });
+        };
+        NestedOrderedSet.prototype.remove = function (item) {
+            var index = this.items_.indexOf(item);
+            if (index < 0) {
+                return;
+            }
+            this.items_.splice(index, 1);
+            this.cache_.delete(item);
+            var subList = this.extract_(item);
+            if (subList) {
+                subList.emitter.off('add', this.onSubListAdd_);
+                subList.emitter.off('remove', this.onSubListRemove_);
+            }
+            this.emitter.emit('remove', {
+                item: item,
+                root: this,
+                target: this,
+            });
+        };
+        NestedOrderedSet.prototype.onSubListAdd_ = function (ev) {
+            this.cache_.add(ev.item);
+            this.emitter.emit('add', {
+                index: ev.index,
+                item: ev.item,
+                root: this,
+                target: ev.target,
+            });
+        };
+        NestedOrderedSet.prototype.onSubListRemove_ = function (ev) {
+            this.cache_.delete(ev.item);
+            this.emitter.emit('remove', {
+                item: ev.item,
+                root: this,
+                target: ev.target,
+            });
+        };
+        return NestedOrderedSet;
+    }());
+
     var SVG_NS = 'http://www.w3.org/2000/svg';
     function forceReflow(element) {
         element.offsetHeight;
@@ -484,43 +614,6 @@
         return height;
     }
 
-    /**
-     * @hidden
-     */
-    var List = /** @class */ (function () {
-        function List() {
-            this.emitter = new Emitter();
-            this.items_ = [];
-        }
-        Object.defineProperty(List.prototype, "items", {
-            get: function () {
-                return this.items_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        List.prototype.add = function (item, opt_index) {
-            var index = opt_index !== undefined ? opt_index : this.items_.length;
-            this.items_.splice(index, 0, item);
-            this.emitter.emit('add', {
-                index: index,
-                item: item,
-                sender: this,
-            });
-        };
-        List.prototype.remove = function (item) {
-            var index = this.items_.indexOf(item);
-            if (index < 0) {
-                return;
-            }
-            this.items_.splice(index, 1);
-            this.emitter.emit('remove', {
-                sender: this,
-            });
-        };
-        return List;
-    }());
-
     function findInputBindingController(bcs, b) {
         for (var i = 0; i < bcs.length; i++) {
             var bc = bcs[i];
@@ -553,18 +646,20 @@
      */
     var BladeRack = /** @class */ (function () {
         function BladeRack() {
+            this.onListAdd_ = this.onListAdd_.bind(this);
+            this.onListRemove_ = this.onListRemove_.bind(this);
+            this.onItemDispose_ = this.onItemDispose_.bind(this);
+            this.onItemLayout_ = this.onItemLayout_.bind(this);
             this.onItemFolderFold_ = this.onItemFolderFold_.bind(this);
-            this.onListItemLayout_ = this.onListItemLayout_.bind(this);
+            this.onItemInputChange_ = this.onItemInputChange_.bind(this);
+            this.onItemMonitorUpdate_ = this.onItemMonitorUpdate_.bind(this);
             this.onSubitemLayout_ = this.onSubitemLayout_.bind(this);
             this.onSubitemFolderFold_ = this.onSubitemFolderFold_.bind(this);
             this.onSubitemInputChange_ = this.onSubitemInputChange_.bind(this);
             this.onSubitemMonitorUpdate_ = this.onSubitemMonitorUpdate_.bind(this);
-            this.onItemInputChange_ = this.onItemInputChange_.bind(this);
-            this.onListAdd_ = this.onListAdd_.bind(this);
-            this.onListItemDispose_ = this.onListItemDispose_.bind(this);
-            this.onListRemove_ = this.onListRemove_.bind(this);
-            this.onItemMonitorUpdate_ = this.onItemMonitorUpdate_.bind(this);
-            this.bcList_ = new List();
+            this.bcList_ = new NestedOrderedSet(function (bc) {
+                return bc instanceof FolderController ? bc.bladeRack.bcList_ : null;
+            });
             this.emitter = new Emitter();
             this.bcList_.emitter.on('add', this.onListAdd_);
             this.bcList_.emitter.on('remove', this.onListRemove_);
@@ -580,25 +675,24 @@
             this.bcList_.add(bc, opt_index);
         };
         BladeRack.prototype.find = function (controllerClass) {
-            return this.items.reduce(function (results, bc) {
-                if (bc instanceof FolderController) {
-                    results.push.apply(results, bc.bladeRack.find(controllerClass));
-                }
-                if (bc instanceof controllerClass) {
-                    results.push(bc);
-                }
-                return results;
-            }, []);
+            return forceCast(this.bcList_.allItems().filter(function (bc) {
+                return bc instanceof controllerClass;
+            }));
         };
         BladeRack.prototype.onListAdd_ = function (ev) {
-            var bc = ev.item;
+            var isRoot = ev.target === ev.root;
             this.emitter.emit('add', {
-                bladeController: bc,
+                bladeController: ev.item,
                 index: ev.index,
+                isRoot: isRoot,
                 sender: this,
             });
-            bc.blade.emitter.on('dispose', this.onListItemDispose_);
-            bc.blade.emitter.on('change', this.onListItemLayout_);
+            if (!isRoot) {
+                return;
+            }
+            var bc = ev.item;
+            bc.blade.emitter.on('dispose', this.onItemDispose_);
+            bc.blade.emitter.on('change', this.onItemLayout_);
             if (bc instanceof InputBindingController) {
                 bc.binding.emitter.on('change', this.onItemInputChange_);
             }
@@ -608,25 +702,45 @@
             else if (bc instanceof FolderController) {
                 bc.folder.emitter.on('change', this.onItemFolderFold_);
                 var emitter = bc.bladeRack.emitter;
-                emitter.on('itemfold', this.onSubitemFolderFold_);
-                emitter.on('itemlayout', this.onSubitemLayout_);
+                emitter.on('folderfold', this.onSubitemFolderFold_);
+                emitter.on('layout', this.onSubitemLayout_);
                 emitter.on('inputchange', this.onSubitemInputChange_);
                 emitter.on('monitorupdate', this.onSubitemMonitorUpdate_);
             }
         };
-        BladeRack.prototype.onListRemove_ = function (_) {
+        BladeRack.prototype.onListRemove_ = function (ev) {
+            var isRoot = ev.target === ev.root;
             this.emitter.emit('remove', {
+                isRoot: isRoot,
                 sender: this,
             });
+            if (!isRoot) {
+                return;
+            }
+            var bc = ev.item;
+            if (bc instanceof InputBindingController) {
+                bc.binding.emitter.off('change', this.onItemInputChange_);
+            }
+            else if (bc instanceof MonitorBindingController) {
+                bc.binding.emitter.off('update', this.onItemMonitorUpdate_);
+            }
+            else if (bc instanceof FolderController) {
+                bc.folder.emitter.off('change', this.onItemFolderFold_);
+                var emitter = bc.bladeRack.emitter;
+                emitter.off('folderfold', this.onSubitemFolderFold_);
+                emitter.off('layout', this.onSubitemLayout_);
+                emitter.off('inputchange', this.onSubitemInputChange_);
+                emitter.off('monitorupdate', this.onSubitemMonitorUpdate_);
+            }
         };
-        BladeRack.prototype.onListItemLayout_ = function (ev) {
+        BladeRack.prototype.onItemLayout_ = function (ev) {
             if (ev.propertyName === 'hidden' || ev.propertyName === 'positions') {
-                this.emitter.emit('itemlayout', {
+                this.emitter.emit('layout', {
                     sender: this,
                 });
             }
         };
-        BladeRack.prototype.onListItemDispose_ = function (_) {
+        BladeRack.prototype.onItemDispose_ = function (_) {
             var _this = this;
             var disposedUcs = this.bcList_.items.filter(function (bc) {
                 return bc.blade.disposed;
@@ -637,8 +751,9 @@
         };
         BladeRack.prototype.onItemInputChange_ = function (ev) {
             var ibc = findInputBindingController(this.find(InputBindingController), ev.sender);
+            /* istanbul ignore next */
             if (!ibc) {
-                return;
+                throw TpError.shouldNeverHappen();
             }
             this.emitter.emit('inputchange', {
                 bindingController: ibc,
@@ -647,8 +762,9 @@
         };
         BladeRack.prototype.onItemMonitorUpdate_ = function (ev) {
             var mbc = findMonitorBindingController(this.find(MonitorBindingController), ev.sender);
+            /* istanbul ignore next */
             if (!mbc) {
-                return;
+                throw TpError.shouldNeverHappen();
             }
             this.emitter.emit('monitorupdate', {
                 bindingController: mbc,
@@ -661,14 +777,14 @@
             }
             var fc = findFolderController(this.find(FolderController), ev.sender);
             if (fc) {
-                this.emitter.emit('itemfold', {
+                this.emitter.emit('folderfold', {
                     folderController: fc,
                     sender: this,
                 });
             }
         };
         BladeRack.prototype.onSubitemLayout_ = function (_) {
-            this.emitter.emit('itemlayout', {
+            this.emitter.emit('layout', {
                 sender: this,
             });
         };
@@ -685,7 +801,7 @@
             });
         };
         BladeRack.prototype.onSubitemFolderFold_ = function (ev) {
-            this.emitter.emit('itemfold', {
+            this.emitter.emit('folderfold', {
                 folderController: ev.folderController,
                 sender: this,
             });
@@ -872,18 +988,17 @@
             this.onFolderBeforeChange_ = this.onFolderBeforeChange_.bind(this);
             this.onTitleClick_ = this.onTitleClick_.bind(this);
             this.onRackAdd_ = this.onRackAdd_.bind(this);
-            this.onRackItemLayout_ = this.onRackItemLayout_.bind(this);
+            this.onRackLayout_ = this.onRackLayout_.bind(this);
             this.onRackRemove_ = this.onRackRemove_.bind(this);
             this.blade = config.blade;
             this.folder = new Folder(config.title, (_a = config.expanded) !== null && _a !== void 0 ? _a : true);
             this.folder.emitter.on('beforechange', this.onFolderBeforeChange_);
             var rack = new BladeRack();
             rack.emitter.on('add', this.onRackAdd_);
-            rack.emitter.on('itemlayout', this.onRackItemLayout_);
+            rack.emitter.on('layout', this.onRackLayout_);
             rack.emitter.on('remove', this.onRackRemove_);
             this.bladeRack = rack;
-            this.doc_ = doc;
-            this.view = new FolderView(this.doc_, {
+            this.view = new FolderView(doc, {
                 folder: this.folder,
                 hidesTitle: config.hidesTitle,
                 viewName: config.viewName,
@@ -894,7 +1009,7 @@
         }
         Object.defineProperty(FolderController.prototype, "document", {
             get: function () {
-                return this.doc_;
+                return this.view.element.ownerDocument;
             },
             enumerable: false,
             configurable: true
@@ -916,13 +1031,19 @@
             updateAllItemsPositions(this.bladeRack);
         };
         FolderController.prototype.onRackAdd_ = function (ev) {
+            if (!ev.isRoot) {
+                return;
+            }
             insertElementAt(this.view.containerElement, ev.bladeController.view.element, ev.index);
             this.applyRackChange_();
         };
-        FolderController.prototype.onRackRemove_ = function (_) {
+        FolderController.prototype.onRackRemove_ = function (ev) {
+            if (!ev.isRoot) {
+                return;
+            }
             this.applyRackChange_();
         };
-        FolderController.prototype.onRackItemLayout_ = function (_) {
+        FolderController.prototype.onRackLayout_ = function (_) {
             this.applyRackChange_();
         };
         FolderController.prototype.onContainerTransitionEnd_ = function (ev) {
@@ -1113,48 +1234,6 @@
         return InputBindingApi;
     }());
 
-    var CREATE_MESSAGE_MAP = {
-        alreadydisposed: function () { return 'View has been already disposed'; },
-        invalidparams: function (context) { return "Invalid parameters for '" + context.name + "'"; },
-        nomatchingcontroller: function (context) {
-            return "No matching controller for '" + context.key + "'";
-        },
-        notbindable: function () { return "Value is not bindable"; },
-        propertynotfound: function (context) { return "Property '" + context.name + "' not found"; },
-        shouldneverhappen: function () { return 'This error should never happen'; },
-    };
-    var TpError = /** @class */ (function () {
-        function TpError(config) {
-            var _a;
-            this.message = (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
-            this.name = this.constructor.name;
-            this.stack = new Error(this.message).stack;
-            this.type = config.type;
-        }
-        TpError.alreadyDisposed = function () {
-            return new TpError({ type: 'alreadydisposed' });
-        };
-        TpError.notBindable = function () {
-            return new TpError({
-                type: 'notbindable',
-            });
-        };
-        TpError.propertyNotFound = function (name) {
-            return new TpError({
-                type: 'propertynotfound',
-                context: {
-                    name: name,
-                },
-            });
-        };
-        TpError.shouldNeverHappen = function () {
-            return new TpError({ type: 'shouldneverhappen' });
-        };
-        return TpError;
-    }());
-    TpError.prototype = Object.create(Error.prototype);
-    TpError.prototype.constructor = TpError;
-
     /**
      * @hidden
      */
@@ -1257,7 +1336,9 @@
             value: value,
             writer: plugin.binding.writer(valueArgs),
         });
+        var blade = new Blade();
         var controller = plugin.controller({
+            blade: blade,
             document: args.document,
             initialValue: initialValue,
             params: args.params,
@@ -1265,9 +1346,9 @@
         });
         return new InputBindingController(args.document, {
             binding: binding,
+            blade: blade,
             controller: controller,
             label: args.params.label || args.target.key,
-            blade: new Blade(),
         });
     }
 
@@ -1376,7 +1457,7 @@
      * @hidden
      */
     function createPushedBuffer(buffer, newValue) {
-        var newBuffer = __spreadArrays(createTrimmedBuffer(buffer), [newValue]);
+        var newBuffer = __spreadArray(__spreadArray([], createTrimmedBuffer(buffer)), [newValue]);
         if (newBuffer.length > buffer.length) {
             newBuffer.splice(0, newBuffer.length - buffer.length);
         }
@@ -1512,15 +1593,17 @@
             ticker: createTicker(args.document, args.params.interval),
             value: initializeBuffer(bufferSize),
         });
+        var blade = new Blade();
         return new MonitorBindingController(args.document, {
             binding: binding,
             controller: plugin.controller({
+                blade: blade,
                 document: args.document,
                 params: args.params,
                 value: binding.value,
             }),
             label: args.params.label || args.target.key,
-            blade: new Blade(),
+            blade: blade,
         });
     }
 
@@ -1654,15 +1737,18 @@
         function FolderApi(controller) {
             this.onFolderChange_ = this.onFolderChange_.bind(this);
             this.onRackInputChange_ = this.onRackInputChange_.bind(this);
-            this.onRackItemFold_ = this.onRackItemFold_.bind(this);
+            this.onRackFolderFold_ = this.onRackFolderFold_.bind(this);
             this.onRackMonitorUpdate_ = this.onRackMonitorUpdate_.bind(this);
             this.controller = controller;
             this.emitter_ = new Emitter();
+            this.apiSet_ = new NestedOrderedSet(function (api) {
+                return api instanceof FolderApi ? api.apiSet_ : null;
+            });
             this.controller.folder.emitter.on('change', this.onFolderChange_);
             var rack = this.controller.bladeRack;
             rack.emitter.on('inputchange', this.onRackInputChange_);
             rack.emitter.on('monitorupdate', this.onRackMonitorUpdate_);
-            rack.emitter.on('itemfold', this.onRackItemFold_);
+            rack.emitter.on('folderfold', this.onRackFolderFold_);
         }
         Object.defineProperty(FolderApi.prototype, "expanded", {
             get: function () {
@@ -1691,18 +1777,24 @@
             var params = opt_params || {};
             var bc = createInputBindingController(this.controller.document, createBindingTarget(object, key, params.presetKey), params);
             this.controller.bladeRack.add(bc, params.index);
-            return new InputBindingApi(forceCast(bc));
+            var api = new InputBindingApi(bc);
+            this.apiSet_.add(api);
+            return api;
         };
         FolderApi.prototype.addMonitor = function (object, key, opt_params) {
             var params = opt_params || {};
             var bc = createMonitorBindingController(this.controller.document, createBindingTarget(object, key), params);
             this.controller.bladeRack.add(bc, params.index);
-            return new MonitorBindingApi(forceCast(bc));
+            var api = new MonitorBindingApi(bc);
+            this.apiSet_.add(api);
+            return forceCast(api);
         };
         FolderApi.prototype.addFolder = function (params) {
             var bc = new FolderController(this.controller.document, __assign(__assign({}, params), { blade: new Blade() }));
             this.controller.bladeRack.add(bc, params.index);
-            return new FolderApi(bc);
+            var api = new FolderApi(bc);
+            this.apiSet_.add(api);
+            return api;
         };
         FolderApi.prototype.addButton = function (params) {
             var doc = this.controller.document;
@@ -1712,7 +1804,9 @@
                 valueController: new ButtonController(doc, params),
             });
             this.controller.bladeRack.add(bc, params.index);
-            return new ButtonApi(bc);
+            var api = new ButtonApi(bc);
+            this.apiSet_.add(api);
+            return api;
         };
         FolderApi.prototype.addSeparator = function (opt_params) {
             var params = opt_params || {};
@@ -1720,7 +1814,9 @@
                 blade: new Blade(),
             });
             this.controller.bladeRack.add(bc, params.index);
-            return new SeparatorApi(bc);
+            var api = new SeparatorApi(bc);
+            this.apiSet_.add(api);
+            return api;
         };
         /**
          * Adds a global event listener. It handles all events of child inputs/monitors.
@@ -1735,23 +1831,45 @@
             return this;
         };
         FolderApi.prototype.onRackInputChange_ = function (ev) {
-            var bapi = new InputBindingApi(ev.bindingController);
+            var api = this.apiSet_.find(function (api) {
+                return api instanceof InputBindingApi
+                    ? api.controller === ev.bindingController
+                    : false;
+            });
+            /* istanbul ignore next */
+            if (!api) {
+                throw TpError.shouldNeverHappen();
+            }
             var binding = ev.bindingController.binding;
             this.emitter_.emit('change', {
-                event: new TpChangeEvent(bapi, forceCast(binding.target.read()), binding.target.presetKey),
+                event: new TpChangeEvent(api, forceCast(binding.target.read()), binding.target.presetKey),
             });
         };
         FolderApi.prototype.onRackMonitorUpdate_ = function (ev) {
-            var bapi = new MonitorBindingApi(ev.bindingController);
+            var api = this.apiSet_.find(function (api) {
+                return api instanceof MonitorBindingApi
+                    ? api.controller === ev.bindingController
+                    : false;
+            });
+            /* istanbul ignore next */
+            if (!api) {
+                throw TpError.shouldNeverHappen();
+            }
             var binding = ev.bindingController.binding;
             this.emitter_.emit('update', {
-                event: new TpUpdateEvent(bapi, forceCast(binding.target.read()), binding.target.presetKey),
+                event: new TpUpdateEvent(api, forceCast(binding.target.read()), binding.target.presetKey),
             });
         };
-        FolderApi.prototype.onRackItemFold_ = function (ev) {
-            var fapi = new FolderApi(ev.folderController);
+        FolderApi.prototype.onRackFolderFold_ = function (ev) {
+            var api = this.apiSet_.find(function (api) {
+                return api instanceof FolderApi ? api.controller === ev.folderController : false;
+            });
+            /* istanbul ignore next */
+            if (!api) {
+                throw TpError.shouldNeverHappen();
+            }
             this.emitter_.emit('fold', {
-                event: new TpFoldEvent(fapi, ev.folderController.folder.expanded),
+                event: new TpFoldEvent(api, ev.folderController.folder.expanded),
             });
         };
         FolderApi.prototype.onFolderChange_ = function (ev) {
@@ -2337,13 +2455,6 @@
             textElem.appendChild(this.textView.element);
             this.element.appendChild(textElem);
         }
-        Object.defineProperty(ColorSwatchTextView.prototype, "value", {
-            get: function () {
-                return this.textView.value;
-            },
-            enumerable: false,
-            configurable: true
-        });
         ColorSwatchTextView.prototype.update = function () {
             this.swatchView_.update();
             this.textView.update();
@@ -3783,7 +3894,7 @@
         }
         Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
             get: function () {
-                var elems = __spreadArrays([
+                var elems = __spreadArray([
                     this.svPaletteView_.element,
                     this.hPaletteView_.element
                 ], this.textView_.textViews.map(function (v) { return v.inputElement; }));
@@ -3791,13 +3902,6 @@
                     elems.push(this.alphaViews_.palette.element, this.alphaViews_.text.inputElement);
                 }
                 return forceCast(elems);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(ColorPickerView.prototype, "value", {
-            get: function () {
-                return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
@@ -3982,13 +4086,6 @@
             set: function (textViews) {
                 this.textViews_ = textViews;
                 this.applyTextViews_();
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(ColorTextView.prototype, "value", {
-            get: function () {
-                return this.pickedColor.value;
             },
             enumerable: false,
             configurable: true
@@ -4698,13 +4795,6 @@
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
         }
-        Object.defineProperty(SliderTextView.prototype, "value", {
-            get: function () {
-                return this.sliderView_.value;
-            },
-            enumerable: false,
-            configurable: true
-        });
         SliderTextView.prototype.update = function () {
             this.sliderView_.update();
             this.textView_.update();
@@ -4746,42 +4836,26 @@
         return SliderView;
     }());
 
-    function findRange(value) {
-        var c = value.constraint
-            ? findConstraint(value.constraint, RangeConstraint)
-            : null;
-        if (!c) {
-            return [undefined, undefined];
-        }
-        return [c.minValue, c.maxValue];
-    }
-    function estimateSuitableRange(value) {
-        var _a = findRange(value), min = _a[0], max = _a[1];
-        return [min !== null && min !== void 0 ? min : 0, max !== null && max !== void 0 ? max : 100];
-    }
     /**
      * @hidden
      */
     var SliderController = /** @class */ (function () {
         function SliderController(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
-            this.onPointerDown_ = this.onPointerDown_.bind(this);
-            this.onPointerMove_ = this.onPointerMove_.bind(this);
-            this.onPointerUp_ = this.onPointerUp_.bind(this);
+            this.onPoint_ = this.onPoint_.bind(this);
             this.value = config.value;
             this.baseStep_ = config.baseStep;
-            var _a = estimateSuitableRange(this.value), min = _a[0], max = _a[1];
-            this.minValue_ = min;
-            this.maxValue_ = max;
+            this.minValue_ = config.minValue;
+            this.maxValue_ = config.maxValue;
             this.view = new SliderView(doc, {
                 maxValue: this.maxValue_,
                 minValue: this.minValue_,
                 value: this.value,
             });
             this.ptHandler_ = new PointerHandler(this.view.trackElement);
-            this.ptHandler_.emitter.on('down', this.onPointerDown_);
-            this.ptHandler_.emitter.on('move', this.onPointerMove_);
-            this.ptHandler_.emitter.on('up', this.onPointerUp_);
+            this.ptHandler_.emitter.on('down', this.onPoint_);
+            this.ptHandler_.emitter.on('move', this.onPoint_);
+            this.ptHandler_.emitter.on('up', this.onPoint_);
             this.view.trackElement.addEventListener('keydown', this.onKeyDown_);
         }
         SliderController.prototype.handlePointerEvent_ = function (d) {
@@ -4790,13 +4864,7 @@
             }
             this.value.rawValue = mapRange(d.point.x, 0, d.bounds.width, this.minValue_, this.maxValue_);
         };
-        SliderController.prototype.onPointerDown_ = function (ev) {
-            this.handlePointerEvent_(ev.data);
-        };
-        SliderController.prototype.onPointerMove_ = function (ev) {
-            this.handlePointerEvent_(ev.data);
-        };
-        SliderController.prototype.onPointerUp_ = function (ev) {
+        SliderController.prototype.onPoint_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
         SliderController.prototype.onKeyDown_ = function (ev) {
@@ -4813,6 +4881,8 @@
             this.value = config.value;
             this.sliderIc_ = new SliderController(doc, {
                 baseStep: config.baseStep,
+                maxValue: config.maxValue,
+                minValue: config.minValue,
                 value: config.value,
             });
             this.textIc_ = new NumberTextController(doc, {
@@ -4872,6 +4942,17 @@
         }
         return new CompositeConstraint(constraints);
     }
+    function findRange(constraint) {
+        var c = constraint ? findConstraint(constraint, RangeConstraint) : null;
+        if (!c) {
+            return [undefined, undefined];
+        }
+        return [c.minValue, c.maxValue];
+    }
+    function estimateSuitableRange(constraint) {
+        var _a = findRange(constraint), min = _a[0], max = _a[1];
+        return [min !== null && min !== void 0 ? min : 0, max !== null && max !== void 0 ? max : 100];
+    }
     /**
      * @hidden
      */
@@ -4897,10 +4978,13 @@
             }
             var formatter = (_b = ('format' in args.params ? args.params.format : undefined)) !== null && _b !== void 0 ? _b : createNumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue));
             if (c && findConstraint(c, RangeConstraint)) {
+                var _c = estimateSuitableRange(c), min = _c[0], max = _c[1];
                 return new SliderTextController(args.document, {
                     baseStep: getBaseStep(c),
                     draggingScale: getSuitableDraggingScale(value.constraint, value.rawValue),
                     formatter: formatter,
+                    maxValue: max,
+                    minValue: min,
                     parser: parseNumber,
                     value: value,
                 });
@@ -4949,11 +5033,7 @@
                 axisElem.appendChild(v.element);
                 _this.element.appendChild(axisElem);
             });
-            this.value = config.value;
         }
-        PointNdTextView.prototype.update = function () {
-            // Each text view will be connected by ValueSync, so nothing to do here
-        };
         return PointNdTextView;
     }());
 
@@ -5002,7 +5082,6 @@
             });
             this.view = new PointNdTextView(doc, {
                 textViews: this.acs_.map(function (ac) { return ac.view; }),
-                value: this.value,
             });
         }
         return PointNdTextController;
@@ -5042,7 +5121,7 @@
     }());
     var Point2dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point2d.bind.apply(Point2d, __spreadArrays([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point2d.bind.apply(Point2d, __spreadArray([void 0], comps)))(); },
     };
 
     var className$4 = ClassName('p2dpadtxt');
@@ -5072,13 +5151,6 @@
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
         }
-        Object.defineProperty(Point2dPadTextView.prototype, "value", {
-            get: function () {
-                return this.textView_.value;
-            },
-            enumerable: false,
-            configurable: true
-        });
         Object.defineProperty(Point2dPadTextView.prototype, "padButtonElement", {
             get: function () {
                 return this.padButtonElem_;
@@ -5088,7 +5160,6 @@
         });
         Point2dPadTextView.prototype.update = function () {
             this.padView_.update();
-            this.textView_.update();
         };
         return Point2dPadTextView;
     }());
@@ -5454,7 +5525,7 @@
     }());
     var Point3dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point3d.bind.apply(Point3d, __spreadArrays([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point3d.bind.apply(Point3d, __spreadArray([void 0], comps)))(); },
     };
 
     /**
@@ -5582,7 +5653,7 @@
     }());
     var Point4dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point4d.bind.apply(Point4d, __spreadArrays([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point4d.bind.apply(Point4d, __spreadArray([void 0], comps)))(); },
     };
 
     /**
@@ -6159,7 +6230,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.1.2');
+        Tweakpane.version = new Semver('2.1.3');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
