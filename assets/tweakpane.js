@@ -1,4 +1,4 @@
-/*! Tweakpane 2.1.3 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.1.4 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -119,12 +119,13 @@
     }
 
     var className$l = ClassName('');
-    function setUpBladeView(view, model) {
-        var elem = view.element;
-        model.emitter.on('change', function (ev) {
+    function setUpBladeController(c) {
+        var elem = c.view.element;
+        var blade = c.blade;
+        blade.emitter.on('change', function (ev) {
             if (ev.propertyName === 'hidden') {
                 var hiddenClass = className$l(undefined, 'hidden');
-                if (model.hidden) {
+                if (blade.hidden) {
                     elem.classList.add(hiddenClass);
                 }
                 else {
@@ -135,16 +136,19 @@
                 getAllBladePositions().forEach(function (pos) {
                     elem.classList.remove(className$l(undefined, pos));
                 });
-                model.positions.forEach(function (pos) {
+                blade.positions.forEach(function (pos) {
                     elem.classList.add(className$l(undefined, pos));
                 });
             }
         });
-        model.emitter.on('dispose', function () {
-            if (view.onDispose) {
-                view.onDispose();
+        blade.emitter.on('dispose', function () {
+            if (c.view.onDispose) {
+                c.view.onDispose();
             }
             disposeElement(elem);
+            if (c.onDispose) {
+                c.onDispose();
+            }
         });
     }
 
@@ -160,8 +164,13 @@
             });
             this.view.valueElement.appendChild(this.controller.view.element);
             this.blade = config.blade;
-            setUpBladeView(this.view, this.blade);
+            setUpBladeController(this);
         }
+        InputBindingController.prototype.onDispose = function () {
+            if (this.controller.onDispose) {
+                this.controller.onDispose();
+            }
+        };
         return InputBindingController;
     }());
 
@@ -181,8 +190,13 @@
             this.blade.emitter.on('dispose', function () {
                 _this.binding.dispose();
             });
-            setUpBladeView(this.view, this.blade);
+            setUpBladeController(this);
         }
+        MonitorBindingController.prototype.onDispose = function () {
+            if (this.controller.onDispose) {
+                this.controller.onDispose();
+            }
+        };
         return MonitorBindingController;
     }());
 
@@ -1005,7 +1019,7 @@
             });
             this.view.titleElement.addEventListener('click', this.onTitleClick_);
             this.view.containerElement.addEventListener('transitionend', this.onContainerTransitionEnd_);
-            setUpBladeView(this.view, this.blade);
+            setUpBladeController(this);
         }
         Object.defineProperty(FolderController.prototype, "document", {
             get: function () {
@@ -1064,7 +1078,7 @@
                 label: config.label,
             });
             this.view.valueElement.appendChild(this.valueController.view.element);
-            setUpBladeView(this.view, this.blade);
+            setUpBladeController(this);
         }
         return LabeledController;
     }());
@@ -1091,7 +1105,7 @@
         function SeparatorController(doc, config) {
             this.blade = config.blade;
             this.view = new SeparatorView(doc);
-            setUpBladeView(this.view, this.blade);
+            setUpBladeController(this);
         }
         return SeparatorController;
     }());
@@ -1336,14 +1350,13 @@
             value: value,
             writer: plugin.binding.writer(valueArgs),
         });
-        var blade = new Blade();
         var controller = plugin.controller({
-            blade: blade,
             document: args.document,
             initialValue: initialValue,
             params: args.params,
             value: binding.value,
         });
+        var blade = new Blade();
         return new InputBindingController(args.document, {
             binding: binding,
             blade: blade,
@@ -1597,7 +1610,6 @@
         return new MonitorBindingController(args.document, {
             binding: binding,
             controller: plugin.controller({
-                blade: blade,
                 document: args.document,
                 params: args.params,
                 value: binding.value,
@@ -6230,7 +6242,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.1.3');
+        Tweakpane.version = new Semver('2.1.4');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
