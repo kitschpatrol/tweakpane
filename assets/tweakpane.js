@@ -1,4 +1,4 @@
-/*! Tweakpane 2.1.4 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.1.5 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -170,6 +170,9 @@
             if (this.controller.onDispose) {
                 this.controller.onDispose();
             }
+            if (this.controller.view.onDispose) {
+                this.controller.view.onDispose();
+            }
         };
         return InputBindingController;
     }());
@@ -195,6 +198,9 @@
         MonitorBindingController.prototype.onDispose = function () {
             if (this.controller.onDispose) {
                 this.controller.onDispose();
+            }
+            if (this.controller.view.onDispose) {
+                this.controller.view.onDispose();
             }
         };
         return MonitorBindingController;
@@ -6242,7 +6248,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.1.4');
+        Tweakpane.version = new Semver('2.1.5');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
