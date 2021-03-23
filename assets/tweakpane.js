@@ -1,4 +1,4 @@
-/*! Tweakpane 2.1.5 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.1.6 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -1034,6 +1034,12 @@
             enumerable: false,
             configurable: true
         });
+        FolderController.prototype.onDispose = function () {
+            for (var i = this.bladeRack.items.length - 1; i >= 0; i--) {
+                var bc = this.bladeRack.items[i];
+                bc.blade.dispose();
+            }
+        };
         FolderController.prototype.onFolderBeforeChange_ = function (ev) {
             if (ev.propertyName !== 'expanded') {
                 return;
@@ -6248,7 +6254,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.1.5');
+        Tweakpane.version = new Semver('2.1.6');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
