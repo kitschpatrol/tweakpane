@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="theming">
+<html lang="en" class="plugin">
 <head>
 	<meta charset="UTF-8">
 	
-	<title>Theming | Tweakpane</title>
+	<title>Catalog | Tweakpane</title>
 	
 	<meta name="viewport" content="initial-scale=1,minimum-scale=1,maximum-scale=1">
 	<meta name="og:description" content="A compact pane for fine-tuning parameters and monitoring value changes">
@@ -18,7 +18,7 @@
 	<link rel="stylesheet" href="assets/bundle.css">
 </head>
 <body>
-	<div class="main main-theming">
+	<div class="main main-plugin">
 		<div class="main_globalHeaderLayout">
 			<div class="globalHeader">
 	<div class="globalHeader_innerLayout">
@@ -153,65 +153,69 @@
 				<div class="main_pageHeaderLayout">
 					
 <div class="pageHeader">
+	<div class="pageHeader_sketchContainer"></div>
 	<div class="pageHeader_innerLayout">
 		<div class="pageHeader_titleLayout">
-			<h1 class="pageHeader_title">Theming</h1>
-			<p>Tweakpane can be themed easily with CSS variable.</p>
-		</div>
-		<div class="pageHeader_paneLayout">
-			<div class="paneContainer" data-pane-header data-preview-css></div>
+			<h1 class="pageHeader_title">Catalog</h1>
 		</div>
 	</div>
-	<div class="photoCredit">Photo by <a href="https://unsplash.com/photos/u27Rrbs9Dwc" target="_blank">Clay Banks</a></div>
 </div>
 
 				</div>
 				<div class="main_innerLayout">
 					
-<p>Add <code>--tp-*</code> variables to the container element to change pane colors. All themeable variables are listed below:</p>
-
+<h2 id="inputs">Inputs</h2>
 <div class="main_mediaLayout">
-	<div class="demo">
-		<div class="demo_codeLayout">
-			<div class="codeBlock">
-				<pre><code class="html" data-exampleCss></code></pre>
-				<div class="codeBlock_title">
-					.html
-				</div>
-			</div>
+	<div class="catalog">
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-numberinput></div>
+		</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-stringinput></div>
+		</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-boolinput></div>
+		</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-colorinput></div>
+		</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-pointinput></div>
 		</div>
 	</div>
 </div>
 
-<h2 id="builder">Theme builder</h2>
-<p>You can build your own theme with Panepaint!</p>
+
+<h2 id="monitors">Monitors</h2>
 <div class="main_mediaLayout">
-	<div class="paint">
-		<div class="paint_gui">
-			<div class="paint_controller">
-				<div class="paneContainer" data-pane-controller>
-				</div>
-			</div>
-			<div class="paint_preview">
-				<div class="paneContainer" data-pane-preview data-preview-css>
-					<div class="paint_bgImage"></div>
-					<div class="photoCredit" style="visibility: hidden;">Photo by <a href="https://unsplash.com/collections/91620523" target="_blank">Unsplash</a></div>
-					<div class="photoCredit">Photo by <a href="https://unsplash.com/photos/74ft3aciAY0" target="_blank">Mak</a></div>
-				</div>
-			</div>
+	<div class="catalog">
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-numbermonitor></div>
 		</div>
-		<div class="paint_code">
-			<div class="demo">
-				<div class="demo_codeLayout">
-					<div class="codeBlock">
-						<pre><code class="html" data-preview-code></code></pre>
-					</div>
-				</div>
-			</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-stringmonitor></div>
+		</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-boolmonitor></div>
 		</div>
 	</div>
 </div>
 
+
+<h2 id="uicomps">UI components</h2>
+<div class="main_mediaLayout">
+	<div class="catalog">
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-folder></div>
+		</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-button></div>
+		</div>
+		<div class="catalog_item">
+			<div class="paneContainer" data-pane-separator></div>
+		</div>
+	</div>
+</div>
 
 				</div>
 				<div class="main_globalFooterLayout">
@@ -231,6 +235,9 @@
 	<script async defer src="https://buttons.github.io/buttons.js"></script>
 	<script src="assets/tweakpane.js"></script>
 	
+<script src="https://cdn.jsdelivr.net/npm/tweakpane-plugin-interval@0.2.2/dist/tweakpane-plugin-interval.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tweakpane-plugin-camerakit@0.1.1/dist/tweakpane-plugin-camerakit.min.js"></script>
+
 	<script src="assets/bundle.js"></script>
 </body>
 </html>

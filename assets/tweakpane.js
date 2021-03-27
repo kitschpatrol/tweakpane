@@ -1,4 +1,4 @@
-/*! Tweakpane 2.1.6 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.2.0 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -68,6 +68,48 @@
         return fn;
     }
 
+    function compose(h1, h2) {
+        return function (input) { return h2(h1(input)); };
+    }
+    function extractValue(ev) {
+        return ev.value;
+    }
+    function applyClass(elem, className, active) {
+        if (active) {
+            elem.classList.add(className);
+        }
+        else {
+            elem.classList.remove(className);
+        }
+    }
+    var className$n = ClassName('');
+    function updateModifier(elem, modifier) {
+        return function (value) {
+            applyClass(elem, className$n(undefined, modifier), value);
+        };
+    }
+    function updateDisabled(target) {
+        return function (value) {
+            target.disabled = value;
+        };
+    }
+    function bindViewProps(viewProps, elem) {
+        viewProps
+            .valueEmitter('disabled')
+            .on('change', compose(extractValue, updateModifier(elem, 'disabled')));
+        updateModifier(elem, 'disabled')(viewProps.get('disabled'));
+        viewProps
+            .valueEmitter('hidden')
+            .on('change', compose(extractValue, updateModifier(elem, 'hidden')));
+        updateModifier(elem, 'hidden')(viewProps.get('hidden'));
+    }
+    function bindDisabled(viewProps, target) {
+        viewProps
+            .valueEmitter('disabled')
+            .on('change', compose(extractValue, updateDisabled(target)));
+        updateDisabled(target)(viewProps.get('disabled'));
+    }
+
     var className$m = ClassName('lbl');
     function createLabelNode(doc, label) {
         var frag = doc.createDocumentFragment();
@@ -90,6 +132,7 @@
             this.label = config.label;
             this.element = doc.createElement('div');
             this.element.classList.add(className$m());
+            bindViewProps(config.viewProps, this.element);
             if (this.label !== undefined) {
                 var labelElem = doc.createElement('div');
                 labelElem.classList.add(className$m('l'));
@@ -123,16 +166,7 @@
         var elem = c.view.element;
         var blade = c.blade;
         blade.emitter.on('change', function (ev) {
-            if (ev.propertyName === 'hidden') {
-                var hiddenClass = className$l(undefined, 'hidden');
-                if (blade.hidden) {
-                    elem.classList.add(hiddenClass);
-                }
-                else {
-                    elem.classList.remove(hiddenClass);
-                }
-            }
-            else if (ev.propertyName === 'positions') {
+            if (ev.propertyName === 'positions') {
                 getAllBladePositions().forEach(function (pos) {
                     elem.classList.remove(className$l(undefined, pos));
                 });
@@ -161,11 +195,19 @@
             this.controller = config.controller;
             this.view = new LabeledView(doc, {
                 label: config.label,
+                viewProps: this.viewProps,
             });
             this.view.valueElement.appendChild(this.controller.view.element);
             this.blade = config.blade;
             setUpBladeController(this);
         }
+        Object.defineProperty(InputBindingController.prototype, "viewProps", {
+            get: function () {
+                return this.controller.viewProps;
+            },
+            enumerable: false,
+            configurable: true
+        });
         InputBindingController.prototype.onDispose = function () {
             if (this.controller.onDispose) {
                 this.controller.onDispose();
@@ -182,20 +224,26 @@
      */
     var MonitorBindingController = /** @class */ (function () {
         function MonitorBindingController(doc, config) {
-            var _this = this;
             this.binding = config.binding;
             this.controller = config.controller;
+            bindDisabled(this.viewProps, this.binding.ticker);
             this.view = new LabeledView(doc, {
                 label: config.label,
+                viewProps: this.viewProps,
             });
             this.view.valueElement.appendChild(this.controller.view.element);
             this.blade = config.blade;
-            this.blade.emitter.on('dispose', function () {
-                _this.binding.dispose();
-            });
             setUpBladeController(this);
         }
+        Object.defineProperty(MonitorBindingController.prototype, "viewProps", {
+            get: function () {
+                return this.controller.viewProps;
+            },
+            enumerable: false,
+            configurable: true
+        });
         MonitorBindingController.prototype.onDispose = function () {
+            this.binding.dispose();
             if (this.controller.onDispose) {
                 this.controller.onDispose();
             }
@@ -295,12 +343,15 @@
      */
     var ButtonView = /** @class */ (function () {
         function ButtonView(doc, config) {
-            this.button = config.button;
+            this.button_ = config.button;
+            this.viewProps_ = config.viewProps;
             this.element = doc.createElement('div');
             this.element.classList.add(className$k());
+            bindViewProps(this.viewProps_, this.element);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$k('b'));
-            buttonElem.textContent = this.button.title;
+            buttonElem.textContent = this.button_.title;
+            bindDisabled(this.viewProps_, buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
         }
@@ -314,8 +365,10 @@
         function ButtonController(doc, config) {
             this.onButtonClick_ = this.onButtonClick_.bind(this);
             this.button = new Button(config.title);
+            this.viewProps = config.viewProps;
             this.view = new ButtonView(doc, {
                 button: this.button,
+                viewProps: this.viewProps,
             });
             this.view.buttonElement.addEventListener('click', this.onButtonClick_);
         }
@@ -355,30 +408,12 @@
 
     var Blade = /** @class */ (function () {
         function Blade() {
-            this.onDispose_ = this.onDispose_.bind(this);
             this.emitter = new Emitter();
-            this.positions_ = [];
-            this.hidden_ = false;
             this.disposable_ = new Disposable();
+            this.positions_ = [];
+            this.onDispose_ = this.onDispose_.bind(this);
             this.disposable_.emitter.on('dispose', this.onDispose_);
         }
-        Object.defineProperty(Blade.prototype, "hidden", {
-            get: function () {
-                return this.hidden_;
-            },
-            set: function (hidden) {
-                if (this.hidden_ === hidden) {
-                    return;
-                }
-                this.hidden_ = hidden;
-                this.emitter.emit('change', {
-                    propertyName: 'hidden',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
         Object.defineProperty(Blade.prototype, "positions", {
             get: function () {
                 return this.positions_;
@@ -601,7 +636,7 @@
     }
 
     function updateAllItemsPositions(bladeRack) {
-        var visibleItems = bladeRack.items.filter(function (bc) { return !bc.blade.hidden; });
+        var visibleItems = bladeRack.items.filter(function (bc) { return !bc.viewProps.get('hidden'); });
         var firstVisibleItem = visibleItems[0];
         var lastVisibleItem = visibleItems[visibleItems.length - 1];
         bladeRack.items.forEach(function (bc) {
@@ -673,6 +708,7 @@
             this.onItemFolderFold_ = this.onItemFolderFold_.bind(this);
             this.onItemInputChange_ = this.onItemInputChange_.bind(this);
             this.onItemMonitorUpdate_ = this.onItemMonitorUpdate_.bind(this);
+            this.onItemViewPropsChange_ = this.onItemViewPropsChange_.bind(this);
             this.onSubitemLayout_ = this.onSubitemLayout_.bind(this);
             this.onSubitemFolderFold_ = this.onSubitemFolderFold_.bind(this);
             this.onSubitemInputChange_ = this.onSubitemInputChange_.bind(this);
@@ -712,6 +748,7 @@
             }
             var bc = ev.item;
             bc.blade.emitter.on('dispose', this.onItemDispose_);
+            bc.viewProps.emitter.on('change', this.onItemViewPropsChange_);
             bc.blade.emitter.on('change', this.onItemLayout_);
             if (bc instanceof InputBindingController) {
                 bc.binding.emitter.on('change', this.onItemInputChange_);
@@ -754,11 +791,16 @@
             }
         };
         BladeRack.prototype.onItemLayout_ = function (ev) {
-            if (ev.propertyName === 'hidden' || ev.propertyName === 'positions') {
+            if (ev.propertyName === 'positions') {
                 this.emitter.emit('layout', {
                     sender: this,
                 });
             }
+        };
+        BladeRack.prototype.onItemViewPropsChange_ = function (_ev) {
+            this.emitter.emit('layout', {
+                sender: this,
+            });
         };
         BladeRack.prototype.onItemDispose_ = function (_) {
             var _this = this;
@@ -964,12 +1006,14 @@
             this.className_ = ClassName(config.viewName || 'fld');
             this.element = doc.createElement('div');
             this.element.classList.add(this.className_());
+            bindViewProps(config.viewProps, this.element);
             var titleElem = doc.createElement('button');
             titleElem.classList.add(this.className_('t'));
             titleElem.textContent = this.folder_.title;
             if (config.hidesTitle) {
                 titleElem.style.display = 'none';
             }
+            bindDisabled(config.viewProps, titleElem);
             this.element.appendChild(titleElem);
             this.titleElement = titleElem;
             var markElem = doc.createElement('div');
@@ -1011,6 +1055,7 @@
             this.onRackLayout_ = this.onRackLayout_.bind(this);
             this.onRackRemove_ = this.onRackRemove_.bind(this);
             this.blade = config.blade;
+            this.viewProps = config.viewProps;
             this.folder = new Folder(config.title, (_a = config.expanded) !== null && _a !== void 0 ? _a : true);
             this.folder.emitter.on('beforechange', this.onFolderBeforeChange_);
             var rack = new BladeRack();
@@ -1022,6 +1067,7 @@
                 folder: this.folder,
                 hidesTitle: config.hidesTitle,
                 viewName: config.viewName,
+                viewProps: this.viewProps,
             });
             this.view.titleElement.addEventListener('click', this.onTitleClick_);
             this.view.containerElement.addEventListener('transitionend', this.onContainerTransitionEnd_);
@@ -1088,10 +1134,18 @@
             this.valueController = config.valueController;
             this.view = new LabeledView(doc, {
                 label: config.label,
+                viewProps: this.viewProps,
             });
             this.view.valueElement.appendChild(this.valueController.view.element);
             setUpBladeController(this);
         }
+        Object.defineProperty(LabeledController.prototype, "viewProps", {
+            get: function () {
+                return this.valueController.viewProps;
+            },
+            enumerable: false,
+            configurable: true
+        });
         return LabeledController;
     }());
 
@@ -1100,9 +1154,10 @@
      * @hidden
      */
     var SeparatorView = /** @class */ (function () {
-        function SeparatorView(doc) {
+        function SeparatorView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$j());
+            bindViewProps(config.viewProps, this.element);
             var hrElem = doc.createElement('hr');
             hrElem.classList.add(className$j('r'));
             this.element.appendChild(hrElem);
@@ -1116,11 +1171,81 @@
     var SeparatorController = /** @class */ (function () {
         function SeparatorController(doc, config) {
             this.blade = config.blade;
-            this.view = new SeparatorView(doc);
+            this.viewProps = config.viewProps;
+            this.view = new SeparatorView(doc, {
+                viewProps: this.viewProps,
+            });
             setUpBladeController(this);
         }
         return SeparatorController;
     }());
+
+    // TODO: Integrate it with `./value`
+    var SingleValue = /** @class */ (function () {
+        function SingleValue(initialValue) {
+            this.emitter = new Emitter();
+            this.value_ = initialValue;
+        }
+        Object.defineProperty(SingleValue.prototype, "value", {
+            get: function () {
+                return this.value_;
+            },
+            set: function (value) {
+                if (this.value_ === value) {
+                    return;
+                }
+                this.value_ = value;
+                this.emitter.emit('change', {
+                    sender: this,
+                    value: this.value_,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return SingleValue;
+    }());
+    var ValueMap = /** @class */ (function () {
+        function ValueMap(initialValue) {
+            var _this = this;
+            this.emitter = new Emitter();
+            var keys = Object.keys(initialValue);
+            var props = keys.map(function (key) { return new SingleValue(initialValue[key]); });
+            props.forEach(function (prop, index) {
+                prop.emitter.on('change', function () {
+                    _this.emitter.emit('change', {
+                        key: keys[index],
+                        sender: _this,
+                    });
+                });
+            });
+            this.valMap_ = keys.reduce(function (o, key, index) {
+                var _a;
+                return Object.assign(o, (_a = {},
+                    _a[key] = props[index],
+                    _a));
+            }, {});
+        }
+        ValueMap.prototype.get = function (key) {
+            return this.valMap_[key].value;
+        };
+        ValueMap.prototype.set = function (key, value) {
+            this.valMap_[key].value = value;
+        };
+        ValueMap.prototype.valueEmitter = function (key) {
+            return this.valMap_[key].emitter;
+        };
+        return ValueMap;
+    }());
+
+    function createViewProps(opt_initialValue) {
+        var _a, _b;
+        var initialValue = opt_initialValue !== null && opt_initialValue !== void 0 ? opt_initialValue : {};
+        return new ValueMap({
+            disabled: (_a = initialValue.disabled) !== null && _a !== void 0 ? _a : false,
+            hidden: (_b = initialValue.hidden) !== null && _b !== void 0 ? _b : false,
+        });
+    }
 
     var ButtonApi = /** @class */ (function () {
         /**
@@ -1129,12 +1254,22 @@
         function ButtonApi(buttonController) {
             this.controller = buttonController;
         }
+        Object.defineProperty(ButtonApi.prototype, "disabled", {
+            get: function () {
+                return this.controller.viewProps.get('disabled');
+            },
+            set: function (disabled) {
+                this.controller.viewProps.set('disabled', disabled);
+            },
+            enumerable: false,
+            configurable: true
+        });
         Object.defineProperty(ButtonApi.prototype, "hidden", {
             get: function () {
-                return this.controller.blade.hidden;
+                return this.controller.viewProps.get('hidden');
             },
             set: function (hidden) {
-                this.controller.blade.hidden = hidden;
+                this.controller.viewProps.set('hidden', hidden);
             },
             enumerable: false,
             configurable: true
@@ -1228,12 +1363,22 @@
             this.controller = bindingController;
             this.controller.binding.emitter.on('change', this.onBindingChange_);
         }
+        Object.defineProperty(InputBindingApi.prototype, "disabled", {
+            get: function () {
+                return this.controller.viewProps.get('disabled');
+            },
+            set: function (disabled) {
+                this.controller.viewProps.set('disabled', disabled);
+            },
+            enumerable: false,
+            configurable: true
+        });
         Object.defineProperty(InputBindingApi.prototype, "hidden", {
             get: function () {
-                return this.controller.blade.hidden;
+                return this.controller.viewProps.get('hidden');
             },
             set: function (hidden) {
-                this.controller.blade.hidden = hidden;
+                this.controller.viewProps.set('hidden', hidden);
             },
             enumerable: false,
             configurable: true
@@ -1338,7 +1483,177 @@
         return Value;
     }());
 
-    function createController$6(plugin, args) {
+    /**
+     * A constraint to combine multiple constraints.
+     * @template T The type of the value.
+     */
+    var CompositeConstraint = /** @class */ (function () {
+        function CompositeConstraint(constraints) {
+            this.constraints = constraints;
+        }
+        CompositeConstraint.prototype.constrain = function (value) {
+            return this.constraints.reduce(function (result, c) {
+                return c.constrain(result);
+            }, value);
+        };
+        return CompositeConstraint;
+    }());
+    function findConstraint(c, constraintClass) {
+        if (c instanceof constraintClass) {
+            return c;
+        }
+        if (c instanceof CompositeConstraint) {
+            var result = c.constraints.reduce(function (tmpResult, sc) {
+                if (tmpResult) {
+                    return tmpResult;
+                }
+                return sc instanceof constraintClass ? sc : null;
+            }, null);
+            if (result) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * A list constranit.
+     * @template T The type of the value.
+     */
+    var ListConstraint = /** @class */ (function () {
+        function ListConstraint(options) {
+            this.options = options;
+        }
+        ListConstraint.prototype.constrain = function (value) {
+            var opts = this.options;
+            if (opts.length === 0) {
+                return value;
+            }
+            var matched = opts.filter(function (item) {
+                return item.value === value;
+            }).length > 0;
+            return matched ? value : opts[0].value;
+        };
+        return ListConstraint;
+    }());
+
+    /**
+     * A number step range constraint.
+     */
+    var StepConstraint = /** @class */ (function () {
+        function StepConstraint(step) {
+            this.step = step;
+        }
+        StepConstraint.prototype.constrain = function (value) {
+            var r = value < 0
+                ? -Math.round(-value / this.step)
+                : Math.round(value / this.step);
+            return r * this.step;
+        };
+        return StepConstraint;
+    }());
+
+    function mapRange(value, start1, end1, start2, end2) {
+        var p = (value - start1) / (end1 - start1);
+        return start2 + p * (end2 - start2);
+    }
+    function getDecimalDigits(value) {
+        var text = String(value.toFixed(10));
+        var frac = text.split('.')[1];
+        return frac.replace(/0+$/, '').length;
+    }
+    function constrainRange(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+    function loopRange(value, max) {
+        return ((value % max) + max) % max;
+    }
+
+    function normalizeInputParamsOptions(options, convert) {
+        if (Array.isArray(options)) {
+            return options.map(function (item) {
+                return {
+                    text: item.text,
+                    value: convert(item.value),
+                };
+            });
+        }
+        var textToValueMap = options;
+        var texts = Object.keys(textToValueMap);
+        return texts.reduce(function (result, text) {
+            return result.concat({
+                text: text,
+                value: convert(textToValueMap[text]),
+            });
+        }, []);
+    }
+    /**
+     * Tries to create a list constraint.
+     * @template T The type of the raw value.
+     * @param params The input parameters object.
+     * @param convert The converter that converts unknown value into T.
+     * @return A constraint or null if not found.
+     */
+    function createListConstraint(params, convert) {
+        if ('options' in params && params.options !== undefined) {
+            return new ListConstraint(normalizeInputParamsOptions(params.options, convert));
+        }
+        return null;
+    }
+    /**
+     * @hidden
+     */
+    function findListItems(constraint) {
+        var c = constraint
+            ? findConstraint(constraint, ListConstraint)
+            : null;
+        if (!c) {
+            return null;
+        }
+        return c.options;
+    }
+    function findStep(constraint) {
+        var c = constraint ? findConstraint(constraint, StepConstraint) : null;
+        if (!c) {
+            return null;
+        }
+        return c.step;
+    }
+    /**
+     * @hidden
+     */
+    function getSuitableDecimalDigits(constraint, rawValue) {
+        var sc = constraint && findConstraint(constraint, StepConstraint);
+        if (sc) {
+            return getDecimalDigits(sc.step);
+        }
+        return Math.max(getDecimalDigits(rawValue), 2);
+    }
+    /**
+     * @hidden
+     */
+    function getBaseStep(constraint) {
+        var step = findStep(constraint);
+        return step !== null && step !== void 0 ? step : 1;
+    }
+    /**
+     * @hidden
+     */
+    function getSuitableDraggingScale(constraint, rawValue) {
+        var _a;
+        var sc = constraint && findConstraint(constraint, StepConstraint);
+        var base = Math.abs((_a = sc === null || sc === void 0 ? void 0 : sc.step) !== null && _a !== void 0 ? _a : rawValue);
+        return base === 0 ? 0.1 : Math.pow(10, Math.floor(Math.log10(base)) - 1);
+    }
+    // TODO: Remove polyfill in the next major release
+    function polyfillViewProps(controller, pluginId) {
+        if (!controller.viewProps) {
+            controller.viewProps = createViewProps();
+            console.warn("Missing controller.viewProps (plugin: '" + pluginId + "')\nThis polyfill will be removed in the next major version.");
+        }
+    }
+
+    function createController$1(plugin, args) {
         var initialValue = plugin.accept(args.target.read(), args.params);
         if (initialValue === null) {
             return null;
@@ -1367,7 +1682,11 @@
             initialValue: initialValue,
             params: args.params,
             value: binding.value,
+            viewProps: createViewProps({
+                disabled: args.params.disabled,
+            }),
         });
+        polyfillViewProps(controller, plugin.id);
         var blade = new Blade();
         return new InputBindingController(args.document, {
             binding: binding,
@@ -1392,7 +1711,7 @@
         }
         var bc = Plugins.inputs.reduce(function (result, plugin) {
             return result ||
-                createController$6(plugin, {
+                createController$1(plugin, {
                     document: document,
                     target: target,
                     params: params,
@@ -1422,12 +1741,22 @@
             this.controller = bindingController;
             this.controller.binding.emitter.on('update', this.onBindingUpdate_);
         }
+        Object.defineProperty(MonitorBindingApi.prototype, "disabled", {
+            get: function () {
+                return this.controller.viewProps.get('disabled');
+            },
+            set: function (disabled) {
+                this.controller.viewProps.set('disabled', disabled);
+            },
+            enumerable: false,
+            configurable: true
+        });
         Object.defineProperty(MonitorBindingApi.prototype, "hidden", {
             get: function () {
-                return this.controller.blade.hidden;
+                return this.controller.viewProps.get('hidden');
             },
             set: function (hidden) {
-                this.controller.blade.hidden = hidden;
+                this.controller.viewProps.set('hidden', hidden);
             },
             enumerable: false,
             configurable: true
@@ -1534,21 +1863,15 @@
     var IntervalTicker = /** @class */ (function () {
         function IntervalTicker(doc, interval) {
             var _this = this;
-            this.id_ = null;
+            this.disabled_ = false;
+            this.timerId_ = null;
             this.onTick_ = this.onTick_.bind(this);
             // this.onWindowBlur_ = this.onWindowBlur_.bind(this);
             // this.onWindowFocus_ = this.onWindowFocus_.bind(this);
             this.doc_ = doc;
             this.emitter = new Emitter();
-            if (interval <= 0) {
-                this.id_ = null;
-            }
-            else {
-                var win = this.doc_.defaultView;
-                if (win) {
-                    this.id_ = win.setInterval(this.onTick_, interval);
-                }
-            }
+            this.interval_ = interval;
+            this.setTimer_();
             // TODO: Stop on blur?
             // const win = document.defaultView;
             // if (win) {
@@ -1557,19 +1880,49 @@
             // }
             this.disposable = new Disposable();
             this.disposable.emitter.on('dispose', function () {
-                if (_this.id_ !== null) {
-                    var win = _this.doc_.defaultView;
-                    if (win) {
-                        win.clearInterval(_this.id_);
-                    }
-                }
-                _this.id_ = null;
+                _this.clearTimer_();
             });
         }
+        Object.defineProperty(IntervalTicker.prototype, "disabled", {
+            get: function () {
+                return this.disabled_;
+            },
+            set: function (inactive) {
+                this.disabled_ = inactive;
+                if (this.disabled_) {
+                    this.clearTimer_();
+                }
+                else {
+                    this.setTimer_();
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        IntervalTicker.prototype.clearTimer_ = function () {
+            if (this.timerId_ === null) {
+                return;
+            }
+            var win = this.doc_.defaultView;
+            if (win) {
+                win.clearInterval(this.timerId_);
+            }
+            this.timerId_ = null;
+        };
+        IntervalTicker.prototype.setTimer_ = function () {
+            this.clearTimer_();
+            if (this.interval_ <= 0) {
+                return;
+            }
+            var win = this.doc_.defaultView;
+            if (win) {
+                this.timerId_ = win.setInterval(this.onTick_, this.interval_);
+            }
+        };
         IntervalTicker.prototype.onTick_ = function () {
-            // if (!this.active_) {
-            // 	return;
-            // }
+            if (this.disabled_) {
+                return;
+            }
             this.emitter.emit('tick', {
                 sender: this,
             });
@@ -1582,10 +1935,14 @@
      */
     var ManualTicker = /** @class */ (function () {
         function ManualTicker() {
+            this.disabled = false;
             this.disposable = new Disposable();
             this.emitter = new Emitter();
         }
         ManualTicker.prototype.tick = function () {
+            if (this.disabled) {
+                return;
+            }
             this.emitter.emit('tick', {
                 sender: this,
             });
@@ -1598,7 +1955,7 @@
             ? new ManualTicker()
             : new IntervalTicker(document, interval !== null && interval !== void 0 ? interval : Constants.monitor.defaultInterval);
     }
-    function createController$5(plugin, args) {
+    function createController(plugin, args) {
         var _a, _b;
         var initialValue = plugin.accept(args.target.read(), args.params);
         if (initialValue === null) {
@@ -1618,14 +1975,19 @@
             ticker: createTicker(args.document, args.params.interval),
             value: initializeBuffer(bufferSize),
         });
+        var controller = plugin.controller({
+            document: args.document,
+            params: args.params,
+            value: binding.value,
+            viewProps: createViewProps({
+                disabled: args.params.disabled,
+            }),
+        });
+        polyfillViewProps(controller, plugin.id);
         var blade = new Blade();
         return new MonitorBindingController(args.document, {
             binding: binding,
-            controller: plugin.controller({
-                document: args.document,
-                params: args.params,
-                value: binding.value,
-            }),
+            controller: controller,
             label: args.params.label || args.target.key,
             blade: blade,
         });
@@ -1637,7 +1999,7 @@
     function createMonitorBindingController(document, target, params) {
         var bc = Plugins.monitors.reduce(function (result, plugin) {
             return result ||
-                createController$5(plugin, {
+                createController(plugin, {
                     document: document,
                     params: params,
                     target: target,
@@ -1663,10 +2025,10 @@
         }
         Object.defineProperty(SeparatorApi.prototype, "hidden", {
             get: function () {
-                return this.controller.blade.hidden;
+                return this.controller.viewProps.get('hidden');
             },
             set: function (hidden) {
-                this.controller.blade.hidden = hidden;
+                this.controller.viewProps.set('hidden', hidden);
             },
             enumerable: false,
             configurable: true
@@ -1786,10 +2148,10 @@
         });
         Object.defineProperty(FolderApi.prototype, "hidden", {
             get: function () {
-                return this.controller.blade.hidden;
+                return this.controller.viewProps.get('hidden');
             },
             set: function (hidden) {
-                this.controller.blade.hidden = hidden;
+                this.controller.viewProps.set('hidden', hidden);
             },
             enumerable: false,
             configurable: true
@@ -1814,7 +2176,7 @@
             return forceCast(api);
         };
         FolderApi.prototype.addFolder = function (params) {
-            var bc = new FolderController(this.controller.document, __assign(__assign({}, params), { blade: new Blade() }));
+            var bc = new FolderController(this.controller.document, __assign(__assign({}, params), { blade: new Blade(), viewProps: createViewProps() }));
             this.controller.bladeRack.add(bc, params.index);
             var api = new FolderApi(bc);
             this.apiSet_.add(api);
@@ -1825,7 +2187,9 @@
             var bc = new LabeledController(doc, {
                 blade: new Blade(),
                 label: params.label,
-                valueController: new ButtonController(doc, params),
+                valueController: new ButtonController(doc, __assign(__assign({}, params), { viewProps: createViewProps({
+                        disabled: params.disabled,
+                    }) })),
             });
             this.controller.bladeRack.add(bc, params.index);
             var api = new ButtonApi(bc);
@@ -1836,6 +2200,7 @@
             var params = opt_params || {};
             var bc = new SeparatorController(this.controller.document, {
                 blade: new Blade(),
+                viewProps: createViewProps(),
             });
             this.controller.bladeRack.add(bc, params.index);
             var api = new SeparatorApi(bc);
@@ -2014,13 +2379,16 @@
      */
     var Semver = /** @class */ (function () {
         function Semver(text) {
-            var comps = text.split('.');
-            this.major = parseInt(comps[0], 10);
-            this.minor = parseInt(comps[1], 10);
-            this.patch = parseInt(comps[2], 10);
+            var _a = text.split('-'), core = _a[0], prerelease = _a[1];
+            var coreComps = core.split('.');
+            this.major = parseInt(coreComps[0], 10);
+            this.minor = parseInt(coreComps[1], 10);
+            this.patch = parseInt(coreComps[2], 10);
+            this.prerelease = prerelease !== null && prerelease !== void 0 ? prerelease : null;
         }
         Semver.prototype.toString = function () {
-            return [this.major, this.minor, this.patch].join('.');
+            var core = [this.major, this.minor, this.patch].join('.');
+            return this.prerelease !== null ? [core, this.prerelease].join('-') : core;
         };
         return Semver;
     }());
@@ -2032,66 +2400,13 @@
                 expanded: config.expanded,
                 title: config.title || '',
                 blade: config.blade,
+                viewProps: config.viewProps,
                 hidesTitle: config.title === undefined,
                 viewName: 'rot',
             }) || this;
         }
         return RootController;
     }(FolderController));
-
-    /**
-     * A constraint to combine multiple constraints.
-     * @template T The type of the value.
-     */
-    var CompositeConstraint = /** @class */ (function () {
-        function CompositeConstraint(constraints) {
-            this.constraints = constraints;
-        }
-        CompositeConstraint.prototype.constrain = function (value) {
-            return this.constraints.reduce(function (result, c) {
-                return c.constrain(result);
-            }, value);
-        };
-        return CompositeConstraint;
-    }());
-    function findConstraint(c, constraintClass) {
-        if (c instanceof constraintClass) {
-            return c;
-        }
-        if (c instanceof CompositeConstraint) {
-            var result = c.constraints.reduce(function (tmpResult, sc) {
-                if (tmpResult) {
-                    return tmpResult;
-                }
-                return sc instanceof constraintClass ? sc : null;
-            }, null);
-            if (result) {
-                return result;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * A list constranit.
-     * @template T The type of the value.
-     */
-    var ListConstraint = /** @class */ (function () {
-        function ListConstraint(options) {
-            this.options = options;
-        }
-        ListConstraint.prototype.constrain = function (value) {
-            var opts = this.options;
-            if (opts.length === 0) {
-                return value;
-            }
-            var matched = opts.filter(function (item) {
-                return item.value === value;
-            }).length > 0;
-            return matched ? value : opts[0].value;
-        };
-        return ListConstraint;
-    }());
 
     /**
      * @hidden
@@ -2133,115 +2448,6 @@
         target.write(value);
     }
 
-    /**
-     * A number step range constraint.
-     */
-    var StepConstraint = /** @class */ (function () {
-        function StepConstraint(step) {
-            this.step = step;
-        }
-        StepConstraint.prototype.constrain = function (value) {
-            var r = value < 0
-                ? -Math.round(-value / this.step)
-                : Math.round(value / this.step);
-            return r * this.step;
-        };
-        return StepConstraint;
-    }());
-
-    function mapRange(value, start1, end1, start2, end2) {
-        var p = (value - start1) / (end1 - start1);
-        return start2 + p * (end2 - start2);
-    }
-    function getDecimalDigits(value) {
-        var text = String(value.toFixed(10));
-        var frac = text.split('.')[1];
-        return frac.replace(/0+$/, '').length;
-    }
-    function constrainRange(value, min, max) {
-        return Math.min(Math.max(value, min), max);
-    }
-    function loopRange(value, max) {
-        return ((value % max) + max) % max;
-    }
-
-    function normalizeInputParamsOptions(options, convert) {
-        if (Array.isArray(options)) {
-            return options.map(function (item) {
-                return {
-                    text: item.text,
-                    value: convert(item.value),
-                };
-            });
-        }
-        var textToValueMap = options;
-        var texts = Object.keys(textToValueMap);
-        return texts.reduce(function (result, text) {
-            return result.concat({
-                text: text,
-                value: convert(textToValueMap[text]),
-            });
-        }, []);
-    }
-    /**
-     * Tries to create a list constraint.
-     * @template T The type of the raw value.
-     * @param params The input parameters object.
-     * @param convert The converter that converts unknown value into T.
-     * @return A constraint or null if not found.
-     */
-    function createListConstraint(params, convert) {
-        if ('options' in params && params.options !== undefined) {
-            return new ListConstraint(normalizeInputParamsOptions(params.options, convert));
-        }
-        return null;
-    }
-    /**
-     * @hidden
-     */
-    function findListItems(constraint) {
-        var c = constraint
-            ? findConstraint(constraint, ListConstraint)
-            : null;
-        if (!c) {
-            return null;
-        }
-        return c.options;
-    }
-    function findStep(constraint) {
-        var c = constraint ? findConstraint(constraint, StepConstraint) : null;
-        if (!c) {
-            return null;
-        }
-        return c.step;
-    }
-    /**
-     * @hidden
-     */
-    function getSuitableDecimalDigits(constraint, rawValue) {
-        var sc = constraint && findConstraint(constraint, StepConstraint);
-        if (sc) {
-            return getDecimalDigits(sc.step);
-        }
-        return Math.max(getDecimalDigits(rawValue), 2);
-    }
-    /**
-     * @hidden
-     */
-    function getBaseStep(constraint) {
-        var step = findStep(constraint);
-        return step !== null && step !== void 0 ? step : 1;
-    }
-    /**
-     * @hidden
-     */
-    function getSuitableDraggingScale(constraint, rawValue) {
-        var _a;
-        var sc = constraint && findConstraint(constraint, StepConstraint);
-        var base = Math.abs((_a = sc === null || sc === void 0 ? void 0 : sc.step) !== null && _a !== void 0 ? _a : rawValue);
-        return base === 0 ? 0.1 : Math.pow(10, Math.floor(Math.log10(base)) - 1);
-    }
-
     var className$i = ClassName('lst');
     /**
      * @hidden
@@ -2250,9 +2456,11 @@
         function ListView(doc, config) {
             var _this = this;
             this.onValueChange_ = this.onValueChange_.bind(this);
+            this.stringifyValue_ = config.stringifyValue;
+            this.viewProps_ = config.viewProps;
             this.element = doc.createElement('div');
             this.element.classList.add(className$i());
-            this.stringifyValue_ = config.stringifyValue;
+            bindViewProps(this.viewProps_, this.element);
             var selectElem = doc.createElement('select');
             selectElem.classList.add(className$i('s'));
             config.options.forEach(function (item, index) {
@@ -2269,11 +2477,11 @@
             markElem.appendChild(createSvgIconElement(doc, 'dropdown'));
             this.element.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
-            this.value = config.value;
+            this.value_ = config.value;
             this.update();
         }
         ListView.prototype.update = function () {
-            this.selectElement.value = this.stringifyValue_(this.value.rawValue);
+            this.selectElement.value = this.stringifyValue_(this.value_.rawValue);
         };
         ListView.prototype.onValueChange_ = function () {
             this.update();
@@ -2288,11 +2496,13 @@
         function ListController(doc, config) {
             this.onSelectChange_ = this.onSelectChange_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.listItems_ = config.listItems;
             this.view = new ListView(doc, {
                 options: this.listItems_,
                 stringifyValue: config.stringifyValue,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.view.selectElement.addEventListener('change', this.onSelectChange_);
         }
@@ -2318,6 +2528,7 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className$h());
+            bindViewProps(config.viewProps, this.element);
             var labelElem = doc.createElement('label');
             labelElem.classList.add(className$h('l'));
             this.element.appendChild(labelElem);
@@ -2326,6 +2537,7 @@
             inputElem.type = 'checkbox';
             labelElem.appendChild(inputElem);
             this.inputElement = inputElem;
+            bindDisabled(config.viewProps, this.inputElement);
             var wrapperElem = doc.createElement('div');
             wrapperElem.classList.add(className$h('w'));
             labelElem.appendChild(wrapperElem);
@@ -2351,8 +2563,10 @@
         function CheckboxController(doc, config) {
             this.onInputChange_ = this.onInputChange_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.view = new CheckboxView(doc, {
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.view.inputElement.addEventListener('change', this.onInputChange_);
         }
@@ -2372,20 +2586,6 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createController$4(doc, value) {
-        var _a;
-        var c = value.constraint;
-        if (c && findConstraint(c, ListConstraint)) {
-            return new ListController(doc, {
-                listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
-                stringifyValue: boolToString,
-                value: value,
-            });
-        }
-        return new CheckboxController(doc, {
-            value: value,
-        });
-    }
     /**
      * @hidden
      */
@@ -2399,7 +2599,22 @@
             writer: function (_args) { return writePrimitive; },
         },
         controller: function (args) {
-            return createController$4(args.document, args.value);
+            var _a;
+            var doc = args.document;
+            var value = args.value;
+            var c = value.constraint;
+            if (c && findConstraint(c, ListConstraint)) {
+                return new ListController(doc, {
+                    listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                    stringifyValue: boolToString,
+                    value: value,
+                    viewProps: args.viewProps,
+                });
+            }
+            return new CheckboxController(doc, {
+                value: value,
+                viewProps: args.viewProps,
+            });
         },
     };
 
@@ -2409,26 +2624,28 @@
      */
     var TextView = /** @class */ (function () {
         function TextView(doc, config) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.formatter = config.formatter;
+            this.onChange_ = this.onChange_.bind(this);
+            this.viewProps_ = config.viewProps;
             this.element = doc.createElement('div');
             this.element.classList.add(className$g());
-            if (config.arrayPosition) {
-                this.element.classList.add(className$g(undefined, config.arrayPosition));
-            }
+            bindViewProps(this.viewProps_, this.element);
+            this.props_ = config.props;
+            this.props_.emitter.on('change', this.onChange_);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$g('i'));
             inputElem.type = 'text';
+            bindDisabled(this.viewProps_, inputElem);
             this.element.appendChild(inputElem);
             this.inputElement = inputElem;
-            config.value.emitter.on('change', this.onValueChange_);
-            this.value = config.value;
+            config.value.emitter.on('change', this.onChange_);
+            this.value_ = config.value;
             this.update();
         }
         TextView.prototype.update = function () {
-            this.inputElement.value = this.formatter(this.value.rawValue);
+            var formatter = this.props_.get('formatter');
+            this.inputElement.value = formatter(this.value_.rawValue);
         };
-        TextView.prototype.onValueChange_ = function () {
+        TextView.prototype.onChange_ = function () {
             this.update();
         };
         return TextView;
@@ -2442,9 +2659,11 @@
             this.onInputChange_ = this.onInputChange_.bind(this);
             this.parser_ = config.parser;
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.view = new TextView(doc, {
-                formatter: config.formatter,
+                props: config.props,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.view.inputElement.addEventListener('change', this.onInputChange_);
         }
@@ -2479,10 +2698,6 @@
             textElem.appendChild(this.textView.element);
             this.element.appendChild(textElem);
         }
-        ColorSwatchTextView.prototype.update = function () {
-            this.swatchView_.update();
-            this.textView.update();
-        };
         return ColorSwatchTextView;
     }());
 
@@ -3464,6 +3679,7 @@
             this.value = config.value;
             this.element = doc.createElement('div');
             this.element.classList.add(className$e());
+            bindViewProps(config.viewProps, this.element);
             var swatchElem = doc.createElement('div');
             swatchElem.classList.add(className$e('sw'));
             this.element.appendChild(swatchElem);
@@ -3751,37 +3967,50 @@
     }());
 
     var className$d = ClassName('txt');
-    var NumberTextView = /** @class */ (function (_super) {
-        __extends(NumberTextView, _super);
+    var NumberTextView = /** @class */ (function () {
         function NumberTextView(doc, config) {
-            var _this = _super.call(this, doc, config) || this;
-            _this.element.classList.add(className$d(undefined, 'num'));
-            _this.onDraggingChange_ = _this.onDraggingChange_.bind(_this);
-            _this.dragging_ = config.dragging;
-            _this.draggingScale_ = config.draggingScale;
-            _this.dragging_.emitter.on('change', _this.onDraggingChange_);
-            _this.element.classList.add(className$d());
-            _this.inputElement.classList.add(className$d('i'));
+            this.onChange_ = this.onChange_.bind(this);
+            this.props_ = config.props;
+            this.props_.emitter.on('change', this.onChange_);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$d(), className$d(undefined, 'num'));
+            if (config.arrayPosition) {
+                this.element.classList.add(className$d(undefined, config.arrayPosition));
+            }
+            bindViewProps(config.viewProps, this.element);
+            var inputElem = doc.createElement('input');
+            inputElem.classList.add(className$d('i'));
+            inputElem.type = 'text';
+            bindDisabled(config.viewProps, inputElem);
+            this.element.appendChild(inputElem);
+            this.inputElement = inputElem;
+            this.onDraggingChange_ = this.onDraggingChange_.bind(this);
+            this.dragging_ = config.dragging;
+            this.dragging_.emitter.on('change', this.onDraggingChange_);
+            this.element.classList.add(className$d());
+            this.inputElement.classList.add(className$d('i'));
             var knobElem = doc.createElement('div');
             knobElem.classList.add(className$d('k'));
-            _this.element.appendChild(knobElem);
-            _this.knobElement = knobElem;
+            this.element.appendChild(knobElem);
+            this.knobElement = knobElem;
             var guideElem = doc.createElementNS(SVG_NS, 'svg');
             guideElem.classList.add(className$d('g'));
-            _this.knobElement.appendChild(guideElem);
+            this.knobElement.appendChild(guideElem);
             var bodyElem = doc.createElementNS(SVG_NS, 'path');
             bodyElem.classList.add(className$d('gb'));
             guideElem.appendChild(bodyElem);
-            _this.guideBodyElem_ = bodyElem;
+            this.guideBodyElem_ = bodyElem;
             var headElem = doc.createElementNS(SVG_NS, 'path');
             headElem.classList.add(className$d('gh'));
             guideElem.appendChild(headElem);
-            _this.guideHeadElem_ = headElem;
+            this.guideHeadElem_ = headElem;
             var tooltipElem = doc.createElement('div');
             tooltipElem.classList.add(ClassName('tt')());
-            _this.knobElement.appendChild(tooltipElem);
-            _this.tooltipElem_ = tooltipElem;
-            return _this;
+            this.knobElement.appendChild(tooltipElem);
+            this.tooltipElem_ = tooltipElem;
+            config.value.emitter.on('change', this.onChange_);
+            this.value = config.value;
+            this.update();
         }
         NumberTextView.prototype.onDraggingChange_ = function (ev) {
             if (ev.rawValue === null) {
@@ -3789,16 +4018,24 @@
                 return;
             }
             this.element.classList.add(className$d(undefined, 'drg'));
-            var x = ev.rawValue / this.draggingScale_;
+            var x = ev.rawValue / this.props_.get('draggingScale');
             var aox = x + (x > 0 ? -1 : x < 0 ? +1 : 0);
             var adx = constrainRange(-aox, -4, +4);
             this.guideHeadElem_.setAttributeNS(null, 'd', ["M " + (aox + adx) + ",0 L" + aox + ",4 L" + (aox + adx) + ",8", "M " + x + ",-1 L" + x + ",9"].join(' '));
             this.guideBodyElem_.setAttributeNS(null, 'd', "M 0,4 L" + x + ",4");
-            this.tooltipElem_.textContent = this.formatter(this.value.rawValue);
+            var formatter = this.props_.get('formatter');
+            this.tooltipElem_.textContent = formatter(this.value.rawValue);
             this.tooltipElem_.style.left = x + "px";
         };
+        NumberTextView.prototype.update = function () {
+            var formatter = this.props_.get('formatter');
+            this.inputElement.value = formatter(this.value.rawValue);
+        };
+        NumberTextView.prototype.onChange_ = function () {
+            this.update();
+        };
         return NumberTextView;
-    }(TextView));
+    }());
 
     /**
      * @hidden
@@ -3811,17 +4048,21 @@
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
-            this.parser_ = config.parser;
-            this.value = config.value;
             this.baseStep_ = config.baseStep;
             this.draggingScale_ = config.draggingScale;
+            this.parser_ = config.parser;
+            this.value = config.value;
+            this.viewProps = config.viewProps;
             this.dragging_ = new Value(null);
             this.view = new NumberTextView(doc, {
                 arrayPosition: config.arrayPosition,
-                formatter: config.formatter,
                 dragging: this.dragging_,
-                draggingScale: this.draggingScale_,
+                props: new ValueMap({
+                    draggingScale: this.draggingScale_,
+                    formatter: config.formatter,
+                }),
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.view.inputElement.addEventListener('change', this.onInputChange_);
             this.view.inputElement.addEventListener('keydown', this.onInputKeyDown_);
@@ -4014,6 +4255,7 @@
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.view = new APaletteView(doc, {
                 value: this.value,
             });
@@ -4162,6 +4404,7 @@
             value: new Value(0, {
                 constraint: MODE_TO_CONSTRAINT_MAP[config.colorMode](index),
             }),
+            viewProps: config.viewProps,
         });
     }
     /**
@@ -4172,6 +4415,7 @@
             this.onModeSelectChange_ = this.onModeSelectChange_.bind(this);
             this.parser_ = config.parser;
             this.pickedColor = config.pickedColor;
+            this.viewProps = config.viewProps;
             this.ccs_ = this.createComponentControllers_(doc);
             this.view = new ColorTextView(doc, {
                 pickedColor: this.pickedColor,
@@ -4191,6 +4435,7 @@
             var cc = {
                 colorMode: this.pickedColor.mode,
                 parser: this.parser_,
+                viewProps: this.viewProps,
             };
             var ccs = [
                 createComponentController(doc, cc, 0),
@@ -4271,6 +4516,7 @@
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.view = new HPaletteView(doc, {
                 value: this.value,
             });
@@ -4378,6 +4624,7 @@
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.view = new SvPaletteView(doc, {
                 value: this.value,
             });
@@ -4432,17 +4679,21 @@
             this.onFocusableElementBlur_ = this.onFocusableElementBlur_.bind(this);
             this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.pickedColor = config.pickedColor;
+            this.viewProps = config.viewProps;
             this.foldable = new Foldable();
             this.hPaletteIc_ = new HPaletteController(doc, {
                 value: this.pickedColor.value,
+                viewProps: this.viewProps,
             });
             this.svPaletteIc_ = new SvPaletteController(doc, {
                 value: this.pickedColor.value,
+                viewProps: this.viewProps,
             });
             this.alphaIcs_ = config.supportsAlpha
                 ? {
                     palette: new APaletteController(doc, {
                         value: this.pickedColor.value,
+                        viewProps: this.viewProps,
                     }),
                     text: new NumberTextController(doc, {
                         draggingScale: 0.01,
@@ -4452,6 +4703,7 @@
                         value: new Value(0, {
                             constraint: new RangeConstraint({ min: 0, max: 1 }),
                         }),
+                        viewProps: this.viewProps,
                     }),
                 }
                 : null;
@@ -4472,6 +4724,7 @@
             this.tc_ = new ColorTextController(doc, {
                 parser: parseNumber,
                 pickedColor: this.pickedColor,
+                viewProps: this.viewProps,
             });
             this.view = new ColorPickerView(doc, {
                 alphaViews: this.alphaIcs_
@@ -4537,13 +4790,16 @@
             this.onButtonBlur_ = this.onButtonBlur_.bind(this);
             this.onButtonClick_ = this.onButtonClick_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.pickerIc_ = new ColorPickerController(doc, {
                 pickedColor: new PickedColor(this.value),
                 supportsAlpha: config.supportsAlpha,
+                viewProps: this.viewProps,
             });
             this.view = new ColorSwatchView(doc, {
                 pickerView: this.pickerIc_.view,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.view.buttonElement.addEventListener('blur', this.onButtonBlur_);
             this.view.buttonElement.addEventListener('click', this.onButtonClick_);
@@ -4571,14 +4827,19 @@
     var ColorSwatchTextController = /** @class */ (function () {
         function ColorSwatchTextController(doc, config) {
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.swatchIc_ = new ColorSwatchController(doc, {
                 supportsAlpha: config.supportsAlpha,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.textIc_ = new TextController(doc, {
-                formatter: config.formatter,
                 parser: config.parser,
+                props: new ValueMap({
+                    formatter: config.formatter,
+                }),
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.view = new ColorSwatchTextView(doc, {
                 swatchView: this.swatchIc_.view,
@@ -4722,6 +4983,7 @@
                 parser: CompositeColorParser,
                 supportsAlpha: supportsAlpha,
                 value: args.value,
+                viewProps: args.viewProps,
             });
         },
     };
@@ -4752,6 +5014,7 @@
                 parser: CompositeColorParser,
                 supportsAlpha: supportsAlpha,
                 value: args.value,
+                viewProps: args.viewProps,
             });
         },
     };
@@ -4796,6 +5059,7 @@
                 parser: CompositeColorParser,
                 supportsAlpha: hasAlphaComponent(notation),
                 value: args.value,
+                viewProps: args.viewProps,
             });
         },
     };
@@ -4832,11 +5096,12 @@
      */
     var SliderView = /** @class */ (function () {
         function SliderView(doc, config) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.minValue_ = config.minValue;
-            this.maxValue_ = config.maxValue;
+            this.onChange_ = this.onChange_.bind(this);
+            this.props_ = config.props;
+            this.props_.emitter.on('change', this.onChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$6());
+            bindViewProps(config.viewProps, this.element);
             var trackElem = doc.createElement('div');
             trackElem.classList.add(className$6('t'));
             trackElem.tabIndex = 0;
@@ -4846,15 +5111,15 @@
             knobElem.classList.add(className$6('k'));
             this.trackElement.appendChild(knobElem);
             this.knobElement = knobElem;
-            config.value.emitter.on('change', this.onValueChange_);
+            config.value.emitter.on('change', this.onChange_);
             this.value = config.value;
             this.update();
         }
         SliderView.prototype.update = function () {
-            var p = constrainRange(mapRange(this.value.rawValue, this.minValue_, this.maxValue_, 0, 100), 0, 100);
+            var p = constrainRange(mapRange(this.value.rawValue, this.props_.get('minValue'), this.props_.get('maxValue'), 0, 100), 0, 100);
             this.knobElement.style.width = p + "%";
         };
-        SliderView.prototype.onValueChange_ = function () {
+        SliderView.prototype.onChange_ = function () {
             this.update();
         };
         return SliderView;
@@ -4867,14 +5132,14 @@
         function SliderController(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.onPoint_ = this.onPoint_.bind(this);
-            this.value = config.value;
             this.baseStep_ = config.baseStep;
-            this.minValue_ = config.minValue;
-            this.maxValue_ = config.maxValue;
+            this.value = config.value;
+            this.viewProps = config.viewProps;
+            this.props_ = config.props;
             this.view = new SliderView(doc, {
-                maxValue: this.maxValue_,
-                minValue: this.minValue_,
+                props: this.props_,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.ptHandler_ = new PointerHandler(this.view.trackElement);
             this.ptHandler_.emitter.on('down', this.onPoint_);
@@ -4886,7 +5151,7 @@
             if (!d.point) {
                 return;
             }
-            this.value.rawValue = mapRange(d.point.x, 0, d.bounds.width, this.minValue_, this.maxValue_);
+            this.value.rawValue = mapRange(d.point.x, 0, d.bounds.width, this.props_.get('minValue'), this.props_.get('maxValue'));
         };
         SliderController.prototype.onPoint_ = function (ev) {
             this.handlePointerEvent_(ev.data);
@@ -4903,11 +5168,12 @@
     var SliderTextController = /** @class */ (function () {
         function SliderTextController(doc, config) {
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.sliderIc_ = new SliderController(doc, {
                 baseStep: config.baseStep,
-                maxValue: config.maxValue,
-                minValue: config.minValue,
+                props: config.sliderProps,
                 value: config.value,
+                viewProps: this.viewProps,
             });
             this.textIc_ = new NumberTextController(doc, {
                 baseStep: config.baseStep,
@@ -4915,6 +5181,7 @@
                 formatter: config.formatter,
                 parser: config.parser,
                 value: config.value,
+                viewProps: config.viewProps,
             });
             this.view = new SliderTextView(doc, {
                 sliderView: this.sliderIc_.view,
@@ -4998,6 +5265,7 @@
                     listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
                     stringifyValue: numberToString,
                     value: value,
+                    viewProps: args.viewProps,
                 });
             }
             var formatter = (_b = ('format' in args.params ? args.params.format : undefined)) !== null && _b !== void 0 ? _b : createNumberFormatter(getSuitableDecimalDigits(value.constraint, value.rawValue));
@@ -5007,10 +5275,13 @@
                     baseStep: getBaseStep(c),
                     draggingScale: getSuitableDraggingScale(value.constraint, value.rawValue),
                     formatter: formatter,
-                    maxValue: max,
-                    minValue: min,
                     parser: parseNumber,
+                    sliderProps: new ValueMap({
+                        maxValue: max,
+                        minValue: min,
+                    }),
                     value: value,
+                    viewProps: args.viewProps,
                 });
             }
             return new NumberTextController(args.document, {
@@ -5019,6 +5290,7 @@
                 formatter: formatter,
                 parser: parseNumber,
                 value: value,
+                viewProps: args.viewProps,
             });
         },
     };
@@ -5078,6 +5350,7 @@
             value: new Value(0, {
                 constraint: findAxisConstraint(config, index),
             }),
+            viewProps: config.viewProps,
         });
     }
     /**
@@ -5087,6 +5360,7 @@
         function PointNdTextController(doc, config) {
             var _this = this;
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.acs_ = config.axes.map(function (_, index) {
                 return createAxisController(doc, config, index);
             });
@@ -5156,12 +5430,14 @@
         function Point2dPadTextView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$4());
+            bindViewProps(config.viewProps, this.element);
             var padWrapperElem = doc.createElement('div');
             padWrapperElem.classList.add(className$4('w'));
             this.element.appendChild(padWrapperElem);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$4('b'));
             buttonElem.appendChild(createSvgIconElement(doc, 'p2dpad'));
+            bindDisabled(config.viewProps, buttonElem);
             padWrapperElem.appendChild(buttonElem);
             this.padButtonElem_ = buttonElem;
             var padElem = doc.createElement('div');
@@ -5286,8 +5562,9 @@
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
-            this.value = config.value;
             this.foldable = new Foldable();
+            this.value = config.value;
+            this.viewProps = config.viewProps;
             this.baseSteps_ = config.baseSteps;
             this.maxValue_ = config.maxValue;
             this.invertsY_ = config.invertsY;
@@ -5366,21 +5643,25 @@
             this.onPadButtonBlur_ = this.onPadButtonBlur_.bind(this);
             this.onPadButtonClick_ = this.onPadButtonClick_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.padIc_ = new Point2dPadController(doc, {
                 baseSteps: [config.axes[0].baseStep, config.axes[1].baseStep],
                 invertsY: config.invertsY,
                 maxValue: config.maxValue,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.textIc_ = new PointNdTextController(doc, {
                 assembly: Point2dAssembly,
                 axes: config.axes,
                 parser: config.parser,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.view = new Point2dPadTextView(doc, {
                 padView: this.padIc_.view,
                 textView: this.textIc_.view,
+                viewProps: this.viewProps,
             });
             this.view.padButtonElement.addEventListener('blur', this.onPadButtonBlur_);
             this.view.padButtonElement.addEventListener('click', this.onPadButtonClick_);
@@ -5466,22 +5747,6 @@
             formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
         };
     }
-    function createController$3(document, value, invertsY) {
-        var c = value.constraint;
-        if (!(c instanceof PointNdConstraint)) {
-            throw TpError.shouldNeverHappen();
-        }
-        return new Point2dPadTextController(document, {
-            axes: [
-                createAxis$2(value.rawValue.x, c.components[0]),
-                createAxis$2(value.rawValue.y, c.components[1]),
-            ],
-            invertsY: invertsY,
-            maxValue: getSuitableMaxValue(value.rawValue, value.constraint),
-            parser: parseNumber,
-            value: value,
-        });
-    }
     function shouldInvertY(params) {
         if (!('y' in params)) {
             return false;
@@ -5505,7 +5770,23 @@
             writer: function (_args) { return writePoint2d; },
         },
         controller: function (args) {
-            return createController$3(args.document, args.value, shouldInvertY(args.params));
+            var doc = args.document;
+            var value = args.value;
+            var c = value.constraint;
+            if (!(c instanceof PointNdConstraint)) {
+                throw TpError.shouldNeverHappen();
+            }
+            return new Point2dPadTextController(doc, {
+                axes: [
+                    createAxis$2(value.rawValue.x, c.components[0]),
+                    createAxis$2(value.rawValue.y, c.components[1]),
+                ],
+                invertsY: shouldInvertY(args.params),
+                maxValue: getSuitableMaxValue(value.rawValue, value.constraint),
+                parser: parseNumber,
+                value: value,
+                viewProps: args.viewProps,
+            });
         },
     };
 
@@ -5599,22 +5880,6 @@
             formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
         };
     }
-    function createController$2(document, value) {
-        var c = value.constraint;
-        if (!(c instanceof PointNdConstraint)) {
-            throw TpError.shouldNeverHappen();
-        }
-        return new PointNdTextController(document, {
-            assembly: Point3dAssembly,
-            axes: [
-                createAxis$1(value.rawValue.x, c.components[0]),
-                createAxis$1(value.rawValue.y, c.components[1]),
-                createAxis$1(value.rawValue.z, c.components[2]),
-            ],
-            parser: parseNumber,
-            value: value,
-        });
-    }
     /**
      * @hidden
      */
@@ -5628,7 +5893,22 @@
             writer: function (_args) { return writePoint3d; },
         },
         controller: function (args) {
-            return createController$2(args.document, args.value);
+            var value = args.value;
+            var c = value.constraint;
+            if (!(c instanceof PointNdConstraint)) {
+                throw TpError.shouldNeverHappen();
+            }
+            return new PointNdTextController(args.document, {
+                assembly: Point3dAssembly,
+                axes: [
+                    createAxis$1(value.rawValue.x, c.components[0]),
+                    createAxis$1(value.rawValue.y, c.components[1]),
+                    createAxis$1(value.rawValue.z, c.components[2]),
+                ],
+                parser: parseNumber,
+                value: value,
+                viewProps: args.viewProps,
+            });
         },
     };
 
@@ -5729,20 +6009,6 @@
             formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
         };
     }
-    function createController$1(document, value) {
-        var c = value.constraint;
-        if (!(c instanceof PointNdConstraint)) {
-            throw TpError.shouldNeverHappen();
-        }
-        return new PointNdTextController(document, {
-            assembly: Point4dAssembly,
-            axes: value.rawValue
-                .getComponents()
-                .map(function (comp, index) { return createAxis(comp, c.components[index]); }),
-            parser: parseNumber,
-            value: value,
-        });
-    }
     /**
      * @hidden
      */
@@ -5756,7 +6022,20 @@
             writer: function (_args) { return writePoint4d; },
         },
         controller: function (args) {
-            return createController$1(args.document, args.value);
+            var value = args.value;
+            var c = value.constraint;
+            if (!(c instanceof PointNdConstraint)) {
+                throw TpError.shouldNeverHappen();
+            }
+            return new PointNdTextController(args.document, {
+                assembly: Point4dAssembly,
+                axes: value.rawValue
+                    .getComponents()
+                    .map(function (comp, index) { return createAxis(comp, c.components[index]); }),
+                parser: parseNumber,
+                value: value,
+                viewProps: args.viewProps,
+            });
         },
     };
 
@@ -5781,22 +6060,6 @@
         }
         return new CompositeConstraint(constraints);
     }
-    function createController(doc, value) {
-        var _a;
-        var c = value.constraint;
-        if (c && findConstraint(c, ListConstraint)) {
-            return new ListController(doc, {
-                listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
-                stringifyValue: function (v) { return v; },
-                value: value,
-            });
-        }
-        return new TextController(doc, {
-            formatter: formatString,
-            parser: function (v) { return v; },
-            value: value,
-        });
-    }
     /**
      * @hidden
      */
@@ -5810,7 +6073,26 @@
             writer: function (_args) { return writePrimitive; },
         },
         controller: function (params) {
-            return createController(params.document, params.value);
+            var _a;
+            var doc = params.document;
+            var value = params.value;
+            var c = value.constraint;
+            if (c && findConstraint(c, ListConstraint)) {
+                return new ListController(doc, {
+                    listItems: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                    stringifyValue: function (v) { return v; },
+                    value: value,
+                    viewProps: params.viewProps,
+                });
+            }
+            return new TextController(doc, {
+                parser: function (v) { return v; },
+                props: new ValueMap({
+                    formatter: formatString,
+                }),
+                value: value,
+                viewProps: params.viewProps,
+            });
         },
     };
 
@@ -5824,6 +6106,7 @@
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
             this.element.classList.add(className$2());
+            bindViewProps(config.viewProps, this.element);
             var textareaElem = doc.createElement('textarea');
             textareaElem.classList.add(className$2('i'));
             textareaElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
@@ -5861,10 +6144,12 @@
     var MultiLogController = /** @class */ (function () {
         function MultiLogController(doc, config) {
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.view = new MultiLogView(doc, {
                 formatter: config.formatter,
                 lineCount: config.lineCount,
                 value: this.value,
+                viewProps: this.viewProps,
             });
         }
         return MultiLogController;
@@ -5880,6 +6165,7 @@
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
             this.element.classList.add(className$1());
+            bindViewProps(config.viewProps, this.element);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$1('i'));
             inputElem.readOnly = true;
@@ -5908,9 +6194,11 @@
     var SingleLogMonitorController = /** @class */ (function () {
         function SingleLogMonitorController(doc, config) {
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.view = new SingleLogView(doc, {
                 formatter: config.formatter,
                 value: this.value,
+                viewProps: this.viewProps,
             });
         }
         return SingleLogMonitorController;
@@ -5931,12 +6219,14 @@
                 return new SingleLogMonitorController(args.document, {
                     formatter: BooleanFormatter,
                     value: args.value,
+                    viewProps: args.viewProps,
                 });
             }
             return new MultiLogController(args.document, {
                 formatter: BooleanFormatter,
                 lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
                 value: args.value,
+                viewProps: args.viewProps,
             });
         },
     };
@@ -5979,6 +6269,7 @@
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className());
+            bindViewProps(config.viewProps, this.element);
             this.formatter_ = config.formatter;
             this.minValue_ = config.minValue;
             this.maxValue_ = config.maxValue;
@@ -6062,6 +6353,7 @@
             this.onGraphPointerMove_ = this.onGraphPointerMove_.bind(this);
             this.onGraphPointerUp_ = this.onGraphPointerUp_.bind(this);
             this.value = config.value;
+            this.viewProps = config.viewProps;
             this.cursor_ = new GraphCursor();
             this.view = new GraphLogView(doc, {
                 cursor: this.cursor_,
@@ -6070,6 +6362,7 @@
                 maxValue: config.maxValue,
                 minValue: config.minValue,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             if (!supportsTouch(doc)) {
                 this.view.element.addEventListener('mousemove', this.onGraphMouseMove_);
@@ -6109,30 +6402,31 @@
         // TODO: formatter precision
         return createNumberFormatter(2);
     }
-    function createTextMonitor(_a) {
-        var _b;
-        var document = _a.document, params = _a.params, value = _a.value;
-        if (value.rawValue.length === 1) {
-            return new SingleLogMonitorController(document, {
+    function createTextMonitor(args) {
+        var _a;
+        if (args.value.rawValue.length === 1) {
+            return new SingleLogMonitorController(args.document, {
                 formatter: createFormatter(),
-                value: value,
+                value: args.value,
+                viewProps: args.viewProps,
             });
         }
-        return new MultiLogController(document, {
+        return new MultiLogController(args.document, {
             formatter: createFormatter(),
-            lineCount: (_b = params.lineCount) !== null && _b !== void 0 ? _b : Constants.monitor.defaultLineCount,
-            value: value,
+            lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
+            value: args.value,
+            viewProps: args.viewProps,
         });
     }
-    function createGraphMonitor(_a) {
-        var _b, _c, _d;
-        var document = _a.document, params = _a.params, value = _a.value;
-        return new GraphLogController(document, {
+    function createGraphMonitor(args) {
+        var _a, _b, _c;
+        return new GraphLogController(args.document, {
             formatter: createFormatter(),
-            lineCount: (_b = params.lineCount) !== null && _b !== void 0 ? _b : Constants.monitor.defaultLineCount,
-            maxValue: (_c = ('max' in params ? params.max : null)) !== null && _c !== void 0 ? _c : 100,
-            minValue: (_d = ('min' in params ? params.min : null)) !== null && _d !== void 0 ? _d : 0,
-            value: value,
+            lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
+            maxValue: (_b = ('max' in args.params ? args.params.max : null)) !== null && _b !== void 0 ? _b : 100,
+            minValue: (_c = ('min' in args.params ? args.params.min : null)) !== null && _c !== void 0 ? _c : 0,
+            value: args.value,
+            viewProps: args.viewProps,
         });
     }
     function shouldShowGraph(params) {
@@ -6175,11 +6469,13 @@
                     formatter: formatString,
                     lineCount: (_a = args.params.lineCount) !== null && _a !== void 0 ? _a : Constants.monitor.defaultLineCount,
                     value: value,
+                    viewProps: args.viewProps,
                 });
             }
             return new SingleLogMonitorController(args.document, {
                 formatter: formatString,
                 value: value,
+                viewProps: args.viewProps,
             });
         },
     };
@@ -6202,7 +6498,7 @@
         doc.head.appendChild(styleElem);
     }
     function embedDefaultStyleIfNeeded(doc) {
-        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--btn-bg);border-radius:2px;color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--btn-bg-a)}.tp-fldv_t,.tp-rotv_t{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:12px;padding-right:calc(2px * 2 + var(--unit-size) + 4px);position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--cnt-bg-h)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--cnt-bg-f)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--cnt-bg-a)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(2px + (var(--unit-size) + 4px - 6px) / 2);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:2px;box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:2px;box-sizing:border-box;color:var(--mo-fg);height:var(--unit-size);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-p2dtxtv,.tp-p3dtxtv{display:flex}.tp-cltxtv_c,.tp-p2dtxtv_a,.tp-p3dtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-p2dtxtv_a+.tp-cltxtv_c,.tp-p3dtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-p2dtxtv_a,.tp-p2dtxtv_a+.tp-p2dtxtv_a,.tp-p3dtxtv_a+.tp-p2dtxtv_a,.tp-cltxtv_c+.tp-p3dtxtv_a,.tp-p2dtxtv_a+.tp-p3dtxtv_a,.tp-p3dtxtv_a+.tp-p3dtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--spr-fg);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:2px;color:var(--lbl-fg);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-cltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-cltxtv_ms:active{background-color:var(--in-bg-a)}.tp-cltxtv_mm{color:var(--lbl-fg)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-p2dpadv{padding-left:calc(4px * 2 + var(--unit-size))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{opacity:0.1;stroke:var(--in-fg)}.tp-p2dpadv_l{stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-p2dpadv_m{fill:var(--in-fg)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--value-width: var(--tp-value-width, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-folder-background-color, rgba(200,202,208,0.1));--cnt-bg-a: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--cnt-bg-f: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--cnt-bg-h: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--cnt-fg: var(--tp-folder-foreground-color, #c8cad0);--in-bg: var(--tp-input-background-color, rgba(200,202,208,0.1));--in-bg-a: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--in-bg-f: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--in-bg-h: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--in-fg: var(--tp-input-foreground-color, #c8cad0);--lbl-fg: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--spr-fg: var(--tp-separator-color, rgba(0,0,0,0.2));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--spr-fg)}.tp-rotv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px;padding-left:calc(2px * 2 + var(--unit-size) + 4px);text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--spr-fg);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-4px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:2px 0 0 2px;bottom:0;content:\'\';height:var(--unit-size);left:50%;margin-bottom:auto;margin-left:-2px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:height 0.1s;width:4px}.tp-txtv.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-lst .tp-txtv_k::before{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:2px;height:4px}.tp-txtv.tp-txtv-drg.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-drg.tp-txtv-list .tp-txtv_k::before{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:2px;color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
+        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_t,.tp-rotv_t,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--btn-bg);border-radius:2px;color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--unit-size);line-height:var(--unit-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--btn-bg-a)}.tp-lstv_s:disabled,.tp-btnv_b:disabled,.tp-p2dpadtxtv_b:disabled{opacity:0.5}.tp-fldv_t,.tp-rotv_t{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--unit-size) + 4px);line-height:calc(var(--unit-size) + 4px);overflow:hidden;padding-left:12px;padding-right:calc(2px * 2 + var(--unit-size) + 4px);position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_t:hover,.tp-rotv_t:hover{background-color:var(--cnt-bg-h)}.tp-fldv_t:focus,.tp-rotv_t:focus{background-color:var(--cnt-bg-f)}.tp-fldv_t:active,.tp-rotv_t:active{background-color:var(--cnt-bg-a)}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(2px + (var(--unit-size) + 4px - 6px) / 2);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_t>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:-4px}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:-4px}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:4px}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv{margin-top:0}.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:4px;padding-top:4px;transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:2px;box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--unit-size);line-height:var(--unit-size);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-clswv_sw:disabled,.tp-p2dpadv_p:disabled,.tp-txtv_i:disabled{opacity:0.5}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:2px;box-sizing:border-box;color:var(--mo-fg);height:var(--unit-size);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:4px;position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-p2dtxtv,.tp-p3dtxtv{display:flex}.tp-cltxtv_c,.tp-p2dtxtv_a,.tp-p3dtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-p2dtxtv_a+.tp-cltxtv_c,.tp-p3dtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-p2dtxtv_a,.tp-p2dtxtv_a+.tp-p2dtxtv_a,.tp-p3dtxtv_a+.tp-p2dtxtv_a,.tp-cltxtv_c+.tp-p3dtxtv_a,.tp-p2dtxtv_a+.tp-p3dtxtv_a,.tp-p3dtxtv_a+.tp-p3dtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:2px;cursor:pointer;display:block;height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-ckbv.tp-v-disabled .tp-ckbv_w{opacity:0.5}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:4px}.tp-clpv_rgb{display:flex;margin-top:4px;width:100%}.tp-clpv_a{display:flex;margin-top:4px;padding-top:8px;position:relative}.tp-clpv_a:before{background-color:var(--spr-fg);content:\'\';height:4px;left:-4px;position:absolute;right:-4px;top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:2px;outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:80px;width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--unit-size);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:2px;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:2px}.tp-clswv.tp-v-disabled{opacity:0.5}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--unit-size);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--unit-size)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:2px;bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--unit-size)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:2px;color:var(--lbl-fg);cursor:pointer;height:var(--unit-size);line-height:var(--unit-size);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-cltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-cltxtv_ms:active{background-color:var(--in-bg-a)}.tp-cltxtv_mm{color:var(--lbl-fg)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-expanded .tp-fldv_t{transition:border-radius 0s}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_t:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_t:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_t:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_t{border-top-left-radius:2px;border-bottom-left-radius:2px}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_t{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:2px}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--unit-size) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv.tp-v-disabled .tp-grlv_g{opacity:0.5}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:4px;padding-right:4px}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv.tp-v-disabled .tp-lblv_l{opacity:0.5}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv.tp-v-disabled .tp-lstv_s{opacity:0.5}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-sglv.tp-v-disabled .tp-sglv_i{opacity:0.5}.tp-mllv_i{display:block;height:calc(var(--unit-size) * 3);line-height:var(--unit-size);padding:0 4px;resize:none;white-space:pre}.tp-mllv.tp-v-disabled .tp-mllv_i{opacity:0.5}.tp-p2dpadv{padding-left:calc(4px * 2 + var(--unit-size))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{opacity:0.1;stroke:var(--in-fg)}.tp-p2dpadv_l{stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-p2dpadv_m{fill:var(--in-fg)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--unit-size);position:relative;width:var(--unit-size)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:-4px;position:absolute;right:-4px;top:var(--unit-size)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--unit-size: var(--tp-unit-size, 20px);--value-width: var(--tp-value-width, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-folder-background-color, rgba(200,202,208,0.1));--cnt-bg-a: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--cnt-bg-f: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--cnt-bg-h: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--cnt-fg: var(--tp-folder-foreground-color, #c8cad0);--in-bg: var(--tp-input-background-color, rgba(200,202,208,0.1));--in-bg-a: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--in-bg-f: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--in-bg-h: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--in-fg: var(--tp-input-foreground-color, #c8cad0);--lbl-fg: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--spr-fg: var(--tp-separator-color, rgba(0,0,0,0.2));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--spr-fg)}.tp-rotv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px;border-top-left-radius:6px;border-top-right-radius:6px;padding-left:calc(2px * 2 + var(--unit-size) + 4px);text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_t{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv_c>.tp-fldv:last-child>.tp-fldv_c{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:last-child:not(.tp-fldv-expanded)>.tp-fldv_t{border-bottom-left-radius:6px;border-bottom-right-radius:6px}.tp-rotv_c>.tp-fldv:first-child>.tp-fldv_t{border-top-left-radius:6px;border-top-right-radius:6px}.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled{pointer-events:none}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--spr-fg);border-width:0;display:block;height:4px;margin:0;width:100%}.tp-sldv.tp-v-disabled{opacity:0.5}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--unit-size);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:2px;bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-4px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:2px 0 0 2px;bottom:0;content:\'\';height:var(--unit-size);left:50%;margin-bottom:auto;margin-left:-2px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:height 0.1s;width:4px}.tp-txtv.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-lst .tp-txtv_k::before{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:2px;height:4px}.tp-txtv.tp-txtv-drg.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-drg.tp-txtv-list .tp-txtv_k::before{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:2px;color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
         getAllPlugins().forEach(function (plugin) {
             if (plugin.css) {
                 embedStyle(doc, "plugin-" + plugin.id, plugin.css);
@@ -6220,6 +6516,7 @@
                 expanded: config.expanded,
                 blade: new Blade(),
                 title: config.title,
+                viewProps: createViewProps(),
             });
             _this = _super.call(this, rootController) || this;
             _this.containerElem_ = config.container || createDefaultWrapperElement(doc);
@@ -6254,7 +6551,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.1.6');
+        Tweakpane.version = new Semver('2.2.0');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
