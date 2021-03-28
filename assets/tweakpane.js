@@ -1,4 +1,4 @@
-/*! Tweakpane 2.2.0 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.2.1 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -83,31 +83,28 @@
         }
     }
     var className$n = ClassName('');
-    function updateModifier(elem, modifier) {
+    function valueToModifier(elem, modifier) {
         return function (value) {
             applyClass(elem, className$n(undefined, modifier), value);
         };
     }
-    function updateDisabled(target) {
-        return function (value) {
-            target.disabled = value;
-        };
+    function bindViewProps(viewProps, key, applyValue) {
+        viewProps.valueEmitter(key).on('change', compose(extractValue, applyValue));
+        applyValue(viewProps.get(key));
     }
-    function bindViewProps(viewProps, elem) {
-        viewProps
-            .valueEmitter('disabled')
-            .on('change', compose(extractValue, updateModifier(elem, 'disabled')));
-        updateModifier(elem, 'disabled')(viewProps.get('disabled'));
-        viewProps
-            .valueEmitter('hidden')
-            .on('change', compose(extractValue, updateModifier(elem, 'hidden')));
-        updateModifier(elem, 'hidden')(viewProps.get('hidden'));
+    function bindClassModifier(viewProps, elem) {
+        bindViewProps(viewProps, 'disabled', valueToModifier(elem, 'disabled'));
+        bindViewProps(viewProps, 'hidden', valueToModifier(elem, 'hidden'));
     }
     function bindDisabled(viewProps, target) {
-        viewProps
-            .valueEmitter('disabled')
-            .on('change', compose(extractValue, updateDisabled(target)));
-        updateDisabled(target)(viewProps.get('disabled'));
+        bindViewProps(viewProps, 'disabled', function (disabled) {
+            target.disabled = disabled;
+        });
+    }
+    function bindTabIndex(viewProps, elem) {
+        bindViewProps(viewProps, 'disabled', function (disabled) {
+            elem.tabIndex = disabled ? -1 : 0;
+        });
     }
 
     var className$m = ClassName('lbl');
@@ -132,7 +129,7 @@
             this.label = config.label;
             this.element = doc.createElement('div');
             this.element.classList.add(className$m());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             if (this.label !== undefined) {
                 var labelElem = doc.createElement('div');
                 labelElem.classList.add(className$m('l'));
@@ -344,14 +341,13 @@
     var ButtonView = /** @class */ (function () {
         function ButtonView(doc, config) {
             this.button_ = config.button;
-            this.viewProps_ = config.viewProps;
             this.element = doc.createElement('div');
             this.element.classList.add(className$k());
-            bindViewProps(this.viewProps_, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$k('b'));
             buttonElem.textContent = this.button_.title;
-            bindDisabled(this.viewProps_, buttonElem);
+            bindDisabled(config.viewProps, buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
         }
@@ -633,40 +629,6 @@
         // Safari doesn't set next target for some elements
         // (e.g. button, input[type=checkbox], etc.)
         return null;
-    }
-
-    function updateAllItemsPositions(bladeRack) {
-        var visibleItems = bladeRack.items.filter(function (bc) { return !bc.viewProps.get('hidden'); });
-        var firstVisibleItem = visibleItems[0];
-        var lastVisibleItem = visibleItems[visibleItems.length - 1];
-        bladeRack.items.forEach(function (bc) {
-            var ps = [];
-            if (bc === firstVisibleItem) {
-                ps.push('first');
-            }
-            if (bc === lastVisibleItem) {
-                ps.push('last');
-            }
-            bc.blade.positions = ps;
-        });
-    }
-    /**
-     * @hidden
-     */
-    function computeExpandedFolderHeight(folder, containerElement) {
-        var height = 0;
-        disableTransitionTemporarily(containerElement, function () {
-            // Expand folder temporarily
-            folder.expandedHeight = null;
-            folder.temporaryExpanded = true;
-            forceReflow(containerElement);
-            // Compute height
-            height = containerElement.clientHeight;
-            // Restore expanded
-            folder.temporaryExpanded = null;
-            forceReflow(containerElement);
-        });
-        return height;
     }
 
     function findInputBindingController(bcs, b) {
@@ -1006,7 +968,7 @@
             this.className_ = ClassName(config.viewName || 'fld');
             this.element = doc.createElement('div');
             this.element.classList.add(this.className_());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var titleElem = doc.createElement('button');
             titleElem.classList.add(this.className_('t'));
             titleElem.textContent = this.folder_.title;
@@ -1042,6 +1004,21 @@
         return FolderView;
     }());
 
+    function computeExpandedFolderHeight(folder, containerElement) {
+        var height = 0;
+        disableTransitionTemporarily(containerElement, function () {
+            // Expand folder temporarily
+            folder.expandedHeight = null;
+            folder.temporaryExpanded = true;
+            forceReflow(containerElement);
+            // Compute height
+            height = containerElement.clientHeight;
+            // Restore expanded
+            folder.temporaryExpanded = null;
+            forceReflow(containerElement);
+        });
+        return height;
+    }
     /**
      * @hidden
      */
@@ -1100,7 +1077,19 @@
             this.folder.expanded = !this.folder.expanded;
         };
         FolderController.prototype.applyRackChange_ = function () {
-            updateAllItemsPositions(this.bladeRack);
+            var visibleItems = this.bladeRack.items.filter(function (bc) { return !bc.viewProps.get('hidden'); });
+            var firstVisibleItem = visibleItems[0];
+            var lastVisibleItem = visibleItems[visibleItems.length - 1];
+            this.bladeRack.items.forEach(function (bc) {
+                var ps = [];
+                if (bc === firstVisibleItem) {
+                    ps.push('first');
+                }
+                if (bc === lastVisibleItem) {
+                    ps.push('last');
+                }
+                bc.blade.positions = ps;
+            });
         };
         FolderController.prototype.onRackAdd_ = function (ev) {
             if (!ev.isRoot) {
@@ -1157,7 +1146,7 @@
         function SeparatorView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$j());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var hrElem = doc.createElement('hr');
             hrElem.classList.add(className$j('r'));
             this.element.appendChild(hrElem);
@@ -2457,10 +2446,9 @@
             var _this = this;
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.stringifyValue_ = config.stringifyValue;
-            this.viewProps_ = config.viewProps;
             this.element = doc.createElement('div');
             this.element.classList.add(className$i());
-            bindViewProps(this.viewProps_, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var selectElem = doc.createElement('select');
             selectElem.classList.add(className$i('s'));
             config.options.forEach(function (item, index) {
@@ -2470,6 +2458,7 @@
                 optionElem.value = _this.stringifyValue_(item.value);
                 selectElem.appendChild(optionElem);
             });
+            bindDisabled(config.viewProps, selectElem);
             this.element.appendChild(selectElem);
             this.selectElement = selectElem;
             var markElem = doc.createElement('div');
@@ -2478,13 +2467,13 @@
             this.element.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
             this.value_ = config.value;
-            this.update();
+            this.update_();
         }
-        ListView.prototype.update = function () {
+        ListView.prototype.update_ = function () {
             this.selectElement.value = this.stringifyValue_(this.value_.rawValue);
         };
         ListView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         return ListView;
     }());
@@ -2514,7 +2503,6 @@
             }
             var itemIndex = Number(optElem.dataset.index);
             this.value.rawValue = this.listItems_[itemIndex].value;
-            this.view.update();
         };
         return ListController;
     }());
@@ -2528,7 +2516,7 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className$h());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var labelElem = doc.createElement('label');
             labelElem.classList.add(className$h('l'));
             this.element.appendChild(labelElem);
@@ -2545,13 +2533,13 @@
             wrapperElem.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
-            this.update();
+            this.update_();
         }
-        CheckboxView.prototype.update = function () {
+        CheckboxView.prototype.update_ = function () {
             this.inputElement.checked = this.value.rawValue;
         };
         CheckboxView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         return CheckboxView;
     }());
@@ -2573,7 +2561,6 @@
         CheckboxController.prototype.onInputChange_ = function (e) {
             var inputElem = forceCast(e.currentTarget);
             this.value.rawValue = inputElem.checked;
-            this.view.update();
         };
         return CheckboxController;
     }());
@@ -2625,28 +2612,27 @@
     var TextView = /** @class */ (function () {
         function TextView(doc, config) {
             this.onChange_ = this.onChange_.bind(this);
-            this.viewProps_ = config.viewProps;
             this.element = doc.createElement('div');
             this.element.classList.add(className$g());
-            bindViewProps(this.viewProps_, this.element);
+            bindClassModifier(config.viewProps, this.element);
             this.props_ = config.props;
             this.props_.emitter.on('change', this.onChange_);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$g('i'));
             inputElem.type = 'text';
-            bindDisabled(this.viewProps_, inputElem);
+            bindDisabled(config.viewProps, inputElem);
             this.element.appendChild(inputElem);
             this.inputElement = inputElem;
             config.value.emitter.on('change', this.onChange_);
             this.value_ = config.value;
-            this.update();
+            this.update_();
         }
-        TextView.prototype.update = function () {
+        TextView.prototype.update_ = function () {
             var formatter = this.props_.get('formatter');
             this.inputElement.value = formatter(this.value_.rawValue);
         };
         TextView.prototype.onChange_ = function () {
-            this.update();
+            this.update_();
         };
         return TextView;
     }());
@@ -2674,7 +2660,6 @@
             if (!isEmpty(parsedValue)) {
                 this.value.rawValue = parsedValue;
             }
-            this.view.update();
         };
         return TextController;
     }());
@@ -3679,13 +3664,14 @@
             this.value = config.value;
             this.element = doc.createElement('div');
             this.element.classList.add(className$e());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var swatchElem = doc.createElement('div');
             swatchElem.classList.add(className$e('sw'));
             this.element.appendChild(swatchElem);
             this.swatchElem_ = swatchElem;
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$e('b'));
+            bindDisabled(config.viewProps, buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var pickerElem = doc.createElement('div');
@@ -3693,14 +3679,14 @@
             this.pickerView_ = config.pickerView;
             pickerElem.appendChild(this.pickerView_.element);
             this.element.appendChild(pickerElem);
-            this.update();
+            this.update_();
         }
-        ColorSwatchView.prototype.update = function () {
+        ColorSwatchView.prototype.update_ = function () {
             var value = this.value.rawValue;
             this.swatchElem_.style.backgroundColor = colorToHexRgbaString(value);
         };
         ColorSwatchView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         return ColorSwatchView;
     }());
@@ -3813,9 +3799,9 @@
     function getVerticalStepKeys(ev) {
         return {
             altKey: ev.altKey,
-            downKey: ev.keyCode === 40,
+            downKey: ev.key === 'ArrowDown',
             shiftKey: ev.shiftKey,
-            upKey: ev.keyCode === 38,
+            upKey: ev.key === 'ArrowUp',
         };
     }
     /**
@@ -3824,22 +3810,22 @@
     function getHorizontalStepKeys(ev) {
         return {
             altKey: ev.altKey,
-            downKey: ev.keyCode === 37,
+            downKey: ev.key === 'ArrowLeft',
             shiftKey: ev.shiftKey,
-            upKey: ev.keyCode === 39,
+            upKey: ev.key === 'ArrowRight',
         };
     }
     /**
      * @hidden
      */
-    function isVerticalArrowKey(keyCode) {
-        return keyCode === 38 || keyCode === 40;
+    function isVerticalArrowKey(key) {
+        return key === 'ArrowUp' || key === 'ArrowDown';
     }
     /**
      * @hidden
      */
-    function isArrowKey(keyCode) {
-        return isVerticalArrowKey(keyCode) || keyCode === 37 || keyCode === 39;
+    function isArrowKey(key) {
+        return isVerticalArrowKey(key) || key === 'ArrowLeft' || key === 'ArrowRight';
     }
 
     function computeOffset(ev, elem) {
@@ -3977,7 +3963,7 @@
             if (config.arrayPosition) {
                 this.element.classList.add(className$d(undefined, config.arrayPosition));
             }
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$d('i'));
             inputElem.type = 'text';
@@ -4010,7 +3996,7 @@
             this.tooltipElem_ = tooltipElem;
             config.value.emitter.on('change', this.onChange_);
             this.value = config.value;
-            this.update();
+            this.update_();
         }
         NumberTextView.prototype.onDraggingChange_ = function (ev) {
             if (ev.rawValue === null) {
@@ -4027,12 +4013,12 @@
             this.tooltipElem_.textContent = formatter(this.value.rawValue);
             this.tooltipElem_.style.left = x + "px";
         };
-        NumberTextView.prototype.update = function () {
+        NumberTextView.prototype.update_ = function () {
             var formatter = this.props_.get('formatter');
             this.inputElement.value = formatter(this.value.rawValue);
         };
         NumberTextView.prototype.onChange_ = function () {
-            this.update();
+            this.update_();
         };
         return NumberTextView;
     }());
@@ -4078,13 +4064,11 @@
             if (!isEmpty(parsedValue)) {
                 this.value.rawValue = parsedValue;
             }
-            this.view.update();
         };
         NumberTextController.prototype.onInputKeyDown_ = function (e) {
             var step = getStepForKey(this.baseStep_, getVerticalStepKeys(e));
             if (step !== 0) {
                 this.value.rawValue += step;
-                this.view.update();
             }
         };
         NumberTextController.prototype.onPointerDown_ = function () {
@@ -4155,7 +4139,7 @@
                 aElem.appendChild(atElem);
                 this.element.appendChild(aElem);
             }
-            this.update();
+            this.update_();
         }
         Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
             get: function () {
@@ -4171,7 +4155,7 @@
             enumerable: false,
             configurable: true
         });
-        ColorPickerView.prototype.update = function () {
+        ColorPickerView.prototype.update_ = function () {
             if (this.foldable.expanded) {
                 this.element.classList.add(className$c(undefined, 'expanded'));
             }
@@ -4180,10 +4164,10 @@
             }
         };
         ColorPickerView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         ColorPickerView.prototype.onFoldableChange_ = function () {
-            this.update();
+            this.update_();
         };
         return ColorPickerView;
     }());
@@ -4206,7 +4190,7 @@
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$b());
-            this.element.tabIndex = 0;
+            bindTabIndex(config.viewProps, this.element);
             var barElem = doc.createElement('div');
             barElem.classList.add(className$b('b'));
             this.element.appendChild(barElem);
@@ -4222,9 +4206,9 @@
             previewElem.classList.add(className$b('p'));
             this.markerElem_.appendChild(previewElem);
             this.previewElem_ = previewElem;
-            this.update();
+            this.update_();
         }
-        APaletteView.prototype.update = function () {
+        APaletteView.prototype.update_ = function () {
             var c = this.value.rawValue;
             var rgbaComps = c.getComponents('rgb');
             var leftColor = new Color([rgbaComps[0], rgbaComps[1], rgbaComps[2], 0], 'rgb');
@@ -4240,7 +4224,7 @@
             this.markerElem_.style.left = left + "%";
         };
         APaletteView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         return APaletteView;
     }());
@@ -4258,6 +4242,7 @@
             this.viewProps = config.viewProps;
             this.view = new APaletteView(doc, {
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.ptHandler_ = new PointerHandler(this.view.element);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
@@ -4273,7 +4258,6 @@
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), h = _a[0], s = _a[1], v = _a[2];
             this.value.rawValue = new Color([h, s, v, alpha], 'hsv');
-            this.view.update();
         };
         APaletteController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
@@ -4336,7 +4320,7 @@
             this.applyTextViews_();
             this.pickedColor = config.pickedColor;
             this.pickedColor.emitter.on('change', this.onValueChange_);
-            this.update();
+            this.update_();
         }
         Object.defineProperty(ColorTextView.prototype, "modeSelectElement", {
             get: function () {
@@ -4356,7 +4340,7 @@
             enumerable: false,
             configurable: true
         });
-        ColorTextView.prototype.update = function () {
+        ColorTextView.prototype.update_ = function () {
             this.modeElem_.value = this.pickedColor.mode;
         };
         ColorTextView.prototype.applyTextViews_ = function () {
@@ -4373,7 +4357,7 @@
             });
         };
         ColorTextView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         return ColorTextView;
     }());
@@ -4483,7 +4467,7 @@
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$9());
-            this.element.tabIndex = 0;
+            bindTabIndex(config.viewProps, this.element);
             var colorElem = doc.createElement('div');
             colorElem.classList.add(className$9('c'));
             this.element.appendChild(colorElem);
@@ -4491,9 +4475,9 @@
             markerElem.classList.add(className$9('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
-            this.update();
+            this.update_();
         }
-        HPaletteView.prototype.update = function () {
+        HPaletteView.prototype.update_ = function () {
             var c = this.value.rawValue;
             var h = c.getComponents('hsv')[0];
             this.markerElem_.style.backgroundColor = colorToFunctionalRgbString(new Color([h, 100, 100], 'hsv'));
@@ -4501,7 +4485,7 @@
             this.markerElem_.style.left = left + "%";
         };
         HPaletteView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         return HPaletteView;
     }());
@@ -4519,6 +4503,7 @@
             this.viewProps = config.viewProps;
             this.view = new HPaletteView(doc, {
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.ptHandler_ = new PointerHandler(this.view.element);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
@@ -4534,7 +4519,6 @@
             var c = this.value.rawValue;
             var _a = c.getComponents('hsv'), s = _a[1], v = _a[2], a = _a[3];
             this.value.rawValue = new Color([hue, s, v, a], 'hsv');
-            this.view.update();
         };
         HPaletteController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
@@ -4566,7 +4550,7 @@
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$8());
-            this.element.tabIndex = 0;
+            bindTabIndex(config.viewProps, this.element);
             var canvasElem = doc.createElement('canvas');
             canvasElem.height = CANVAS_RESOL;
             canvasElem.width = CANVAS_RESOL;
@@ -4577,9 +4561,9 @@
             markerElem.classList.add(className$8('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
-            this.update();
+            this.update_();
         }
-        SvPaletteView.prototype.update = function () {
+        SvPaletteView.prototype.update_ = function () {
             var ctx = getCanvasContext(this.canvasElement);
             if (!ctx) {
                 return;
@@ -4609,7 +4593,7 @@
             this.markerElem_.style.top = top + "%";
         };
         SvPaletteView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         return SvPaletteView;
     }());
@@ -4627,6 +4611,7 @@
             this.viewProps = config.viewProps;
             this.view = new SvPaletteView(doc, {
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.ptHandler_ = new PointerHandler(this.view.element);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
@@ -4642,7 +4627,6 @@
             var value = mapRange(d.point.y, 0, d.bounds.height, 100, 0);
             var _a = this.value.rawValue.getComponents('hsv'), h = _a[0], a = _a[3];
             this.value.rawValue = new Color([h, saturation, value, a], 'hsv');
-            this.view.update();
         };
         SvPaletteController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
@@ -4654,7 +4638,7 @@
             this.handlePointerEvent_(ev.data);
         };
         SvPaletteController.prototype.onKeyDown_ = function (ev) {
-            if (isArrowKey(ev.keyCode)) {
+            if (isArrowKey(ev.key)) {
                 ev.preventDefault();
             }
             var _a = this.value.rawValue.getComponents('hsv'), h = _a[0], s = _a[1], v = _a[2], a = _a[3];
@@ -4775,7 +4759,7 @@
             this.foldable.expanded = false;
         };
         ColorPickerController.prototype.onKeyDown_ = function (ev) {
-            if (ev.keyCode === 27) {
+            if (ev.key === 'Escape') {
                 this.foldable.expanded = false;
             }
         };
@@ -5083,10 +5067,6 @@
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
         }
-        SliderTextView.prototype.update = function () {
-            this.sliderView_.update();
-            this.textView_.update();
-        };
         return SliderTextView;
     }());
 
@@ -5101,10 +5081,10 @@
             this.props_.emitter.on('change', this.onChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$6());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var trackElem = doc.createElement('div');
             trackElem.classList.add(className$6('t'));
-            trackElem.tabIndex = 0;
+            bindTabIndex(config.viewProps, trackElem);
             this.element.appendChild(trackElem);
             this.trackElement = trackElem;
             var knobElem = doc.createElement('div');
@@ -5113,14 +5093,14 @@
             this.knobElement = knobElem;
             config.value.emitter.on('change', this.onChange_);
             this.value = config.value;
-            this.update();
+            this.update_();
         }
-        SliderView.prototype.update = function () {
+        SliderView.prototype.update_ = function () {
             var p = constrainRange(mapRange(this.value.rawValue, this.props_.get('minValue'), this.props_.get('maxValue'), 0, 100), 0, 100);
             this.knobElement.style.width = p + "%";
         };
         SliderView.prototype.onChange_ = function () {
-            this.update();
+            this.update_();
         };
         return SliderView;
     }());
@@ -5430,7 +5410,7 @@
         function Point2dPadTextView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$4());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var padWrapperElem = doc.createElement('div');
             padWrapperElem.classList.add(className$4('w'));
             this.element.appendChild(padWrapperElem);
@@ -5458,9 +5438,6 @@
             enumerable: false,
             configurable: true
         });
-        Point2dPadTextView.prototype.update = function () {
-            this.padView_.update();
-        };
         return Point2dPadTextView;
     }());
 
@@ -5479,8 +5456,8 @@
             this.element = doc.createElement('div');
             this.element.classList.add(className$3());
             var padElem = doc.createElement('div');
-            padElem.tabIndex = 0;
             padElem.classList.add(className$3('p'));
+            bindTabIndex(config.viewProps, padElem);
             this.element.appendChild(padElem);
             this.padElement = padElem;
             var svgElem = doc.createElementNS(SVG_NS, 'svg');
@@ -5514,7 +5491,7 @@
             this.markerElem_ = markerElem;
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
-            this.update();
+            this.update_();
         }
         Object.defineProperty(Point2dPadView.prototype, "allFocusableElements", {
             get: function () {
@@ -5523,7 +5500,7 @@
             enumerable: false,
             configurable: true
         });
-        Point2dPadView.prototype.update = function () {
+        Point2dPadView.prototype.update_ = function () {
             if (this.foldable.expanded) {
                 this.element.classList.add(className$3(undefined, 'expanded'));
             }
@@ -5541,10 +5518,10 @@
             this.markerElem_.setAttributeNS(null, 'cy', ipy + "%");
         };
         Point2dPadView.prototype.onValueChange_ = function () {
-            this.update();
+            this.update_();
         };
         Point2dPadView.prototype.onFoldableChange_ = function () {
-            this.update();
+            this.update_();
         };
         return Point2dPadView;
     }());
@@ -5573,6 +5550,7 @@
                 invertsY: this.invertsY_,
                 maxValue: this.maxValue_,
                 value: this.value,
+                viewProps: this.viewProps,
             });
             this.ptHandler_ = new PointerHandler(this.view.padElement);
             this.ptHandler_.emitter.on('down', this.onPointerDown_);
@@ -5592,7 +5570,6 @@
             var px = mapRange(d.point.x, 0, d.bounds.width, -max, +max);
             var py = mapRange(this.invertsY_ ? d.bounds.height - d.point.y : d.point.y, 0, d.bounds.height, -max, +max);
             this.value.rawValue = new Point2d(px, py);
-            this.view.update();
         };
         Point2dPadController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
@@ -5604,7 +5581,7 @@
             this.handlePointerEvent_(ev.data);
         };
         Point2dPadController.prototype.onPadKeyDown_ = function (ev) {
-            if (isArrowKey(ev.keyCode)) {
+            if (isArrowKey(ev.key)) {
                 ev.preventDefault();
             }
             this.value.rawValue = new Point2d(this.value.rawValue.x +
@@ -5628,7 +5605,7 @@
             this.foldable.expanded = false;
         };
         Point2dPadController.prototype.onKeyDown_ = function (ev) {
-            if (ev.keyCode === 27) {
+            if (ev.key === 'Escape') {
                 this.foldable.expanded = false;
             }
         };
@@ -6106,18 +6083,19 @@
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
             this.element.classList.add(className$2());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var textareaElem = doc.createElement('textarea');
             textareaElem.classList.add(className$2('i'));
             textareaElem.style.height = "calc(var(--unit-size) * " + config.lineCount + ")";
             textareaElem.readOnly = true;
+            bindDisabled(config.viewProps, textareaElem);
             this.element.appendChild(textareaElem);
             this.textareaElem_ = textareaElem;
             config.value.emitter.on('change', this.onValueUpdate_);
             this.value = config.value;
-            this.update();
+            this.update_();
         }
-        MultiLogView.prototype.update = function () {
+        MultiLogView.prototype.update_ = function () {
             var _this = this;
             var elem = this.textareaElem_;
             var shouldScroll = elem.scrollTop === elem.scrollHeight - elem.clientHeight;
@@ -6133,7 +6111,7 @@
             }
         };
         MultiLogView.prototype.onValueUpdate_ = function () {
-            this.update();
+            this.update_();
         };
         return MultiLogView;
     }());
@@ -6165,25 +6143,26 @@
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
             this.element.classList.add(className$1());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$1('i'));
             inputElem.readOnly = true;
             inputElem.type = 'text';
+            bindDisabled(config.viewProps, inputElem);
             this.element.appendChild(inputElem);
             this.inputElem_ = inputElem;
             config.value.emitter.on('change', this.onValueUpdate_);
             this.value = config.value;
-            this.update();
+            this.update_();
         }
-        SingleLogView.prototype.update = function () {
+        SingleLogView.prototype.update_ = function () {
             var values = this.value.rawValue;
             var lastValue = values[values.length - 1];
             this.inputElem_.value =
                 lastValue !== undefined ? this.formatter_(lastValue) : '';
         };
         SingleLogView.prototype.onValueUpdate_ = function () {
-            this.update();
+            this.update_();
         };
         return SingleLogView;
     }());
@@ -6269,7 +6248,7 @@
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className());
-            bindViewProps(config.viewProps, this.element);
+            bindClassModifier(config.viewProps, this.element);
             this.formatter_ = config.formatter;
             this.minValue_ = config.minValue;
             this.maxValue_ = config.maxValue;
@@ -6289,7 +6268,7 @@
             this.tooltipElem_ = tooltipElem;
             config.value.emitter.on('change', this.onValueUpdate_);
             this.value = config.value;
-            this.update();
+            this.update_();
         }
         Object.defineProperty(GraphLogView.prototype, "graphElement", {
             get: function () {
@@ -6298,7 +6277,7 @@
             enumerable: false,
             configurable: true
         });
-        GraphLogView.prototype.update = function () {
+        GraphLogView.prototype.update_ = function () {
             var bounds = this.svgElem_.getBoundingClientRect();
             // Graph
             var maxIndex = this.value.rawValue.length - 1;
@@ -6334,10 +6313,10 @@
             }
         };
         GraphLogView.prototype.onValueUpdate_ = function () {
-            this.update();
+            this.update_();
         };
         GraphLogView.prototype.onCursorChange_ = function () {
-            this.update();
+            this.update_();
         };
         return GraphLogView;
     }());
@@ -6551,7 +6530,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.2.0');
+        Tweakpane.version = new Semver('2.2.1');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
