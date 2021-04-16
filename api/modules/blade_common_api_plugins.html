@@ -78,6 +78,8 @@
 						<section class="tsd-index-section ">
 							<h3>Functions</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="blade_common_api_plugins.html#createblade" class="tsd-kind-icon">create<wbr>Blade</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="blade_common_api_plugins.html#createbladeapi" class="tsd-kind-icon">create<wbr>Blade<wbr>Api</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="blade_common_api_plugins.html#getallplugins" class="tsd-kind-icon">get<wbr>All<wbr>Plugins</a></li>
 							</ul>
 						</section>
@@ -92,7 +94,7 @@
 					<div class="tsd-signature tsd-kind-icon">Plugins<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span>blades<span class="tsd-signature-symbol">: </span><a href="../interfaces/blade_plugin.bladeplugin.html" class="tsd-signature-type" data-tsd-kind="Interface">BladePlugin</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">; </span>inputs<span class="tsd-signature-symbol">: </span><a href="../interfaces/input_binding_plugin.inputbindingplugin.html" class="tsd-signature-type" data-tsd-kind="Interface">InputBindingPlugin</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">; </span>monitors<span class="tsd-signature-symbol">: </span><a href="../interfaces/monitor_binding_plugin.monitorbindingplugin.html" class="tsd-signature-type" data-tsd-kind="Interface">MonitorBindingPlugin</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> }</span><span class="tsd-signature-symbol"> = ...</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/16e2abb/lib/blade/common/api/plugins.ts#L6">blade/common/api/plugins.ts:6</a></li>
+							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a4c26cd/lib/blade/common/api/plugins.ts#L25">blade/common/api/plugins.ts:25</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -114,6 +116,55 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="createblade" class="tsd-anchor"></a>
+					<h3>create<wbr>Blade</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">create<wbr>Blade<span class="tsd-signature-symbol">(</span>document<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Document</span>, params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/blade_common_controller_blade.bladecontroller.html" class="tsd-signature-type" data-tsd-kind="Class">BladeController</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/common_view_view.view.html" class="tsd-signature-type" data-tsd-kind="Interface">View</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a4c26cd/lib/blade/common/api/plugins.ts#L110">blade/common/api/plugins.ts:110</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>document: <span class="tsd-signature-type">Document</span></h5>
+								</li>
+								<li>
+									<h5>params: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/blade_common_controller_blade.bladecontroller.html" class="tsd-signature-type" data-tsd-kind="Class">BladeController</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/common_view_view.view.html" class="tsd-signature-type" data-tsd-kind="Interface">View</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="createbladeapi" class="tsd-anchor"></a>
+					<h3>create<wbr>Blade<wbr>Api</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">create<wbr>Blade<wbr>Api<span class="tsd-signature-symbol">(</span>bc<span class="tsd-signature-symbol">: </span><a href="../classes/blade_common_controller_blade.bladecontroller.html" class="tsd-signature-type" data-tsd-kind="Class">BladeController</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/common_view_view.view.html" class="tsd-signature-type" data-tsd-kind="Interface">View</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/blade_common_api_blade.bladeapi.html" class="tsd-signature-type" data-tsd-kind="Class">BladeApi</a><span class="tsd-signature-symbol">&lt;</span><a href="../classes/blade_common_controller_blade.bladecontroller.html" class="tsd-signature-type" data-tsd-kind="Class">BladeController</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/common_view_view.view.html" class="tsd-signature-type" data-tsd-kind="Interface">View</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a4c26cd/lib/blade/common/api/plugins.ts#L134">blade/common/api/plugins.ts:134</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>bc: <a href="../classes/blade_common_controller_blade.bladecontroller.html" class="tsd-signature-type" data-tsd-kind="Class">BladeController</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/common_view_view.view.html" class="tsd-signature-type" data-tsd-kind="Interface">View</a><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/blade_common_api_blade.bladeapi.html" class="tsd-signature-type" data-tsd-kind="Class">BladeApi</a><span class="tsd-signature-symbol">&lt;</span><a href="../classes/blade_common_controller_blade.bladecontroller.html" class="tsd-signature-type" data-tsd-kind="Class">BladeController</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/common_view_view.view.html" class="tsd-signature-type" data-tsd-kind="Interface">View</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
 					<a name="getallplugins" class="tsd-anchor"></a>
 					<h3>get<wbr>All<wbr>Plugins</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
@@ -123,7 +174,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/16e2abb/lib/blade/common/api/plugins.ts#L16">blade/common/api/plugins.ts:16</a></li>
+									<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a4c26cd/lib/blade/common/api/plugins.ts#L35">blade/common/api/plugins.ts:35</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/plugin.baseplugin.html" class="tsd-signature-type" data-tsd-kind="Interface">BasePlugin</a><span class="tsd-signature-symbol">[]</span></h4>
@@ -147,6 +198,12 @@
 				<ul class="before-current">
 					<li class=" tsd-kind-variable tsd-parent-kind-module">
 						<a href="blade_common_api_plugins.html#plugins" class="tsd-kind-icon">Plugins</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="blade_common_api_plugins.html#createblade" class="tsd-kind-icon">create<wbr>Blade</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="blade_common_api_plugins.html#createbladeapi" class="tsd-kind-icon">create<wbr>Blade<wbr>Api</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module">
 						<a href="blade_common_api_plugins.html#getallplugins" class="tsd-kind-icon">get<wbr>All<wbr>Plugins</a>

@@ -1,4 +1,4 @@
-/*! Tweakpane 2.3.0 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.4.0 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -32,15 +32,6 @@
         for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
             to[j] = from[i];
         return to;
-    }
-
-    var Plugins = {
-        blades: [],
-        inputs: [],
-        monitors: [],
-    };
-    function getAllPlugins() {
-        return __spreadArray(__spreadArray(__spreadArray([], Plugins.blades), Plugins.inputs), Plugins.monitors);
     }
 
     function forceCast(v) {
@@ -108,94 +99,6 @@
     TpError.prototype.constructor = TpError;
 
     /**
-     * A binding target.
-     */
-    var BindingTarget = /** @class */ (function () {
-        function BindingTarget(obj, key, opt_id) {
-            this.obj_ = obj;
-            this.key_ = key;
-            this.presetKey_ = opt_id !== null && opt_id !== void 0 ? opt_id : key;
-        }
-        BindingTarget.isBindable = function (obj) {
-            if (obj === null) {
-                return false;
-            }
-            if (typeof obj !== 'object') {
-                return false;
-            }
-            return true;
-        };
-        Object.defineProperty(BindingTarget.prototype, "key", {
-            /**
-             * The property name of the binding.
-             */
-            get: function () {
-                return this.key_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(BindingTarget.prototype, "presetKey", {
-            /**
-             * The key used for presets.
-             */
-            get: function () {
-                return this.presetKey_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        /**
-         * Read a bound value.
-         * @return A bound value
-         */
-        BindingTarget.prototype.read = function () {
-            return this.obj_[this.key_];
-        };
-        /**
-         * Write a value.
-         * @param value The value to write to the target.
-         */
-        BindingTarget.prototype.write = function (value) {
-            this.obj_[this.key_] = value;
-        };
-        /**
-         * Write a value to the target property.
-         * @param name The property name.
-         * @param value The value to write to the target.
-         */
-        BindingTarget.prototype.writeProperty = function (name, value) {
-            var valueObj = this.read();
-            if (!BindingTarget.isBindable(valueObj)) {
-                throw TpError.notBindable();
-            }
-            if (!(name in valueObj)) {
-                throw TpError.propertyNotFound(name);
-            }
-            valueObj[name] = value;
-        };
-        return BindingTarget;
-    }());
-
-    function createBindingTarget(obj, key, opt_id) {
-        if (!BindingTarget.isBindable(obj)) {
-            throw TpError.notBindable();
-        }
-        return new BindingTarget(obj, key, opt_id);
-    }
-    function registerPlugin(r) {
-        if (r.type === 'blade') {
-            Plugins.blades.unshift(r.plugin);
-        }
-        else if (r.type === 'input') {
-            Plugins.inputs.unshift(r.plugin);
-        }
-        else if (r.type === 'monitor') {
-            Plugins.monitors.unshift(r.plugin);
-        }
-    }
-
-    /**
      * A type-safe event emitter.
      * @template E The interface that maps event names and event objects.
      */
@@ -244,41 +147,10 @@
         return Emitter;
     }());
 
-    /**
-     * @hidden
-     */
-    var Disposable = /** @class */ (function () {
-        function Disposable() {
-            this.emitter = new Emitter();
-            this.disposed_ = false;
-        }
-        Object.defineProperty(Disposable.prototype, "disposed", {
-            get: function () {
-                return this.disposed_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Disposable.prototype.dispose = function () {
-            if (this.disposed_) {
-                return false;
-            }
-            this.disposed_ = true;
-            this.emitter.emit('dispose', {
-                sender: this,
-            });
-            return true;
-        };
-        return Disposable;
-    }());
-
     var Blade = /** @class */ (function () {
         function Blade() {
             this.emitter = new Emitter();
-            this.disposable_ = new Disposable();
             this.positions_ = [];
-            this.onDispose_ = this.onDispose_.bind(this);
-            this.disposable_.emitter.on('dispose', this.onDispose_);
         }
         Object.defineProperty(Blade.prototype, "positions", {
             get: function () {
@@ -297,22 +169,145 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(Blade.prototype, "disposed", {
+        return Blade;
+    }());
+
+    var PREFIX = 'tp';
+    /**
+     * A utility function for generating BEM-like class name.
+     * @param viewName The name of the view. Used as part of the block name.
+     * @return A class name generator function.
+     */
+    function ClassName(viewName) {
+        /**
+         * Generates a class name.
+         * @param [opt_elementName] The name of the element.
+         * @param [opt_modifier] The name of the modifier.
+         * @return A class name.
+         */
+        var fn = function (opt_elementName, opt_modifier) {
+            return [
+                PREFIX,
+                '-',
+                viewName,
+                'v',
+                opt_elementName ? "_" + opt_elementName : '',
+                opt_modifier ? "-" + opt_modifier : '',
+            ].join('');
+        };
+        return fn;
+    }
+
+    function compose(h1, h2) {
+        return function (input) { return h2(h1(input)); };
+    }
+    function extractValue(ev) {
+        return ev.rawValue;
+    }
+    function applyClass(elem, className, active) {
+        if (active) {
+            elem.classList.add(className);
+        }
+        else {
+            elem.classList.remove(className);
+        }
+    }
+    function valueToClassName(elem, className) {
+        return function (value) {
+            applyClass(elem, className, value);
+        };
+    }
+    var className$p = ClassName('');
+    function valueToModifier(elem, modifier) {
+        return valueToClassName(elem, className$p(undefined, modifier));
+    }
+    function bindValue(value, applyValue) {
+        value.emitter.on('change', compose(extractValue, applyValue));
+        applyValue(value.rawValue);
+    }
+    function bindValueMap(valueMap, key, applyValue) {
+        bindValue(valueMap.value(key), applyValue);
+    }
+    function bindClassModifier(viewProps, elem) {
+        bindValueMap(viewProps, 'disabled', valueToModifier(elem, 'disabled'));
+        bindValueMap(viewProps, 'hidden', valueToModifier(elem, 'hidden'));
+    }
+    function bindDisabled(viewProps, target) {
+        bindValueMap(viewProps, 'disabled', function (disabled) {
+            target.disabled = disabled;
+        });
+    }
+    function bindTabIndex(viewProps, elem) {
+        bindValueMap(viewProps, 'disabled', function (disabled) {
+            elem.tabIndex = disabled ? -1 : 0;
+        });
+    }
+    function bindTextContent(valueMap, key, elem) {
+        bindValueMap(valueMap, key, function (text) {
+            elem.textContent = text !== null && text !== void 0 ? text : '';
+        });
+    }
+    function bindDisposed(viewProps, callback) {
+        viewProps.value('disposed').emitter.on('change', function (disposed) {
+            if (disposed) {
+                callback();
+            }
+        });
+    }
+
+    function disposeElement(elem) {
+        if (elem && elem.parentElement) {
+            elem.parentElement.removeChild(elem);
+        }
+        return null;
+    }
+
+    function getAllBladePositions() {
+        return ['veryfirst', 'first', 'last', 'verylast'];
+    }
+
+    var className$o = ClassName('');
+    var POS_TO_CLASS_NAME_MAP = {
+        veryfirst: 'vfst',
+        first: 'fst',
+        last: 'lst',
+        verylast: 'vlst',
+    };
+    var BladeController = /** @class */ (function () {
+        function BladeController(config) {
+            var _this = this;
+            this.parent_ = null;
+            this.blade = config.blade;
+            this.view = config.view;
+            this.viewProps = config.viewProps;
+            var elem = this.view.element;
+            this.blade.emitter.on('change', function (ev) {
+                if (ev.propertyName === 'positions') {
+                    getAllBladePositions().forEach(function (pos) {
+                        elem.classList.remove(className$o(undefined, POS_TO_CLASS_NAME_MAP[pos]));
+                    });
+                    _this.blade.positions.forEach(function (pos) {
+                        elem.classList.add(className$o(undefined, POS_TO_CLASS_NAME_MAP[pos]));
+                    });
+                }
+            });
+            bindDisposed(this.viewProps, function () {
+                // TODO: Remove in the next major version
+                if (_this.view.onDispose) {
+                    console.warn("View.onDispose is deprecated. Use ViewProps.value('disposed').emitter instead.");
+                    _this.view.onDispose();
+                }
+                disposeElement(elem);
+            });
+        }
+        Object.defineProperty(BladeController.prototype, "parent", {
             get: function () {
-                return this.disposable_.disposed;
+                return this.parent_;
             },
             enumerable: false,
             configurable: true
         });
-        Blade.prototype.dispose = function () {
-            this.disposable_.dispose();
-        };
-        Blade.prototype.onDispose_ = function () {
-            this.emitter.emit('dispose', {
-                sender: this,
-            });
-        };
-        return Blade;
+        return BladeController;
     }());
 
     var SVG_NS = 'http://www.w3.org/2000/svg';
@@ -384,145 +379,162 @@
         return null;
     }
 
-    var PREFIX = 'tp';
-    /**
-     * A utility function for generating BEM-like class name.
-     * @param viewName The name of the view. Used as part of the block name.
-     * @return A class name generator function.
-     */
-    function ClassName(viewName) {
-        /**
-         * Generates a class name.
-         * @param [opt_elementName] The name of the element.
-         * @param [opt_modifier] The name of the modifier.
-         * @return A class name.
-         */
-        var fn = function (opt_elementName, opt_modifier) {
-            return [
-                PREFIX,
-                '-',
-                viewName,
-                'v',
-                opt_elementName ? "_" + opt_elementName : '',
-                opt_modifier ? "-" + opt_modifier : '',
-            ].join('');
-        };
-        return fn;
-    }
-
-    function compose(h1, h2) {
-        return function (input) { return h2(h1(input)); };
-    }
-    function extractValue(ev) {
-        return ev.rawValue;
-    }
-    function applyClass(elem, className, active) {
-        if (active) {
-            elem.classList.add(className);
-        }
-        else {
-            elem.classList.remove(className);
-        }
-    }
-    var className$n = ClassName('');
-    function valueToModifier(elem, modifier) {
-        return function (value) {
-            applyClass(elem, className$n(undefined, modifier), value);
-        };
-    }
-    function bindValueMap(valueMap, key, applyValue) {
-        valueMap.valueEmitter(key).on('change', compose(extractValue, applyValue));
-        applyValue(valueMap.get(key));
-    }
-    function bindClassModifier(viewProps, elem) {
-        bindValueMap(viewProps, 'disabled', valueToModifier(elem, 'disabled'));
-        bindValueMap(viewProps, 'hidden', valueToModifier(elem, 'hidden'));
-    }
-    function bindDisabled(viewProps, target) {
-        bindValueMap(viewProps, 'disabled', function (disabled) {
-            target.disabled = disabled;
+    var className$n = ClassName('lbl');
+    function createLabelNode(doc, label) {
+        var frag = doc.createDocumentFragment();
+        var lineNodes = label.split('\n').map(function (line) {
+            return doc.createTextNode(line);
         });
-    }
-    function bindTabIndex(viewProps, elem) {
-        bindValueMap(viewProps, 'disabled', function (disabled) {
-            elem.tabIndex = disabled ? -1 : 0;
+        lineNodes.forEach(function (lineNode, index) {
+            if (index > 0) {
+                frag.appendChild(doc.createElement('br'));
+            }
+            frag.appendChild(lineNode);
         });
+        return frag;
     }
-    function bindTextContent(valueMap, key, elem) {
-        bindValueMap(valueMap, key, function (text) {
-            elem.textContent = text !== null && text !== void 0 ? text : '';
-        });
-    }
-
-    var className$m = ClassName('lst');
     /**
      * @hidden
      */
-    var ListView = /** @class */ (function () {
-        function ListView(doc, config) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.props_ = config.props;
+    var LabelView = /** @class */ (function () {
+        function LabelView(doc, config) {
+            var _this = this;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$m());
+            this.element.classList.add(className$n());
             bindClassModifier(config.viewProps, this.element);
-            var selectElem = doc.createElement('select');
-            selectElem.classList.add(className$m('s'));
-            bindValueMap(this.props_, 'options', function (opts) {
-                removeChildElements(selectElem);
-                opts.forEach(function (item, index) {
-                    var optionElem = doc.createElement('option');
-                    optionElem.dataset.index = String(index);
-                    optionElem.textContent = item.text;
-                    optionElem.value = String(item.value);
-                    selectElem.appendChild(optionElem);
-                });
+            var labelElem = doc.createElement('div');
+            labelElem.classList.add(className$n('l'));
+            bindValueMap(config.props, 'label', function (value) {
+                if (isEmpty(value)) {
+                    _this.element.classList.add(className$n(undefined, 'nol'));
+                }
+                else {
+                    _this.element.classList.remove(className$n(undefined, 'nol'));
+                    removeChildNodes(labelElem);
+                    labelElem.appendChild(createLabelNode(doc, value));
+                }
             });
-            bindDisabled(config.viewProps, selectElem);
-            this.element.appendChild(selectElem);
-            this.selectElement = selectElem;
-            var markElem = doc.createElement('div');
-            markElem.classList.add(className$m('m'));
-            markElem.appendChild(createSvgIconElement(doc, 'dropdown'));
-            this.element.appendChild(markElem);
-            config.value.emitter.on('change', this.onValueChange_);
-            this.value_ = config.value;
-            this.update_();
+            this.element.appendChild(labelElem);
+            this.labelElement = labelElem;
+            var valueElem = doc.createElement('div');
+            valueElem.classList.add(className$n('v'));
+            this.element.appendChild(valueElem);
+            this.valueElement = valueElem;
         }
-        ListView.prototype.update_ = function () {
-            this.selectElement.value = String(this.value_.rawValue);
-        };
-        ListView.prototype.onValueChange_ = function () {
-            this.update_();
-        };
-        return ListView;
+        return LabelView;
     }());
 
+    var LabelController = /** @class */ (function (_super) {
+        __extends(LabelController, _super);
+        function LabelController(doc, config) {
+            var _this = this;
+            var viewProps = config.valueController.viewProps;
+            _this = _super.call(this, __assign(__assign({}, config), { view: new LabelView(doc, {
+                    props: config.props,
+                    viewProps: viewProps,
+                }), viewProps: viewProps })) || this;
+            _this.props = config.props;
+            _this.valueController = config.valueController;
+            _this.view.valueElement.appendChild(_this.valueController.view.element);
+            // TODO: Remove in the next major version
+            bindDisposed(_this.viewProps, function () {
+                var vc = _this.valueController;
+                if (vc.onDispose) {
+                    console.warn("Controller.onDispose is deprecated. Use ViewProps.value('disposed').emitter instead.");
+                    vc.onDispose();
+                }
+                if (vc.view.onDispose) {
+                    console.warn("View.onDispose is deprecated. Use ViewProps.value('disposed').emitter instead.");
+                    vc.view.onDispose();
+                }
+            });
+            return _this;
+        }
+        return LabelController;
+    }(BladeController));
+
     /**
      * @hidden
      */
-    var ListController = /** @class */ (function () {
-        function ListController(doc, config) {
-            this.onSelectChange_ = this.onSelectChange_.bind(this);
-            this.props = config.props;
-            this.value = config.value;
-            this.viewProps = config.viewProps;
-            this.view = new ListView(doc, {
-                props: this.props,
-                value: this.value,
-                viewProps: this.viewProps,
-            });
-            this.view.selectElement.addEventListener('change', this.onSelectChange_);
+    var InputBindingController = /** @class */ (function (_super) {
+        __extends(InputBindingController, _super);
+        function InputBindingController(doc, config) {
+            var _this = _super.call(this, doc, config) || this;
+            _this.binding = config.binding;
+            return _this;
         }
-        ListController.prototype.onSelectChange_ = function (e) {
-            var selectElem = forceCast(e.currentTarget);
-            var optElem = selectElem.selectedOptions.item(0);
-            if (!optElem) {
-                return;
+        return InputBindingController;
+    }(LabelController));
+
+    /**
+     * @hidden
+     */
+    var InputBinding = /** @class */ (function () {
+        function InputBinding(config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.reader = config.reader;
+            this.writer = config.writer;
+            this.emitter = new Emitter();
+            this.value = config.value;
+            this.value.emitter.on('change', this.onValueChange_);
+            this.target = config.target;
+            this.read();
+        }
+        InputBinding.prototype.read = function () {
+            var targetValue = this.target.read();
+            if (targetValue !== undefined) {
+                this.value.rawValue = this.reader(targetValue);
             }
-            var itemIndex = Number(optElem.dataset.index);
-            this.value.rawValue = this.props.get('options')[itemIndex].value;
         };
-        return ListController;
+        InputBinding.prototype.write_ = function (rawValue) {
+            this.writer(this.target, rawValue);
+        };
+        InputBinding.prototype.onValueChange_ = function (ev) {
+            this.write_(ev.rawValue);
+            this.emitter.emit('change', {
+                rawValue: ev.rawValue,
+                sender: this,
+            });
+        };
+        return InputBinding;
+    }());
+
+    var BoundValue = /** @class */ (function () {
+        function BoundValue(initialValue, config) {
+            var _a;
+            this.constraint_ = config === null || config === void 0 ? void 0 : config.constraint;
+            this.equals_ = (_a = config === null || config === void 0 ? void 0 : config.equals) !== null && _a !== void 0 ? _a : (function (v1, v2) { return v1 === v2; });
+            this.emitter = new Emitter();
+            this.rawValue_ = initialValue;
+        }
+        Object.defineProperty(BoundValue.prototype, "constraint", {
+            get: function () {
+                return this.constraint_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(BoundValue.prototype, "rawValue", {
+            get: function () {
+                return this.rawValue_;
+            },
+            set: function (rawValue) {
+                var constrainedValue = this.constraint_
+                    ? this.constraint_.constrain(rawValue)
+                    : rawValue;
+                var changed = !this.equals_(this.rawValue_, constrainedValue);
+                if (changed) {
+                    this.rawValue_ = constrainedValue;
+                    this.emitter.emit('change', {
+                        rawValue: constrainedValue,
+                        sender: this,
+                    });
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return BoundValue;
     }());
 
     var PrimitiveValue = /** @class */ (function () {
@@ -577,35 +589,27 @@
         ValueMap.prototype.set = function (key, value) {
             this.valMap_[key].rawValue = value;
         };
+        ValueMap.prototype.value = function (key) {
+            return this.valMap_[key];
+        };
+        // TODO: Remove in the next major version
+        /** @deprecated Use ValueMap.value.emitter instead. */
         ValueMap.prototype.valueEmitter = function (key) {
+            console.warn("ValueMap.valueEmitter is deprecated. Use ValueMap.value.emitter instead.\nThis polyfill will be removed in the next major version.");
             return this.valMap_[key].emitter;
         };
         return ValueMap;
     }());
 
-    function createParamFinder(test) {
-        return function (params, key) {
-            if (!(key in params)) {
-                return;
-            }
-            var value = params[key];
-            return test(value) ? value : undefined;
-        };
+    function createViewProps(opt_initialValue) {
+        var _a, _b;
+        var initialValue = opt_initialValue !== null && opt_initialValue !== void 0 ? opt_initialValue : {};
+        return new ValueMap({
+            disabled: (_a = initialValue.disabled) !== null && _a !== void 0 ? _a : false,
+            disposed: false,
+            hidden: (_b = initialValue.hidden) !== null && _b !== void 0 ? _b : false,
+        });
     }
-    var findBooleanParam = createParamFinder(function (value) { return typeof value === 'boolean'; });
-    var findNumberParam = createParamFinder(function (value) { return typeof value === 'number'; });
-    var findStringParam = createParamFinder(function (value) { return typeof value === 'string'; });
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    var findFunctionParam = createParamFinder(
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    function (value) { return typeof value === 'function'; });
-    function isObject(value) {
-        if (value === null) {
-            return false;
-        }
-        return typeof value === 'object';
-    }
-    var findObjectParam = createParamFinder(isObject);
 
     /**
      * A constraint to combine multiple constraints.
@@ -676,15 +680,6 @@
         };
         return StepConstraint;
     }());
-
-    function createViewProps(opt_initialValue) {
-        var _a, _b;
-        var initialValue = opt_initialValue !== null && opt_initialValue !== void 0 ? opt_initialValue : {};
-        return new ValueMap({
-            disabled: (_a = initialValue.disabled) !== null && _a !== void 0 ? _a : false,
-            hidden: (_b = initialValue.hidden) !== null && _b !== void 0 ? _b : false,
-        });
-    }
 
     function mapRange(value, start1, end1, start2, end2) {
         var p = (value - start1) / (end1 - start1);
@@ -777,125 +772,278 @@
         }
     }
 
-    function disposeElement(elem) {
-        if (elem && elem.parentElement) {
-            elem.parentElement.removeChild(elem);
+    function createInputBindingController(plugin, args) {
+        var initialValue = plugin.accept(args.target.read(), args.params);
+        if (initialValue === null) {
+            return null;
         }
-        return null;
+        var valueArgs = {
+            target: args.target,
+            initialValue: initialValue,
+            params: args.params,
+        };
+        var reader = plugin.binding.reader(valueArgs);
+        var constraint = plugin.binding.constraint
+            ? plugin.binding.constraint(valueArgs)
+            : undefined;
+        var value = new BoundValue(reader(initialValue), {
+            constraint: constraint,
+            equals: plugin.binding.equals,
+        });
+        var binding = new InputBinding({
+            reader: reader,
+            target: args.target,
+            value: value,
+            writer: plugin.binding.writer(valueArgs),
+        });
+        var controller = plugin.controller({
+            constraint: constraint,
+            document: args.document,
+            initialValue: initialValue,
+            params: args.params,
+            value: binding.value,
+            viewProps: createViewProps({
+                disabled: args.params.disabled,
+            }),
+        });
+        polyfillViewProps(controller, plugin.id);
+        var blade = new Blade();
+        return new InputBindingController(args.document, {
+            binding: binding,
+            blade: blade,
+            props: new ValueMap({
+                label: args.params.label || args.target.key,
+            }),
+            valueController: controller,
+        });
     }
 
-    function getAllBladePositions() {
-        return ['first', 'last'];
-    }
-
-    var className$l = ClassName('');
-    var BladeController = /** @class */ (function () {
-        function BladeController(config) {
-            var _this = this;
-            this.parent_ = null;
-            this.blade = config.blade;
-            this.view = config.view;
-            this.viewProps = config.viewProps;
-            var elem = this.view.element;
-            this.blade.emitter.on('change', function (ev) {
-                if (ev.propertyName === 'positions') {
-                    getAllBladePositions().forEach(function (pos) {
-                        elem.classList.remove(className$l(undefined, pos));
-                    });
-                    _this.blade.positions.forEach(function (pos) {
-                        elem.classList.add(className$l(undefined, pos));
-                    });
-                }
+    /**
+     * @hidden
+     */
+    var MonitorBindingController = /** @class */ (function (_super) {
+        __extends(MonitorBindingController, _super);
+        function MonitorBindingController(doc, config) {
+            var _this = _super.call(this, doc, config) || this;
+            _this.binding = config.binding;
+            bindDisabled(_this.viewProps, _this.binding.ticker);
+            bindDisposed(_this.viewProps, function () {
+                _this.binding.dispose();
             });
-            this.blade.emitter.on('dispose', function () {
-                if (_this.view.onDispose) {
-                    _this.view.onDispose();
-                }
-                disposeElement(elem);
-                _this.onDispose();
-            });
+            return _this;
         }
-        Object.defineProperty(BladeController.prototype, "parent", {
-            get: function () {
-                return this.parent_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        BladeController.prototype.onDispose = function () { };
-        return BladeController;
-    }());
+        return MonitorBindingController;
+    }(LabelController));
 
-    var className$k = ClassName('lbl');
-    function createLabelNode(doc, label) {
-        var frag = doc.createDocumentFragment();
-        var lineNodes = label.split('\n').map(function (line) {
-            return doc.createTextNode(line);
-        });
-        lineNodes.forEach(function (lineNode, index) {
-            if (index > 0) {
-                frag.appendChild(doc.createElement('br'));
-            }
-            frag.appendChild(lineNode);
-        });
-        return frag;
+    function fillBuffer(buffer, bufferSize) {
+        while (buffer.length < bufferSize) {
+            buffer.push(undefined);
+        }
     }
     /**
      * @hidden
      */
-    var LabeledView = /** @class */ (function () {
-        function LabeledView(doc, config) {
-            var _this = this;
-            this.element = doc.createElement('div');
-            this.element.classList.add(className$k());
-            bindClassModifier(config.viewProps, this.element);
-            var labelElem = doc.createElement('div');
-            labelElem.classList.add(className$k('l'));
-            bindValueMap(config.props, 'label', function (value) {
-                if (isEmpty(value)) {
-                    _this.element.classList.add(className$k(undefined, 'nol'));
-                }
-                else {
-                    _this.element.classList.remove(className$k(undefined, 'nol'));
-                    removeChildNodes(labelElem);
-                    labelElem.appendChild(createLabelNode(doc, value));
-                }
-            });
-            this.element.appendChild(labelElem);
-            this.labelElement = labelElem;
-            var valueElem = doc.createElement('div');
-            valueElem.classList.add(className$k('v'));
-            this.element.appendChild(valueElem);
-            this.valueElement = valueElem;
+    function initializeBuffer(bufferSize) {
+        var buffer = [];
+        fillBuffer(buffer, bufferSize);
+        return new BoundValue(buffer);
+    }
+    function createTrimmedBuffer(buffer) {
+        var index = buffer.indexOf(undefined);
+        return forceCast(index < 0 ? buffer : buffer.slice(0, index));
+    }
+    /**
+     * @hidden
+     */
+    function createPushedBuffer(buffer, newValue) {
+        var newBuffer = __spreadArray(__spreadArray([], createTrimmedBuffer(buffer)), [newValue]);
+        if (newBuffer.length > buffer.length) {
+            newBuffer.splice(0, newBuffer.length - buffer.length);
         }
-        return LabeledView;
+        else {
+            fillBuffer(newBuffer, buffer.length);
+        }
+        return newBuffer;
+    }
+
+    /**
+     * @hidden
+     */
+    var MonitorBinding = /** @class */ (function () {
+        function MonitorBinding(config) {
+            this.onTick_ = this.onTick_.bind(this);
+            this.reader_ = config.reader;
+            this.target = config.target;
+            this.emitter = new Emitter();
+            this.value = config.value;
+            this.ticker = config.ticker;
+            this.ticker.emitter.on('tick', this.onTick_);
+            this.read();
+        }
+        MonitorBinding.prototype.dispose = function () {
+            this.ticker.dispose();
+        };
+        MonitorBinding.prototype.read = function () {
+            var targetValue = this.target.read();
+            if (targetValue === undefined) {
+                return;
+            }
+            var buffer = this.value.rawValue;
+            var newValue = this.reader_(targetValue);
+            this.value.rawValue = createPushedBuffer(buffer, newValue);
+            this.emitter.emit('update', {
+                rawValue: newValue,
+                sender: this,
+            });
+        };
+        MonitorBinding.prototype.onTick_ = function (_) {
+            this.read();
+        };
+        return MonitorBinding;
     }());
 
-    var LabeledController = /** @class */ (function (_super) {
-        __extends(LabeledController, _super);
-        function LabeledController(doc, config) {
-            var _this = this;
-            var viewProps = config.valueController.viewProps;
-            _this = _super.call(this, __assign(__assign({}, config), { view: new LabeledView(doc, {
-                    props: config.props,
-                    viewProps: viewProps,
-                }), viewProps: viewProps })) || this;
-            _this.props = config.props;
-            _this.valueController = config.valueController;
-            _this.view.valueElement.appendChild(_this.valueController.view.element);
-            return _this;
+    /**
+     * @hidden
+     */
+    var IntervalTicker = /** @class */ (function () {
+        function IntervalTicker(doc, interval) {
+            this.disabled_ = false;
+            this.timerId_ = null;
+            this.onTick_ = this.onTick_.bind(this);
+            // this.onWindowBlur_ = this.onWindowBlur_.bind(this);
+            // this.onWindowFocus_ = this.onWindowFocus_.bind(this);
+            this.doc_ = doc;
+            this.emitter = new Emitter();
+            this.interval_ = interval;
+            this.setTimer_();
+            // TODO: Stop on blur?
+            // const win = document.defaultView;
+            // if (win) {
+            //   win.addEventListener('blur', this.onWindowBlur_);
+            //   win.addEventListener('focus', this.onWindowFocus_);
+            // }
         }
-        LabeledController.prototype.onDispose = function () {
-            var vc = this.valueController;
-            if (vc.onDispose) {
-                vc.onDispose();
+        Object.defineProperty(IntervalTicker.prototype, "disabled", {
+            get: function () {
+                return this.disabled_;
+            },
+            set: function (inactive) {
+                this.disabled_ = inactive;
+                if (this.disabled_) {
+                    this.clearTimer_();
+                }
+                else {
+                    this.setTimer_();
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        IntervalTicker.prototype.dispose = function () {
+            this.clearTimer_();
+        };
+        IntervalTicker.prototype.clearTimer_ = function () {
+            if (this.timerId_ === null) {
+                return;
             }
-            if (vc.view.onDispose) {
-                vc.view.onDispose();
+            var win = this.doc_.defaultView;
+            if (win) {
+                win.clearInterval(this.timerId_);
+            }
+            this.timerId_ = null;
+        };
+        IntervalTicker.prototype.setTimer_ = function () {
+            this.clearTimer_();
+            if (this.interval_ <= 0) {
+                return;
+            }
+            var win = this.doc_.defaultView;
+            if (win) {
+                this.timerId_ = win.setInterval(this.onTick_, this.interval_);
             }
         };
-        return LabeledController;
-    }(BladeController));
+        IntervalTicker.prototype.onTick_ = function () {
+            if (this.disabled_) {
+                return;
+            }
+            this.emitter.emit('tick', {
+                sender: this,
+            });
+        };
+        return IntervalTicker;
+    }());
+
+    /**
+     * @hidden
+     */
+    var ManualTicker = /** @class */ (function () {
+        function ManualTicker() {
+            this.disabled = false;
+            this.emitter = new Emitter();
+        }
+        ManualTicker.prototype.dispose = function () { };
+        ManualTicker.prototype.tick = function () {
+            if (this.disabled) {
+                return;
+            }
+            this.emitter.emit('tick', {
+                sender: this,
+            });
+        };
+        return ManualTicker;
+    }());
+
+    var Constants = {
+        monitor: {
+            defaultInterval: 200,
+            defaultLineCount: 3,
+        },
+    };
+
+    function createTicker(document, interval) {
+        return interval === 0
+            ? new ManualTicker()
+            : new IntervalTicker(document, interval !== null && interval !== void 0 ? interval : Constants.monitor.defaultInterval);
+    }
+    function createMonitorBindingController(plugin, args) {
+        var _a, _b;
+        var initialValue = plugin.accept(args.target.read(), args.params);
+        if (initialValue === null) {
+            return null;
+        }
+        var valueArgs = {
+            target: args.target,
+            initialValue: initialValue,
+            params: args.params,
+        };
+        var reader = plugin.binding.reader(valueArgs);
+        var bufferSize = (_b = (_a = args.params.bufferSize) !== null && _a !== void 0 ? _a : (plugin.binding.defaultBufferSize &&
+            plugin.binding.defaultBufferSize(args.params))) !== null && _b !== void 0 ? _b : 1;
+        var binding = new MonitorBinding({
+            reader: reader,
+            target: args.target,
+            ticker: createTicker(args.document, args.params.interval),
+            value: initializeBuffer(bufferSize),
+        });
+        var controller = plugin.controller({
+            document: args.document,
+            params: args.params,
+            value: binding.value,
+            viewProps: createViewProps({
+                disabled: args.params.disabled,
+            }),
+        });
+        polyfillViewProps(controller, plugin.id);
+        var blade = new Blade();
+        return new MonitorBindingController(args.document, {
+            binding: binding,
+            blade: blade,
+            props: new ValueMap({
+                label: args.params.label || args.target.key,
+            }),
+            valueController: controller,
+        });
+    }
 
     var BladeApi = /** @class */ (function () {
         function BladeApi(controller) {
@@ -922,7 +1070,7 @@
             configurable: true
         });
         BladeApi.prototype.dispose = function () {
-            this.controller_.blade.dispose();
+            this.controller_.viewProps.set('disposed', true);
         };
         return BladeApi;
     }());
@@ -989,9 +1137,949 @@
         return TpFoldEvent;
     }(TpEvent));
 
-    var ListBladeApi = /** @class */ (function (_super) {
-        __extends(ListBladeApi, _super);
-        function ListBladeApi(controller) {
+    /**
+     * The API for the input binding between the parameter and the pane.
+     * @template In The internal type.
+     * @template Ex The external type (= parameter object).
+     */
+    var InputBindingApi = /** @class */ (function (_super) {
+        __extends(InputBindingApi, _super);
+        /**
+         * @hidden
+         */
+        function InputBindingApi(controller) {
+            var _this = _super.call(this, controller) || this;
+            _this.onBindingChange_ = _this.onBindingChange_.bind(_this);
+            _this.emitter_ = new Emitter();
+            _this.controller_.binding.emitter.on('change', _this.onBindingChange_);
+            return _this;
+        }
+        InputBindingApi.prototype.on = function (eventName, handler) {
+            var bh = handler.bind(this);
+            this.emitter_.on(eventName, function (ev) {
+                bh(ev.event);
+            });
+            return this;
+        };
+        InputBindingApi.prototype.refresh = function () {
+            this.controller_.binding.read();
+        };
+        InputBindingApi.prototype.onBindingChange_ = function (ev) {
+            var value = ev.sender.target.read();
+            this.emitter_.emit('change', {
+                event: new TpChangeEvent(this, forceCast(value), this.controller_.binding.target.presetKey),
+            });
+        };
+        return InputBindingApi;
+    }(BladeApi));
+
+    /**
+     * The API for the monitor binding between the parameter and the pane.
+     */
+    var MonitorBindingApi = /** @class */ (function (_super) {
+        __extends(MonitorBindingApi, _super);
+        /**
+         * @hidden
+         */
+        function MonitorBindingApi(controller) {
+            var _this = _super.call(this, controller) || this;
+            _this.onBindingUpdate_ = _this.onBindingUpdate_.bind(_this);
+            _this.emitter_ = new Emitter();
+            _this.controller_.binding.emitter.on('update', _this.onBindingUpdate_);
+            return _this;
+        }
+        MonitorBindingApi.prototype.on = function (eventName, handler) {
+            var bh = handler.bind(this);
+            this.emitter_.on(eventName, function (ev) {
+                bh(ev.event);
+            });
+            return this;
+        };
+        MonitorBindingApi.prototype.refresh = function () {
+            this.controller_.binding.read();
+        };
+        MonitorBindingApi.prototype.onBindingUpdate_ = function (ev) {
+            var value = ev.sender.target.read();
+            this.emitter_.emit('update', {
+                event: new TpUpdateEvent(this, forceCast(value), this.controller_.binding.target.presetKey),
+            });
+        };
+        return MonitorBindingApi;
+    }(BladeApi));
+
+    function createParamFinder(test) {
+        return function (params, key) {
+            if (!(key in params)) {
+                return;
+            }
+            var value = params[key];
+            return test(value) ? value : undefined;
+        };
+    }
+    var findBooleanParam = createParamFinder(function (value) { return typeof value === 'boolean'; });
+    var findNumberParam = createParamFinder(function (value) { return typeof value === 'number'; });
+    var findStringParam = createParamFinder(function (value) { return typeof value === 'string'; });
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    var findFunctionParam = createParamFinder(
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    function (value) { return typeof value === 'function'; });
+    function isObject(value) {
+        if (value === null) {
+            return false;
+        }
+        return typeof value === 'object';
+    }
+    var findObjectParam = createParamFinder(isObject);
+    function createArrayParamFinder(test) {
+        return createParamFinder(function (value) {
+            if (!Array.isArray(value)) {
+                return false;
+            }
+            for (var i = 0; i < value.length; i++) {
+                if (!test(value[i])) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+    var findObjectArrayParam = createArrayParamFinder(isObject);
+
+    function createBladeController(plugin, args) {
+        var ac = plugin.accept(args.params);
+        if (!ac) {
+            return null;
+        }
+        var disabled = findBooleanParam(args.params, 'disabled');
+        var hidden = findBooleanParam(args.params, 'hidden');
+        return plugin.controller({
+            blade: new Blade(),
+            document: args.document,
+            params: forceCast(__assign(__assign({}, ac.params), { disabled: disabled, hidden: hidden })),
+            viewProps: createViewProps({
+                disabled: disabled,
+                hidden: hidden,
+            }),
+        });
+    }
+
+    function addButtonAsBlade(api, params) {
+        return api.addBlade_v3_(__assign(__assign({}, params), { view: 'button' }));
+    }
+    function addFolderAsBlade(api, params) {
+        return api.addBlade_v3_(__assign(__assign({}, params), { view: 'folder' }));
+    }
+    function addSeparatorAsBlade(api, opt_params) {
+        var params = opt_params || {};
+        return api.addBlade_v3_(__assign(__assign({}, params), { view: 'separator' }));
+    }
+    function addTabAsBlade(api, params) {
+        return api.addBlade_v3_(__assign(__assign({}, params), { view: 'tab' }));
+    }
+
+    /**
+     * @hidden
+     */
+    var RackLikeApi = /** @class */ (function (_super) {
+        __extends(RackLikeApi, _super);
+        function RackLikeApi(controller, rackApi) {
+            var _this = _super.call(this, controller) || this;
+            _this.rackApi_ = rackApi;
+            return _this;
+        }
+        return RackLikeApi;
+    }(BladeApi));
+
+    /**
+     * A binding target.
+     */
+    var BindingTarget = /** @class */ (function () {
+        function BindingTarget(obj, key, opt_id) {
+            this.obj_ = obj;
+            this.key_ = key;
+            this.presetKey_ = opt_id !== null && opt_id !== void 0 ? opt_id : key;
+        }
+        BindingTarget.isBindable = function (obj) {
+            if (obj === null) {
+                return false;
+            }
+            if (typeof obj !== 'object') {
+                return false;
+            }
+            return true;
+        };
+        Object.defineProperty(BindingTarget.prototype, "key", {
+            /**
+             * The property name of the binding.
+             */
+            get: function () {
+                return this.key_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(BindingTarget.prototype, "presetKey", {
+            /**
+             * The key used for presets.
+             */
+            get: function () {
+                return this.presetKey_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        /**
+         * Read a bound value.
+         * @return A bound value
+         */
+        BindingTarget.prototype.read = function () {
+            return this.obj_[this.key_];
+        };
+        /**
+         * Write a value.
+         * @param value The value to write to the target.
+         */
+        BindingTarget.prototype.write = function (value) {
+            this.obj_[this.key_] = value;
+        };
+        /**
+         * Write a value to the target property.
+         * @param name The property name.
+         * @param value The value to write to the target.
+         */
+        BindingTarget.prototype.writeProperty = function (name, value) {
+            var valueObj = this.read();
+            if (!BindingTarget.isBindable(valueObj)) {
+                throw TpError.notBindable();
+            }
+            if (!(name in valueObj)) {
+                throw TpError.propertyNotFound(name);
+            }
+            valueObj[name] = value;
+        };
+        return BindingTarget;
+    }());
+
+    function createBindingTarget(obj, key, opt_id) {
+        if (!BindingTarget.isBindable(obj)) {
+            throw TpError.notBindable();
+        }
+        return new BindingTarget(obj, key, opt_id);
+    }
+    function registerPlugin(r) {
+        if (r.type === 'blade') {
+            Plugins.blades.unshift(r.plugin);
+        }
+        else if (r.type === 'input') {
+            Plugins.inputs.unshift(r.plugin);
+        }
+        else if (r.type === 'monitor') {
+            Plugins.monitors.unshift(r.plugin);
+        }
+    }
+
+    var NestedOrderedSet = /** @class */ (function () {
+        function NestedOrderedSet(extract) {
+            this.emitter = new Emitter();
+            this.items_ = [];
+            this.cache_ = new Set();
+            this.onSubListAdd_ = this.onSubListAdd_.bind(this);
+            this.onSubListRemove_ = this.onSubListRemove_.bind(this);
+            this.extract_ = extract;
+        }
+        Object.defineProperty(NestedOrderedSet.prototype, "items", {
+            get: function () {
+                return this.items_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        NestedOrderedSet.prototype.allItems = function () {
+            return Array.from(this.cache_);
+        };
+        NestedOrderedSet.prototype.find = function (callback) {
+            for (var _i = 0, _a = this.allItems(); _i < _a.length; _i++) {
+                var item = _a[_i];
+                if (callback(item)) {
+                    return item;
+                }
+            }
+            return null;
+        };
+        NestedOrderedSet.prototype.includes = function (item) {
+            return this.cache_.has(item);
+        };
+        NestedOrderedSet.prototype.add = function (item, opt_index) {
+            var _this = this;
+            if (this.includes(item)) {
+                throw TpError.shouldNeverHappen();
+            }
+            var index = opt_index !== undefined ? opt_index : this.items_.length;
+            this.items_.splice(index, 0, item);
+            this.cache_.add(item);
+            var subList = this.extract_(item);
+            if (subList) {
+                subList.emitter.on('add', this.onSubListAdd_);
+                subList.emitter.on('remove', this.onSubListRemove_);
+                subList.allItems().forEach(function (item) {
+                    _this.cache_.add(item);
+                });
+            }
+            this.emitter.emit('add', {
+                index: index,
+                item: item,
+                root: this,
+                target: this,
+            });
+        };
+        NestedOrderedSet.prototype.remove = function (item) {
+            var index = this.items_.indexOf(item);
+            if (index < 0) {
+                return;
+            }
+            this.items_.splice(index, 1);
+            this.cache_.delete(item);
+            var subList = this.extract_(item);
+            if (subList) {
+                subList.emitter.off('add', this.onSubListAdd_);
+                subList.emitter.off('remove', this.onSubListRemove_);
+            }
+            this.emitter.emit('remove', {
+                index: index,
+                item: item,
+                root: this,
+                target: this,
+            });
+        };
+        NestedOrderedSet.prototype.onSubListAdd_ = function (ev) {
+            this.cache_.add(ev.item);
+            this.emitter.emit('add', {
+                index: ev.index,
+                item: ev.item,
+                root: this,
+                target: ev.target,
+            });
+        };
+        NestedOrderedSet.prototype.onSubListRemove_ = function (ev) {
+            this.cache_.delete(ev.item);
+            this.emitter.emit('remove', {
+                index: ev.index,
+                item: ev.item,
+                root: this,
+                target: ev.target,
+            });
+        };
+        return NestedOrderedSet;
+    }());
+
+    function findSubBladeApiSet(api) {
+        if (api instanceof RackApi) {
+            return api['apiSet_'];
+        }
+        if (api instanceof RackLikeApi) {
+            return api['rackApi_']['apiSet_'];
+        }
+        return null;
+    }
+    function getApiByController(apiSet, controller) {
+        var api = apiSet.find(function (api) { return api.controller_ === controller; });
+        /* istanbul ignore next */
+        if (!api) {
+            throw TpError.shouldNeverHappen();
+        }
+        return api;
+    }
+    /**
+     * @hidden
+     */
+    var RackApi = /** @class */ (function (_super) {
+        __extends(RackApi, _super);
+        /**
+         * @hidden
+         */
+        function RackApi(controller) {
+            var _this = _super.call(this, controller) || this;
+            _this.onRackAdd_ = _this.onRackAdd_.bind(_this);
+            _this.onRackRemove_ = _this.onRackRemove_.bind(_this);
+            _this.onRackInputChange_ = _this.onRackInputChange_.bind(_this);
+            _this.onRackMonitorUpdate_ = _this.onRackMonitorUpdate_.bind(_this);
+            _this.emitter_ = new Emitter();
+            _this.apiSet_ = new NestedOrderedSet(findSubBladeApiSet);
+            var rack = _this.controller_.rack;
+            rack.emitter.on('add', _this.onRackAdd_);
+            rack.emitter.on('remove', _this.onRackRemove_);
+            rack.emitter.on('inputchange', _this.onRackInputChange_);
+            rack.emitter.on('monitorupdate', _this.onRackMonitorUpdate_);
+            rack.children.forEach(function (bc) {
+                _this.setUpApi_(bc);
+            });
+            return _this;
+        }
+        Object.defineProperty(RackApi.prototype, "children", {
+            get: function () {
+                var _this = this;
+                return this.controller_.rack.children.map(function (bc) {
+                    return getApiByController(_this.apiSet_, bc);
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        RackApi.prototype.addInput = function (object, key, opt_params) {
+            var params = opt_params || {};
+            var doc = this.controller_.view.element.ownerDocument;
+            var bc = createInput(doc, createBindingTarget(object, key, params.presetKey), params);
+            var api = new InputBindingApi(bc);
+            return this.add(api, params.index);
+        };
+        RackApi.prototype.addMonitor = function (object, key, opt_params) {
+            var params = opt_params || {};
+            var doc = this.controller_.view.element.ownerDocument;
+            var bc = createMonitor(doc, createBindingTarget(object, key), params);
+            var api = new MonitorBindingApi(bc);
+            return forceCast(this.add(api, params.index));
+        };
+        RackApi.prototype.addFolder = function (params) {
+            return addFolderAsBlade(this, params);
+        };
+        RackApi.prototype.addButton = function (params) {
+            return addButtonAsBlade(this, params);
+        };
+        RackApi.prototype.addSeparator = function (opt_params) {
+            return addSeparatorAsBlade(this, opt_params);
+        };
+        RackApi.prototype.addTab = function (params) {
+            return addTabAsBlade(this, params);
+        };
+        RackApi.prototype.add = function (api, opt_index) {
+            this.controller_.rack.add(api.controller_, opt_index);
+            // Replace generated API with specified one
+            var gapi = this.apiSet_.find(function (a) { return a.controller_ === api.controller_; });
+            if (gapi) {
+                this.apiSet_.remove(gapi);
+            }
+            this.apiSet_.add(api);
+            return api;
+        };
+        RackApi.prototype.remove = function (api) {
+            this.controller_.rack.remove(api.controller_);
+        };
+        RackApi.prototype.addBlade_v3_ = function (opt_params) {
+            var params = opt_params !== null && opt_params !== void 0 ? opt_params : {};
+            var doc = this.controller_.view.element.ownerDocument;
+            var bc = createBlade(doc, params);
+            var api = createBladeApi(bc);
+            return this.add(api, params.index);
+        };
+        RackApi.prototype.on = function (eventName, handler) {
+            var bh = handler.bind(this);
+            this.emitter_.on(eventName, function (ev) {
+                bh(ev.event);
+            });
+            return this;
+        };
+        RackApi.prototype.setUpApi_ = function (bc) {
+            var api = this.apiSet_.find(function (api) { return api.controller_ === bc; });
+            if (!api) {
+                // Auto-fill missing API
+                this.apiSet_.add(createBladeApi(bc));
+            }
+        };
+        RackApi.prototype.onRackAdd_ = function (ev) {
+            this.setUpApi_(ev.bladeController);
+        };
+        RackApi.prototype.onRackRemove_ = function (ev) {
+            if (ev.isRoot) {
+                var api = getApiByController(this.apiSet_, ev.bladeController);
+                this.apiSet_.remove(api);
+            }
+        };
+        RackApi.prototype.onRackInputChange_ = function (ev) {
+            var api = getApiByController(this.apiSet_, ev.bindingController);
+            var binding = ev.bindingController.binding;
+            this.emitter_.emit('change', {
+                event: new TpChangeEvent(api, forceCast(binding.target.read()), binding.target.presetKey),
+            });
+        };
+        RackApi.prototype.onRackMonitorUpdate_ = function (ev) {
+            var api = getApiByController(this.apiSet_, ev.bindingController);
+            var binding = ev.bindingController.binding;
+            this.emitter_.emit('update', {
+                event: new TpUpdateEvent(api, forceCast(binding.target.read()), binding.target.presetKey),
+            });
+        };
+        return RackApi;
+    }(BladeApi));
+
+    /**
+     * @hidden
+     */
+    var PlainView = /** @class */ (function () {
+        function PlainView(doc, config) {
+            var className = ClassName(config.viewName);
+            this.element = doc.createElement('div');
+            this.element.classList.add(className());
+            bindClassModifier(config.viewProps, this.element);
+        }
+        return PlainView;
+    }());
+
+    var RackLikeController = /** @class */ (function (_super) {
+        __extends(RackLikeController, _super);
+        function RackLikeController(config) {
+            var _this = _super.call(this, {
+                blade: config.blade,
+                view: config.view,
+                viewProps: config.rackController.viewProps,
+            }) || this;
+            _this.rackController = config.rackController;
+            return _this;
+        }
+        return RackLikeController;
+    }(BladeController));
+
+    function findInputBindingController(bcs, b) {
+        for (var i = 0; i < bcs.length; i++) {
+            var bc = bcs[i];
+            if (bc instanceof InputBindingController && bc.binding === b) {
+                return bc;
+            }
+        }
+        return null;
+    }
+    function findMonitorBindingController(bcs, b) {
+        for (var i = 0; i < bcs.length; i++) {
+            var bc = bcs[i];
+            if (bc instanceof MonitorBindingController && bc.binding === b) {
+                return bc;
+            }
+        }
+        return null;
+    }
+    function findSubRack(bc) {
+        if (bc instanceof RackController) {
+            return bc.rack;
+        }
+        if (bc instanceof RackLikeController) {
+            return bc.rackController.rack;
+        }
+        return null;
+    }
+    function findSubBladeControllerSet(bc) {
+        var rack = findSubRack(bc);
+        return rack ? rack['bcSet_'] : null;
+    }
+    /**
+     * @hidden
+     */
+    var BladeRack = /** @class */ (function () {
+        function BladeRack(blade) {
+            var _a;
+            this.onBladeChange_ = this.onBladeChange_.bind(this);
+            this.onSetAdd_ = this.onSetAdd_.bind(this);
+            this.onSetRemove_ = this.onSetRemove_.bind(this);
+            this.onChildDispose_ = this.onChildDispose_.bind(this);
+            this.onChildLayout_ = this.onChildLayout_.bind(this);
+            this.onChildInputChange_ = this.onChildInputChange_.bind(this);
+            this.onChildMonitorUpdate_ = this.onChildMonitorUpdate_.bind(this);
+            this.onChildViewPropsChange_ = this.onChildViewPropsChange_.bind(this);
+            this.onDescendantLayout_ = this.onDescendantLayout_.bind(this);
+            this.onDescendantInputChange_ = this.onDescendantInputChange_.bind(this);
+            this.onDescendaantMonitorUpdate_ = this.onDescendaantMonitorUpdate_.bind(this);
+            this.emitter = new Emitter();
+            this.blade_ = blade !== null && blade !== void 0 ? blade : null;
+            (_a = this.blade_) === null || _a === void 0 ? void 0 : _a.emitter.on('change', this.onBladeChange_);
+            this.bcSet_ = new NestedOrderedSet(findSubBladeControllerSet);
+            this.bcSet_.emitter.on('add', this.onSetAdd_);
+            this.bcSet_.emitter.on('remove', this.onSetRemove_);
+        }
+        Object.defineProperty(BladeRack.prototype, "children", {
+            get: function () {
+                return this.bcSet_.items;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        BladeRack.prototype.add = function (bc, opt_index) {
+            if (bc.parent) {
+                bc.parent.remove(bc);
+            }
+            bc['parent_'] = this;
+            this.bcSet_.add(bc, opt_index);
+        };
+        BladeRack.prototype.remove = function (bc) {
+            bc['parent_'] = null;
+            this.bcSet_.remove(bc);
+        };
+        BladeRack.prototype.find = function (controllerClass) {
+            return forceCast(this.bcSet_.allItems().filter(function (bc) {
+                return bc instanceof controllerClass;
+            }));
+        };
+        BladeRack.prototype.onSetAdd_ = function (ev) {
+            this.updatePositions_();
+            var isRoot = ev.target === ev.root;
+            this.emitter.emit('add', {
+                bladeController: ev.item,
+                index: ev.index,
+                isRoot: isRoot,
+                sender: this,
+            });
+            if (!isRoot) {
+                return;
+            }
+            var bc = ev.item;
+            bc.viewProps.emitter.on('change', this.onChildViewPropsChange_);
+            bc.blade.emitter.on('change', this.onChildLayout_);
+            bindDisposed(bc.viewProps, this.onChildDispose_);
+            if (bc instanceof InputBindingController) {
+                bc.binding.emitter.on('change', this.onChildInputChange_);
+            }
+            else if (bc instanceof MonitorBindingController) {
+                bc.binding.emitter.on('update', this.onChildMonitorUpdate_);
+            }
+            else {
+                var rack = findSubRack(bc);
+                if (rack) {
+                    var emitter = rack.emitter;
+                    emitter.on('layout', this.onDescendantLayout_);
+                    emitter.on('inputchange', this.onDescendantInputChange_);
+                    emitter.on('monitorupdate', this.onDescendaantMonitorUpdate_);
+                }
+            }
+        };
+        BladeRack.prototype.onSetRemove_ = function (ev) {
+            this.updatePositions_();
+            var isRoot = ev.target === ev.root;
+            this.emitter.emit('remove', {
+                bladeController: ev.item,
+                isRoot: isRoot,
+                sender: this,
+            });
+            if (!isRoot) {
+                return;
+            }
+            var bc = ev.item;
+            if (bc instanceof InputBindingController) {
+                bc.binding.emitter.off('change', this.onChildInputChange_);
+            }
+            else if (bc instanceof MonitorBindingController) {
+                bc.binding.emitter.off('update', this.onChildMonitorUpdate_);
+            }
+            else {
+                var rack = findSubRack(bc);
+                if (rack) {
+                    var emitter = rack.emitter;
+                    emitter.off('layout', this.onDescendantLayout_);
+                    emitter.off('inputchange', this.onDescendantInputChange_);
+                    emitter.off('monitorupdate', this.onDescendaantMonitorUpdate_);
+                }
+            }
+        };
+        BladeRack.prototype.updatePositions_ = function () {
+            var _this = this;
+            var visibleItems = this.bcSet_.items.filter(function (bc) { return !bc.viewProps.get('hidden'); });
+            var firstVisibleItem = visibleItems[0];
+            var lastVisibleItem = visibleItems[visibleItems.length - 1];
+            this.bcSet_.items.forEach(function (bc) {
+                var ps = [];
+                if (bc === firstVisibleItem) {
+                    ps.push('first');
+                    if (!_this.blade_ || _this.blade_.positions.includes('veryfirst')) {
+                        ps.push('veryfirst');
+                    }
+                }
+                if (bc === lastVisibleItem) {
+                    ps.push('last');
+                    if (!_this.blade_ || _this.blade_.positions.includes('verylast')) {
+                        ps.push('verylast');
+                    }
+                }
+                bc.blade.positions = ps;
+            });
+        };
+        BladeRack.prototype.onChildLayout_ = function (ev) {
+            if (ev.propertyName === 'positions') {
+                this.updatePositions_();
+                this.emitter.emit('layout', {
+                    sender: this,
+                });
+            }
+        };
+        BladeRack.prototype.onChildViewPropsChange_ = function (_ev) {
+            this.updatePositions_();
+            this.emitter.emit('layout', {
+                sender: this,
+            });
+        };
+        BladeRack.prototype.onChildDispose_ = function () {
+            var _this = this;
+            var disposedUcs = this.bcSet_.items.filter(function (bc) {
+                return bc.viewProps.get('disposed');
+            });
+            disposedUcs.forEach(function (bc) {
+                _this.bcSet_.remove(bc);
+            });
+        };
+        BladeRack.prototype.onChildInputChange_ = function (ev) {
+            var ibc = findInputBindingController(this.find(InputBindingController), ev.sender);
+            /* istanbul ignore next */
+            if (!ibc) {
+                throw TpError.shouldNeverHappen();
+            }
+            this.emitter.emit('inputchange', {
+                bindingController: ibc,
+                sender: this,
+            });
+        };
+        BladeRack.prototype.onChildMonitorUpdate_ = function (ev) {
+            var mbc = findMonitorBindingController(this.find(MonitorBindingController), ev.sender);
+            /* istanbul ignore next */
+            if (!mbc) {
+                throw TpError.shouldNeverHappen();
+            }
+            this.emitter.emit('monitorupdate', {
+                bindingController: mbc,
+                sender: this,
+            });
+        };
+        BladeRack.prototype.onDescendantLayout_ = function (_) {
+            this.updatePositions_();
+            this.emitter.emit('layout', {
+                sender: this,
+            });
+        };
+        BladeRack.prototype.onDescendantInputChange_ = function (ev) {
+            this.emitter.emit('inputchange', {
+                bindingController: ev.bindingController,
+                sender: this,
+            });
+        };
+        BladeRack.prototype.onDescendaantMonitorUpdate_ = function (ev) {
+            this.emitter.emit('monitorupdate', {
+                bindingController: ev.bindingController,
+                sender: this,
+            });
+        };
+        BladeRack.prototype.onBladeChange_ = function (ev) {
+            if (ev.propertyName === 'positions') {
+                this.updatePositions_();
+            }
+        };
+        return BladeRack;
+    }());
+
+    /**
+     * @hidden
+     */
+    var RackController = /** @class */ (function (_super) {
+        __extends(RackController, _super);
+        function RackController(doc, config) {
+            var _this = _super.call(this, __assign(__assign({}, config), { view: new PlainView(doc, {
+                    viewName: 'brk',
+                    viewProps: config.viewProps,
+                }) })) || this;
+            _this.onRackAdd_ = _this.onRackAdd_.bind(_this);
+            _this.onRackRemove_ = _this.onRackRemove_.bind(_this);
+            var rack = new BladeRack(config.root ? undefined : config.blade);
+            rack.emitter.on('add', _this.onRackAdd_);
+            rack.emitter.on('remove', _this.onRackRemove_);
+            _this.rack = rack;
+            bindDisposed(_this.viewProps, function () {
+                for (var i = _this.rack.children.length - 1; i >= 0; i--) {
+                    var bc = _this.rack.children[i];
+                    bc.viewProps.set('disposed', true);
+                }
+            });
+            return _this;
+        }
+        RackController.prototype.onRackAdd_ = function (ev) {
+            if (!ev.isRoot) {
+                return;
+            }
+            insertElementAt(this.view.element, ev.bladeController.view.element, ev.index);
+        };
+        RackController.prototype.onRackRemove_ = function (ev) {
+            if (!ev.isRoot) {
+                return;
+            }
+            removeElement(ev.bladeController.view.element);
+        };
+        return RackController;
+    }(BladeController));
+
+    var Plugins = {
+        blades: [],
+        inputs: [],
+        monitors: [],
+    };
+    function getAllPlugins() {
+        return __spreadArray(__spreadArray(__spreadArray([], Plugins.blades), Plugins.inputs), Plugins.monitors);
+    }
+    /**
+     * @hidden
+     */
+    function createInput(document, target, params) {
+        var initialValue = target.read();
+        if (isEmpty(initialValue)) {
+            throw new TpError({
+                context: {
+                    key: target.key,
+                },
+                type: 'nomatchingcontroller',
+            });
+        }
+        var bc = Plugins.inputs.reduce(function (result, plugin) {
+            return result ||
+                createInputBindingController(plugin, {
+                    document: document,
+                    target: target,
+                    params: params,
+                });
+        }, null);
+        if (bc) {
+            return bc;
+        }
+        throw new TpError({
+            context: {
+                key: target.key,
+            },
+            type: 'nomatchingcontroller',
+        });
+    }
+    /**
+     * @hidden
+     */
+    function createMonitor(document, target, params) {
+        var bc = Plugins.monitors.reduce(function (result, plugin) {
+            return result ||
+                createMonitorBindingController(plugin, {
+                    document: document,
+                    params: params,
+                    target: target,
+                });
+        }, null);
+        if (bc) {
+            return bc;
+        }
+        throw new TpError({
+            context: {
+                key: target.key,
+            },
+            type: 'nomatchingcontroller',
+        });
+    }
+    function createBlade(document, params) {
+        var bc = Plugins.blades.reduce(function (result, plugin) {
+            return result ||
+                createBladeController(plugin, {
+                    document: document,
+                    params: params,
+                });
+        }, null);
+        if (!bc) {
+            throw new TpError({
+                type: 'nomatchingview',
+                context: {
+                    params: params,
+                },
+            });
+        }
+        return bc;
+    }
+    function createBladeApi(bc) {
+        if (bc instanceof InputBindingController) {
+            return new InputBindingApi(bc);
+        }
+        if (bc instanceof MonitorBindingController) {
+            return new MonitorBindingApi(bc);
+        }
+        if (bc instanceof RackController) {
+            return new RackApi(bc);
+        }
+        var api = Plugins.blades.reduce(function (result, plugin) {
+            return result || plugin.api(bc);
+        }, null);
+        if (!api) {
+            throw TpError.shouldNeverHappen();
+        }
+        return api;
+    }
+
+    var className$m = ClassName('lst');
+    /**
+     * @hidden
+     */
+    var ListView = /** @class */ (function () {
+        function ListView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            this.props_ = config.props;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$m());
+            bindClassModifier(config.viewProps, this.element);
+            var selectElem = doc.createElement('select');
+            selectElem.classList.add(className$m('s'));
+            bindValueMap(this.props_, 'options', function (opts) {
+                removeChildElements(selectElem);
+                opts.forEach(function (item, index) {
+                    var optionElem = doc.createElement('option');
+                    optionElem.dataset.index = String(index);
+                    optionElem.textContent = item.text;
+                    optionElem.value = String(item.value);
+                    selectElem.appendChild(optionElem);
+                });
+            });
+            bindDisabled(config.viewProps, selectElem);
+            this.element.appendChild(selectElem);
+            this.selectElement = selectElem;
+            var markElem = doc.createElement('div');
+            markElem.classList.add(className$m('m'));
+            markElem.appendChild(createSvgIconElement(doc, 'dropdown'));
+            this.element.appendChild(markElem);
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value_ = config.value;
+            this.update_();
+        }
+        ListView.prototype.update_ = function () {
+            this.selectElement.value = String(this.value_.rawValue);
+        };
+        ListView.prototype.onValueChange_ = function () {
+            this.update_();
+        };
+        return ListView;
+    }());
+
+    /**
+     * @hidden
+     */
+    var ListController = /** @class */ (function () {
+        function ListController(doc, config) {
+            this.onSelectChange_ = this.onSelectChange_.bind(this);
+            this.props = config.props;
+            this.value = config.value;
+            this.viewProps = config.viewProps;
+            this.view = new ListView(doc, {
+                props: this.props,
+                value: this.value,
+                viewProps: this.viewProps,
+            });
+            this.view.selectElement.addEventListener('change', this.onSelectChange_);
+        }
+        ListController.prototype.onSelectChange_ = function (e) {
+            var selectElem = forceCast(e.currentTarget);
+            var optElem = selectElem.selectedOptions.item(0);
+            if (!optElem) {
+                return;
+            }
+            var itemIndex = Number(optElem.dataset.index);
+            this.value.rawValue = this.props.get('options')[itemIndex].value;
+        };
+        return ListController;
+    }());
+
+    var ListApi = /** @class */ (function (_super) {
+        __extends(ListApi, _super);
+        function ListApi(controller) {
             var _this = _super.call(this, controller) || this;
             _this.emitter_ = new Emitter();
             _this.controller_.valueController.value.emitter.on('change', function (ev) {
@@ -1001,7 +2089,7 @@
             });
             return _this;
         }
-        Object.defineProperty(ListBladeApi.prototype, "label", {
+        Object.defineProperty(ListApi.prototype, "label", {
             get: function () {
                 return this.controller_.props.get('label');
             },
@@ -1011,7 +2099,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(ListBladeApi.prototype, "options", {
+        Object.defineProperty(ListApi.prototype, "options", {
             get: function () {
                 return this.controller_.valueController.props.get('options');
             },
@@ -1021,7 +2109,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(ListBladeApi.prototype, "value", {
+        Object.defineProperty(ListApi.prototype, "value", {
             get: function () {
                 return this.controller_.valueController.value.rawValue;
             },
@@ -1031,14 +2119,14 @@
             enumerable: false,
             configurable: true
         });
-        ListBladeApi.prototype.on = function (eventName, handler) {
+        ListApi.prototype.on = function (eventName, handler) {
             var bh = handler.bind(this);
             this.emitter_.on(eventName, function (ev) {
                 bh(ev.event);
             });
             return this;
         };
-        return ListBladeApi;
+        return ListApi;
     }(BladeApi));
 
     var ListBladePlugin = (function () {
@@ -1062,7 +2150,7 @@
                     },
                 };
             },
-            api: function (args) {
+            controller: function (args) {
                 var ic = new ListController(args.document, {
                     props: new ValueMap({
                         options: normalizeListOptions(args.params.options),
@@ -1070,14 +2158,22 @@
                     value: new PrimitiveValue(args.params.value),
                     viewProps: args.viewProps,
                 });
-                var c = new LabeledController(args.document, {
+                return new LabelController(args.document, {
                     blade: args.blade,
                     props: new ValueMap({
                         label: args.params.label,
                     }),
                     valueController: ic,
                 });
-                return new ListBladeApi(c);
+            },
+            api: function (controller) {
+                if (!(controller instanceof LabelController)) {
+                    return null;
+                }
+                if (!(controller.valueController instanceof ListController)) {
+                    return null;
+                }
+                return new ListApi(controller);
             },
         };
     })();
@@ -1136,17 +2232,17 @@
         return ButtonApi;
     }(BladeApi));
 
-    var className$j = ClassName('btn');
+    var className$l = ClassName('btn');
     /**
      * @hidden
      */
     var ButtonView = /** @class */ (function () {
         function ButtonView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$j());
+            this.element.classList.add(className$l());
             bindClassModifier(config.viewProps, this.element);
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$j('b'));
+            buttonElem.classList.add(className$l('b'));
             bindDisabled(config.viewProps, buttonElem);
             bindTextContent(config.props, 'title', buttonElem);
             this.element.appendChild(buttonElem);
@@ -1161,22 +2257,19 @@
     var ButtonController = /** @class */ (function () {
         function ButtonController(doc, config) {
             this.emitter = new Emitter();
-            this.onButtonClick_ = this.onButtonClick_.bind(this);
+            this.onClick_ = this.onClick_.bind(this);
             this.props = config.props;
             this.viewProps = config.viewProps;
             this.view = new ButtonView(doc, {
                 props: this.props,
                 viewProps: this.viewProps,
             });
-            this.view.buttonElement.addEventListener('click', this.onButtonClick_);
+            this.view.buttonElement.addEventListener('click', this.onClick_);
         }
-        ButtonController.prototype.click = function () {
+        ButtonController.prototype.onClick_ = function () {
             this.emitter.emit('click', {
                 sender: this,
             });
-        };
-        ButtonController.prototype.onButtonClick_ = function () {
-            this.click();
         };
         return ButtonController;
     }());
@@ -1199,8 +2292,8 @@
                 },
             };
         },
-        api: function (args) {
-            var c = new LabeledController(args.document, {
+        controller: function (args) {
+            return new LabelController(args.document, {
                 blade: args.blade,
                 props: new ValueMap({
                     label: args.params.label,
@@ -1212,631 +2305,17 @@
                     viewProps: args.viewProps,
                 }),
             });
-            return new ButtonApi(c);
+        },
+        api: function (controller) {
+            if (!(controller instanceof LabelController)) {
+                return null;
+            }
+            if (!(controller.valueController instanceof ButtonController)) {
+                return null;
+            }
+            return new ButtonApi(controller);
         },
     };
-
-    /**
-     * @hidden
-     */
-    var InputBindingController = /** @class */ (function (_super) {
-        __extends(InputBindingController, _super);
-        function InputBindingController(doc, config) {
-            var _this = _super.call(this, doc, config) || this;
-            _this.binding = config.binding;
-            return _this;
-        }
-        return InputBindingController;
-    }(LabeledController));
-
-    /**
-     * @hidden
-     */
-    var MonitorBindingController = /** @class */ (function (_super) {
-        __extends(MonitorBindingController, _super);
-        function MonitorBindingController(doc, config) {
-            var _this = _super.call(this, doc, config) || this;
-            _this.binding = config.binding;
-            bindDisabled(_this.viewProps, _this.binding.ticker);
-            return _this;
-        }
-        MonitorBindingController.prototype.onDispose = function () {
-            this.binding.dispose();
-            _super.prototype.onDispose.call(this);
-        };
-        return MonitorBindingController;
-    }(LabeledController));
-
-    function createApi(plugin, args) {
-        var ac = plugin.accept(args.params);
-        if (!ac) {
-            return null;
-        }
-        var disabled = findBooleanParam(args.params, 'disabled');
-        var hidden = findBooleanParam(args.params, 'hidden');
-        return plugin.api({
-            blade: new Blade(),
-            document: args.document,
-            params: forceCast(__assign(__assign({}, ac.params), { disabled: disabled, hidden: hidden })),
-            viewProps: createViewProps({
-                disabled: disabled,
-                hidden: hidden,
-            }),
-        });
-    }
-
-    function createBladeApi(document, params) {
-        var api = Plugins.blades.reduce(function (result, plugin) {
-            return result ||
-                createApi(plugin, {
-                    document: document,
-                    params: params,
-                });
-        }, null);
-        if (!api) {
-            throw new TpError({
-                type: 'nomatchingview',
-                context: {
-                    params: params,
-                },
-            });
-        }
-        return api;
-    }
-
-    function addButtonAsBlade(api, params) {
-        return api.addBlade_v3_(__assign(__assign({}, params), { view: 'button' }));
-    }
-    function addFolderAsBlade(api, params) {
-        return api.addBlade_v3_(__assign(__assign({}, params), { view: 'folder' }));
-    }
-    function addSeparatorAsBlade(api, opt_params) {
-        var params = opt_params || {};
-        return api.addBlade_v3_(__assign(__assign({}, params), { view: 'separator' }));
-    }
-
-    /**
-     * The API for the input binding between the parameter and the pane.
-     * @template In The internal type.
-     * @template Ex The external type (= parameter object).
-     */
-    var InputBindingApi = /** @class */ (function (_super) {
-        __extends(InputBindingApi, _super);
-        /**
-         * @hidden
-         */
-        function InputBindingApi(controller) {
-            var _this = _super.call(this, controller) || this;
-            _this.onBindingChange_ = _this.onBindingChange_.bind(_this);
-            _this.emitter_ = new Emitter();
-            _this.controller_.binding.emitter.on('change', _this.onBindingChange_);
-            return _this;
-        }
-        InputBindingApi.prototype.on = function (eventName, handler) {
-            var bh = handler.bind(this);
-            this.emitter_.on(eventName, function (ev) {
-                bh(ev.event);
-            });
-            return this;
-        };
-        InputBindingApi.prototype.refresh = function () {
-            this.controller_.binding.read();
-        };
-        InputBindingApi.prototype.onBindingChange_ = function (ev) {
-            var value = ev.sender.target.read();
-            this.emitter_.emit('change', {
-                event: new TpChangeEvent(this, forceCast(value), this.controller_.binding.target.presetKey),
-            });
-        };
-        return InputBindingApi;
-    }(BladeApi));
-
-    /**
-     * @hidden
-     */
-    var InputBinding = /** @class */ (function () {
-        function InputBinding(config) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.reader = config.reader;
-            this.writer = config.writer;
-            this.emitter = new Emitter();
-            this.value = config.value;
-            this.value.emitter.on('change', this.onValueChange_);
-            this.target = config.target;
-            this.read();
-        }
-        InputBinding.prototype.read = function () {
-            var targetValue = this.target.read();
-            if (targetValue !== undefined) {
-                this.value.rawValue = this.reader(targetValue);
-            }
-        };
-        InputBinding.prototype.write_ = function (rawValue) {
-            this.writer(this.target, rawValue);
-        };
-        InputBinding.prototype.onValueChange_ = function (ev) {
-            this.write_(ev.rawValue);
-            this.emitter.emit('change', {
-                rawValue: ev.rawValue,
-                sender: this,
-            });
-        };
-        return InputBinding;
-    }());
-
-    var BoundValue = /** @class */ (function () {
-        function BoundValue(initialValue, config) {
-            var _a;
-            this.constraint_ = config === null || config === void 0 ? void 0 : config.constraint;
-            this.equals_ = (_a = config === null || config === void 0 ? void 0 : config.equals) !== null && _a !== void 0 ? _a : (function (v1, v2) { return v1 === v2; });
-            this.emitter = new Emitter();
-            this.rawValue_ = initialValue;
-        }
-        Object.defineProperty(BoundValue.prototype, "constraint", {
-            get: function () {
-                return this.constraint_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(BoundValue.prototype, "rawValue", {
-            get: function () {
-                return this.rawValue_;
-            },
-            set: function (rawValue) {
-                var constrainedValue = this.constraint_
-                    ? this.constraint_.constrain(rawValue)
-                    : rawValue;
-                var changed = !this.equals_(this.rawValue_, constrainedValue);
-                if (changed) {
-                    this.rawValue_ = constrainedValue;
-                    this.emitter.emit('change', {
-                        rawValue: constrainedValue,
-                        sender: this,
-                    });
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return BoundValue;
-    }());
-
-    function createController$1(plugin, args) {
-        var initialValue = plugin.accept(args.target.read(), args.params);
-        if (initialValue === null) {
-            return null;
-        }
-        var valueArgs = {
-            target: args.target,
-            initialValue: initialValue,
-            params: args.params,
-        };
-        var reader = plugin.binding.reader(valueArgs);
-        var constraint = plugin.binding.constraint
-            ? plugin.binding.constraint(valueArgs)
-            : undefined;
-        var value = new BoundValue(reader(initialValue), {
-            constraint: constraint,
-            equals: plugin.binding.equals,
-        });
-        var binding = new InputBinding({
-            reader: reader,
-            target: args.target,
-            value: value,
-            writer: plugin.binding.writer(valueArgs),
-        });
-        var controller = plugin.controller({
-            constraint: constraint,
-            document: args.document,
-            initialValue: initialValue,
-            params: args.params,
-            value: binding.value,
-            viewProps: createViewProps({
-                disabled: args.params.disabled,
-            }),
-        });
-        polyfillViewProps(controller, plugin.id);
-        var blade = new Blade();
-        return new InputBindingController(args.document, {
-            binding: binding,
-            blade: blade,
-            props: new ValueMap({
-                label: args.params.label || args.target.key,
-            }),
-            valueController: controller,
-        });
-    }
-
-    /**
-     * @hidden
-     */
-    function createInputBindingController(document, target, params) {
-        var initialValue = target.read();
-        if (isEmpty(initialValue)) {
-            throw new TpError({
-                context: {
-                    key: target.key,
-                },
-                type: 'nomatchingcontroller',
-            });
-        }
-        var bc = Plugins.inputs.reduce(function (result, plugin) {
-            return result ||
-                createController$1(plugin, {
-                    document: document,
-                    target: target,
-                    params: params,
-                });
-        }, null);
-        if (bc) {
-            return bc;
-        }
-        throw new TpError({
-            context: {
-                key: target.key,
-            },
-            type: 'nomatchingcontroller',
-        });
-    }
-
-    /**
-     * The API for the monitor binding between the parameter and the pane.
-     */
-    var MonitorBindingApi = /** @class */ (function (_super) {
-        __extends(MonitorBindingApi, _super);
-        /**
-         * @hidden
-         */
-        function MonitorBindingApi(controller) {
-            var _this = _super.call(this, controller) || this;
-            _this.onBindingUpdate_ = _this.onBindingUpdate_.bind(_this);
-            _this.emitter_ = new Emitter();
-            _this.controller_.binding.emitter.on('update', _this.onBindingUpdate_);
-            return _this;
-        }
-        MonitorBindingApi.prototype.on = function (eventName, handler) {
-            var bh = handler.bind(this);
-            this.emitter_.on(eventName, function (ev) {
-                bh(ev.event);
-            });
-            return this;
-        };
-        MonitorBindingApi.prototype.refresh = function () {
-            this.controller_.binding.read();
-        };
-        MonitorBindingApi.prototype.onBindingUpdate_ = function (ev) {
-            var value = ev.sender.target.read();
-            this.emitter_.emit('update', {
-                event: new TpUpdateEvent(this, forceCast(value), this.controller_.binding.target.presetKey),
-            });
-        };
-        return MonitorBindingApi;
-    }(BladeApi));
-
-    function fillBuffer(buffer, bufferSize) {
-        while (buffer.length < bufferSize) {
-            buffer.push(undefined);
-        }
-    }
-    /**
-     * @hidden
-     */
-    function initializeBuffer(bufferSize) {
-        var buffer = [];
-        fillBuffer(buffer, bufferSize);
-        return new BoundValue(buffer);
-    }
-    function createTrimmedBuffer(buffer) {
-        var index = buffer.indexOf(undefined);
-        return forceCast(index < 0 ? buffer : buffer.slice(0, index));
-    }
-    /**
-     * @hidden
-     */
-    function createPushedBuffer(buffer, newValue) {
-        var newBuffer = __spreadArray(__spreadArray([], createTrimmedBuffer(buffer)), [newValue]);
-        if (newBuffer.length > buffer.length) {
-            newBuffer.splice(0, newBuffer.length - buffer.length);
-        }
-        else {
-            fillBuffer(newBuffer, buffer.length);
-        }
-        return newBuffer;
-    }
-
-    /**
-     * @hidden
-     */
-    var MonitorBinding = /** @class */ (function () {
-        function MonitorBinding(config) {
-            this.onTick_ = this.onTick_.bind(this);
-            this.reader_ = config.reader;
-            this.target = config.target;
-            this.emitter = new Emitter();
-            this.value = config.value;
-            this.ticker = config.ticker;
-            this.ticker.emitter.on('tick', this.onTick_);
-            this.read();
-        }
-        MonitorBinding.prototype.dispose = function () {
-            this.ticker.disposable.dispose();
-        };
-        MonitorBinding.prototype.read = function () {
-            var targetValue = this.target.read();
-            if (targetValue === undefined) {
-                return;
-            }
-            var buffer = this.value.rawValue;
-            var newValue = this.reader_(targetValue);
-            this.value.rawValue = createPushedBuffer(buffer, newValue);
-            this.emitter.emit('update', {
-                rawValue: newValue,
-                sender: this,
-            });
-        };
-        MonitorBinding.prototype.onTick_ = function (_) {
-            this.read();
-        };
-        return MonitorBinding;
-    }());
-
-    /**
-     * @hidden
-     */
-    var IntervalTicker = /** @class */ (function () {
-        function IntervalTicker(doc, interval) {
-            var _this = this;
-            this.disabled_ = false;
-            this.timerId_ = null;
-            this.onTick_ = this.onTick_.bind(this);
-            // this.onWindowBlur_ = this.onWindowBlur_.bind(this);
-            // this.onWindowFocus_ = this.onWindowFocus_.bind(this);
-            this.doc_ = doc;
-            this.emitter = new Emitter();
-            this.interval_ = interval;
-            this.setTimer_();
-            // TODO: Stop on blur?
-            // const win = document.defaultView;
-            // if (win) {
-            //   win.addEventListener('blur', this.onWindowBlur_);
-            //   win.addEventListener('focus', this.onWindowFocus_);
-            // }
-            this.disposable = new Disposable();
-            this.disposable.emitter.on('dispose', function () {
-                _this.clearTimer_();
-            });
-        }
-        Object.defineProperty(IntervalTicker.prototype, "disabled", {
-            get: function () {
-                return this.disabled_;
-            },
-            set: function (inactive) {
-                this.disabled_ = inactive;
-                if (this.disabled_) {
-                    this.clearTimer_();
-                }
-                else {
-                    this.setTimer_();
-                }
-            },
-            enumerable: false,
-            configurable: true
-        });
-        IntervalTicker.prototype.clearTimer_ = function () {
-            if (this.timerId_ === null) {
-                return;
-            }
-            var win = this.doc_.defaultView;
-            if (win) {
-                win.clearInterval(this.timerId_);
-            }
-            this.timerId_ = null;
-        };
-        IntervalTicker.prototype.setTimer_ = function () {
-            this.clearTimer_();
-            if (this.interval_ <= 0) {
-                return;
-            }
-            var win = this.doc_.defaultView;
-            if (win) {
-                this.timerId_ = win.setInterval(this.onTick_, this.interval_);
-            }
-        };
-        IntervalTicker.prototype.onTick_ = function () {
-            if (this.disabled_) {
-                return;
-            }
-            this.emitter.emit('tick', {
-                sender: this,
-            });
-        };
-        return IntervalTicker;
-    }());
-
-    /**
-     * @hidden
-     */
-    var ManualTicker = /** @class */ (function () {
-        function ManualTicker() {
-            this.disabled = false;
-            this.disposable = new Disposable();
-            this.emitter = new Emitter();
-        }
-        ManualTicker.prototype.tick = function () {
-            if (this.disabled) {
-                return;
-            }
-            this.emitter.emit('tick', {
-                sender: this,
-            });
-        };
-        return ManualTicker;
-    }());
-
-    var Constants = {
-        monitor: {
-            defaultInterval: 200,
-            defaultLineCount: 3,
-        },
-    };
-
-    function createTicker(document, interval) {
-        return interval === 0
-            ? new ManualTicker()
-            : new IntervalTicker(document, interval !== null && interval !== void 0 ? interval : Constants.monitor.defaultInterval);
-    }
-    function createController(plugin, args) {
-        var _a, _b;
-        var initialValue = plugin.accept(args.target.read(), args.params);
-        if (initialValue === null) {
-            return null;
-        }
-        var valueArgs = {
-            target: args.target,
-            initialValue: initialValue,
-            params: args.params,
-        };
-        var reader = plugin.binding.reader(valueArgs);
-        var bufferSize = (_b = (_a = args.params.bufferSize) !== null && _a !== void 0 ? _a : (plugin.binding.defaultBufferSize &&
-            plugin.binding.defaultBufferSize(args.params))) !== null && _b !== void 0 ? _b : 1;
-        var binding = new MonitorBinding({
-            reader: reader,
-            target: args.target,
-            ticker: createTicker(args.document, args.params.interval),
-            value: initializeBuffer(bufferSize),
-        });
-        var controller = plugin.controller({
-            document: args.document,
-            params: args.params,
-            value: binding.value,
-            viewProps: createViewProps({
-                disabled: args.params.disabled,
-            }),
-        });
-        polyfillViewProps(controller, plugin.id);
-        var blade = new Blade();
-        return new MonitorBindingController(args.document, {
-            binding: binding,
-            blade: blade,
-            props: new ValueMap({
-                label: args.params.label || args.target.key,
-            }),
-            valueController: controller,
-        });
-    }
-
-    /**
-     * @hidden
-     */
-    function createMonitorBindingController(document, target, params) {
-        var bc = Plugins.monitors.reduce(function (result, plugin) {
-            return result ||
-                createController(plugin, {
-                    document: document,
-                    params: params,
-                    target: target,
-                });
-        }, null);
-        if (bc) {
-            return bc;
-        }
-        throw new TpError({
-            context: {
-                key: target.key,
-            },
-            type: 'nomatchingcontroller',
-        });
-    }
-
-    var NestedOrderedSet = /** @class */ (function () {
-        function NestedOrderedSet(extract) {
-            this.emitter = new Emitter();
-            this.items_ = [];
-            this.cache_ = new Set();
-            this.onSubListAdd_ = this.onSubListAdd_.bind(this);
-            this.onSubListRemove_ = this.onSubListRemove_.bind(this);
-            this.extract_ = extract;
-        }
-        Object.defineProperty(NestedOrderedSet.prototype, "items", {
-            get: function () {
-                return this.items_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        NestedOrderedSet.prototype.allItems = function () {
-            return Array.from(this.cache_);
-        };
-        NestedOrderedSet.prototype.find = function (callback) {
-            for (var _i = 0, _a = this.allItems(); _i < _a.length; _i++) {
-                var item = _a[_i];
-                if (callback(item)) {
-                    return item;
-                }
-            }
-            return null;
-        };
-        NestedOrderedSet.prototype.add = function (item, opt_index) {
-            var _this = this;
-            if (this.cache_.has(item)) {
-                throw TpError.shouldNeverHappen();
-            }
-            var index = opt_index !== undefined ? opt_index : this.items_.length;
-            this.items_.splice(index, 0, item);
-            this.cache_.add(item);
-            var subList = this.extract_(item);
-            if (subList) {
-                subList.emitter.on('add', this.onSubListAdd_);
-                subList.emitter.on('remove', this.onSubListRemove_);
-                subList.allItems().forEach(function (item) {
-                    _this.cache_.add(item);
-                });
-            }
-            this.emitter.emit('add', {
-                index: index,
-                item: item,
-                root: this,
-                target: this,
-            });
-        };
-        NestedOrderedSet.prototype.remove = function (item) {
-            var index = this.items_.indexOf(item);
-            if (index < 0) {
-                return;
-            }
-            this.items_.splice(index, 1);
-            this.cache_.delete(item);
-            var subList = this.extract_(item);
-            if (subList) {
-                subList.emitter.off('add', this.onSubListAdd_);
-                subList.emitter.off('remove', this.onSubListRemove_);
-            }
-            this.emitter.emit('remove', {
-                item: item,
-                root: this,
-                target: this,
-            });
-        };
-        NestedOrderedSet.prototype.onSubListAdd_ = function (ev) {
-            this.cache_.add(ev.item);
-            this.emitter.emit('add', {
-                index: ev.index,
-                item: ev.item,
-                root: this,
-                target: ev.target,
-            });
-        };
-        NestedOrderedSet.prototype.onSubListRemove_ = function (ev) {
-            this.cache_.delete(ev.item);
-            this.emitter.emit('remove', {
-                item: ev.item,
-                root: this,
-                target: ev.target,
-            });
-        };
-        return NestedOrderedSet;
-    }());
 
     var FolderApi = /** @class */ (function (_super) {
         __extends(FolderApi, _super);
@@ -1844,22 +2323,20 @@
          * @hidden
          */
         function FolderApi(controller) {
-            var _this = _super.call(this, controller) || this;
+            var _this = _super.call(this, controller, new RackApi(controller.rackController)) || this;
             _this.onFolderChange_ = _this.onFolderChange_.bind(_this);
-            _this.onRackRemove_ = _this.onRackRemove_.bind(_this);
-            _this.onRackInputChange_ = _this.onRackInputChange_.bind(_this);
-            _this.onRackFolderFold_ = _this.onRackFolderFold_.bind(_this);
-            _this.onRackMonitorUpdate_ = _this.onRackMonitorUpdate_.bind(_this);
             _this.emitter_ = new Emitter();
-            _this.apiSet_ = new NestedOrderedSet(function (api) {
-                return api instanceof FolderApi ? api.apiSet_ : null;
-            });
             _this.controller_.folder.emitter.on('change', _this.onFolderChange_);
-            var rack = _this.controller_.bladeRack;
-            rack.emitter.on('remove', _this.onRackRemove_);
-            rack.emitter.on('inputchange', _this.onRackInputChange_);
-            rack.emitter.on('monitorupdate', _this.onRackMonitorUpdate_);
-            rack.emitter.on('folderfold', _this.onRackFolderFold_);
+            _this.rackApi_.on('change', function (ev) {
+                _this.emitter_.emit('change', {
+                    event: ev,
+                });
+            });
+            _this.rackApi_.on('update', function (ev) {
+                _this.emitter_.emit('update', {
+                    event: ev,
+                });
+            });
             return _this;
         }
         Object.defineProperty(FolderApi.prototype, "expanded", {
@@ -1884,55 +2361,37 @@
         });
         Object.defineProperty(FolderApi.prototype, "children", {
             get: function () {
-                var _this = this;
-                return this.controller_.bladeRack.children.map(function (bc) {
-                    var api = _this.apiSet_.find(function (api) { return api.controller_ === bc; });
-                    /* istanbul ignore next */
-                    if (api === null) {
-                        throw TpError.shouldNeverHappen();
-                    }
-                    return api;
-                });
+                return this.rackApi_.children;
             },
             enumerable: false,
             configurable: true
         });
         FolderApi.prototype.addInput = function (object, key, opt_params) {
-            var params = opt_params || {};
-            var bc = createInputBindingController(this.controller_.document, createBindingTarget(object, key, params.presetKey), params);
-            var api = new InputBindingApi(bc);
-            return this.add(api, params.index);
+            return this.rackApi_.addInput(object, key, opt_params);
         };
         FolderApi.prototype.addMonitor = function (object, key, opt_params) {
-            var params = opt_params || {};
-            var bc = createMonitorBindingController(this.controller_.document, createBindingTarget(object, key), params);
-            var api = new MonitorBindingApi(bc);
-            return forceCast(this.add(api, params.index));
+            return this.rackApi_.addMonitor(object, key, opt_params);
         };
         FolderApi.prototype.addFolder = function (params) {
-            return addFolderAsBlade(this, params);
+            return this.rackApi_.addFolder(params);
         };
         FolderApi.prototype.addButton = function (params) {
-            return addButtonAsBlade(this, params);
+            return this.rackApi_.addButton(params);
         };
         FolderApi.prototype.addSeparator = function (opt_params) {
-            return addSeparatorAsBlade(this, opt_params);
+            return this.rackApi_.addSeparator(opt_params);
+        };
+        FolderApi.prototype.addTab = function (params) {
+            return this.rackApi_.addTab(params);
         };
         FolderApi.prototype.add = function (api, opt_index) {
-            this.controller_.bladeRack.add(api.controller_, opt_index);
-            this.apiSet_.add(api);
-            return api;
+            return this.rackApi_.add(api, opt_index);
         };
         FolderApi.prototype.remove = function (api) {
-            this.controller_.bladeRack.remove(api.controller_);
+            this.rackApi_.remove(api);
         };
-        /**
-         * @hidden
-         */
         FolderApi.prototype.addBlade_v3_ = function (opt_params) {
-            var params = opt_params !== null && opt_params !== void 0 ? opt_params : {};
-            var api = createBladeApi(this.controller_.document, params);
-            return this.add(api, params.index);
+            return this.rackApi_.addBlade_v3_(opt_params);
         };
         /**
          * Adds a global event listener. It handles all events of child inputs/monitors.
@@ -1946,56 +2405,6 @@
             });
             return this;
         };
-        FolderApi.prototype.onRackRemove_ = function (ev) {
-            var api = this.apiSet_.find(function (api) { return api.controller_ === ev.bladeController; });
-            if (api) {
-                this.apiSet_.remove(api);
-            }
-        };
-        FolderApi.prototype.onRackInputChange_ = function (ev) {
-            var api = this.apiSet_.find(function (api) {
-                return api instanceof InputBindingApi
-                    ? api.controller_ === ev.bindingController
-                    : false;
-            });
-            /* istanbul ignore next */
-            if (!api) {
-                throw TpError.shouldNeverHappen();
-            }
-            var binding = ev.bindingController.binding;
-            this.emitter_.emit('change', {
-                event: new TpChangeEvent(api, forceCast(binding.target.read()), binding.target.presetKey),
-            });
-        };
-        FolderApi.prototype.onRackMonitorUpdate_ = function (ev) {
-            var api = this.apiSet_.find(function (api) {
-                return api instanceof MonitorBindingApi
-                    ? api.controller_ === ev.bindingController
-                    : false;
-            });
-            /* istanbul ignore next */
-            if (!api) {
-                throw TpError.shouldNeverHappen();
-            }
-            var binding = ev.bindingController.binding;
-            this.emitter_.emit('update', {
-                event: new TpUpdateEvent(api, forceCast(binding.target.read()), binding.target.presetKey),
-            });
-        };
-        FolderApi.prototype.onRackFolderFold_ = function (ev) {
-            var api = this.apiSet_.find(function (api) {
-                return api instanceof FolderApi
-                    ? api.controller_ === ev.folderController
-                    : false;
-            });
-            /* istanbul ignore next */
-            if (!api) {
-                throw TpError.shouldNeverHappen();
-            }
-            this.emitter_.emit('fold', {
-                event: new TpFoldEvent(api, ev.folderController.folder.expanded),
-            });
-        };
         FolderApi.prototype.onFolderChange_ = function (ev) {
             if (ev.propertyName !== 'expanded') {
                 return;
@@ -2005,218 +2414,7 @@
             });
         };
         return FolderApi;
-    }(BladeApi));
-
-    function findInputBindingController(bcs, b) {
-        for (var i = 0; i < bcs.length; i++) {
-            var bc = bcs[i];
-            if (bc instanceof InputBindingController && bc.binding === b) {
-                return bc;
-            }
-        }
-        return null;
-    }
-    function findMonitorBindingController(bcs, b) {
-        for (var i = 0; i < bcs.length; i++) {
-            var bc = bcs[i];
-            if (bc instanceof MonitorBindingController && bc.binding === b) {
-                return bc;
-            }
-        }
-        return null;
-    }
-    function findFolderController(bcs, f) {
-        for (var i = 0; i < bcs.length; i++) {
-            var bc = bcs[i];
-            if (bc instanceof FolderController && bc.folder === f) {
-                return bc;
-            }
-        }
-        return null;
-    }
-    /**
-     * @hidden
-     */
-    var BladeRack = /** @class */ (function () {
-        function BladeRack() {
-            this.onSetAdd_ = this.onSetAdd_.bind(this);
-            this.onSetRemove_ = this.onSetRemove_.bind(this);
-            this.onChildDispose_ = this.onChildDispose_.bind(this);
-            this.onChildLayout_ = this.onChildLayout_.bind(this);
-            this.onChildFolderFold_ = this.onChildFolderFold_.bind(this);
-            this.onChildInputChange_ = this.onChildInputChange_.bind(this);
-            this.onChildMonitorUpdate_ = this.onChildMonitorUpdate_.bind(this);
-            this.onChildViewPropsChange_ = this.onChildViewPropsChange_.bind(this);
-            this.onDescendantLayout_ = this.onDescendantLayout_.bind(this);
-            this.onDescendantFolderFold_ = this.onDescendantFolderFold_.bind(this);
-            this.onDescendantInputChange_ = this.onDescendantInputChange_.bind(this);
-            this.onDescendaantMonitorUpdate_ = this.onDescendaantMonitorUpdate_.bind(this);
-            this.bcSet_ = new NestedOrderedSet(function (bc) {
-                return bc instanceof FolderController ? bc.bladeRack.bcSet_ : null;
-            });
-            this.emitter = new Emitter();
-            this.bcSet_.emitter.on('add', this.onSetAdd_);
-            this.bcSet_.emitter.on('remove', this.onSetRemove_);
-        }
-        Object.defineProperty(BladeRack.prototype, "children", {
-            get: function () {
-                return this.bcSet_.items;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        BladeRack.prototype.add = function (bc, opt_index) {
-            if (bc.parent) {
-                bc.parent.remove(bc);
-            }
-            bc['parent_'] = this;
-            this.bcSet_.add(bc, opt_index);
-        };
-        BladeRack.prototype.remove = function (bc) {
-            bc['parent_'] = null;
-            this.bcSet_.remove(bc);
-        };
-        BladeRack.prototype.find = function (controllerClass) {
-            return forceCast(this.bcSet_.allItems().filter(function (bc) {
-                return bc instanceof controllerClass;
-            }));
-        };
-        BladeRack.prototype.onSetAdd_ = function (ev) {
-            var isRoot = ev.target === ev.root;
-            this.emitter.emit('add', {
-                bladeController: ev.item,
-                index: ev.index,
-                isRoot: isRoot,
-                sender: this,
-            });
-            if (!isRoot) {
-                return;
-            }
-            var bc = ev.item;
-            bc.blade.emitter.on('dispose', this.onChildDispose_);
-            bc.viewProps.emitter.on('change', this.onChildViewPropsChange_);
-            bc.blade.emitter.on('change', this.onChildLayout_);
-            if (bc instanceof InputBindingController) {
-                bc.binding.emitter.on('change', this.onChildInputChange_);
-            }
-            else if (bc instanceof MonitorBindingController) {
-                bc.binding.emitter.on('update', this.onChildMonitorUpdate_);
-            }
-            else if (bc instanceof FolderController) {
-                bc.folder.emitter.on('change', this.onChildFolderFold_);
-                var emitter = bc.bladeRack.emitter;
-                emitter.on('folderfold', this.onDescendantFolderFold_);
-                emitter.on('layout', this.onDescendantLayout_);
-                emitter.on('inputchange', this.onDescendantInputChange_);
-                emitter.on('monitorupdate', this.onDescendaantMonitorUpdate_);
-            }
-        };
-        BladeRack.prototype.onSetRemove_ = function (ev) {
-            var isRoot = ev.target === ev.root;
-            this.emitter.emit('remove', {
-                bladeController: ev.item,
-                isRoot: isRoot,
-                sender: this,
-            });
-            if (!isRoot) {
-                return;
-            }
-            var bc = ev.item;
-            if (bc instanceof InputBindingController) {
-                bc.binding.emitter.off('change', this.onChildInputChange_);
-            }
-            else if (bc instanceof MonitorBindingController) {
-                bc.binding.emitter.off('update', this.onChildMonitorUpdate_);
-            }
-            else if (bc instanceof FolderController) {
-                bc.folder.emitter.off('change', this.onChildFolderFold_);
-                var emitter = bc.bladeRack.emitter;
-                emitter.off('folderfold', this.onDescendantFolderFold_);
-                emitter.off('layout', this.onDescendantLayout_);
-                emitter.off('inputchange', this.onDescendantInputChange_);
-                emitter.off('monitorupdate', this.onDescendaantMonitorUpdate_);
-            }
-        };
-        BladeRack.prototype.onChildLayout_ = function (ev) {
-            if (ev.propertyName === 'positions') {
-                this.emitter.emit('layout', {
-                    sender: this,
-                });
-            }
-        };
-        BladeRack.prototype.onChildViewPropsChange_ = function (_ev) {
-            this.emitter.emit('layout', {
-                sender: this,
-            });
-        };
-        BladeRack.prototype.onChildDispose_ = function (_) {
-            var _this = this;
-            var disposedUcs = this.bcSet_.items.filter(function (bc) {
-                return bc.blade.disposed;
-            });
-            disposedUcs.forEach(function (bc) {
-                _this.bcSet_.remove(bc);
-            });
-        };
-        BladeRack.prototype.onChildInputChange_ = function (ev) {
-            var ibc = findInputBindingController(this.find(InputBindingController), ev.sender);
-            /* istanbul ignore next */
-            if (!ibc) {
-                throw TpError.shouldNeverHappen();
-            }
-            this.emitter.emit('inputchange', {
-                bindingController: ibc,
-                sender: this,
-            });
-        };
-        BladeRack.prototype.onChildMonitorUpdate_ = function (ev) {
-            var mbc = findMonitorBindingController(this.find(MonitorBindingController), ev.sender);
-            /* istanbul ignore next */
-            if (!mbc) {
-                throw TpError.shouldNeverHappen();
-            }
-            this.emitter.emit('monitorupdate', {
-                bindingController: mbc,
-                sender: this,
-            });
-        };
-        BladeRack.prototype.onChildFolderFold_ = function (ev) {
-            if (ev.propertyName !== 'expanded') {
-                return;
-            }
-            var fc = findFolderController(this.find(FolderController), ev.sender);
-            if (fc) {
-                this.emitter.emit('folderfold', {
-                    folderController: fc,
-                    sender: this,
-                });
-            }
-        };
-        BladeRack.prototype.onDescendantLayout_ = function (_) {
-            this.emitter.emit('layout', {
-                sender: this,
-            });
-        };
-        BladeRack.prototype.onDescendantInputChange_ = function (ev) {
-            this.emitter.emit('inputchange', {
-                bindingController: ev.bindingController,
-                sender: this,
-            });
-        };
-        BladeRack.prototype.onDescendaantMonitorUpdate_ = function (ev) {
-            this.emitter.emit('monitorupdate', {
-                bindingController: ev.bindingController,
-                sender: this,
-            });
-        };
-        BladeRack.prototype.onDescendantFolderFold_ = function (ev) {
-            this.emitter.emit('folderfold', {
-                folderController: ev.folderController,
-                sender: this,
-            });
-        };
-        return BladeRack;
-    }());
+    }(RackLikeApi));
 
     /**
      * @hidden
@@ -2341,6 +2539,8 @@
         return Folder;
     }());
 
+    var bladeContainerClassName = ClassName('cnt');
+
     /**
      * @hidden
      */
@@ -2352,7 +2552,7 @@
             this.folder_.emitter.on('change', this.onFolderChange_);
             this.className_ = ClassName(config.viewName || 'fld');
             this.element = doc.createElement('div');
-            this.element.classList.add(this.className_());
+            this.element.classList.add(this.className_(), bladeContainerClassName());
             bindClassModifier(config.viewProps, this.element);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(this.className_('b'));
@@ -2375,7 +2575,7 @@
             var markElem = doc.createElement('div');
             markElem.classList.add(this.className_('m'));
             this.buttonElement.appendChild(markElem);
-            var containerElem = doc.createElement('div');
+            var containerElem = config.containerElement;
             containerElem.classList.add(this.className_('c'));
             this.element.appendChild(containerElem);
             this.containerElement = containerElem;
@@ -2422,26 +2622,24 @@
             var _a;
             var _this = this;
             var folder = new Folder((_a = config.expanded) !== null && _a !== void 0 ? _a : true);
-            _this = _super.call(this, __assign(__assign({}, config), { view: new FolderView(doc, {
+            var rc = new RackController(doc, {
+                blade: config.blade,
+                root: config.root,
+                viewProps: config.viewProps,
+            });
+            _this = _super.call(this, __assign(__assign({}, config), { rackController: rc, view: new FolderView(doc, {
+                    containerElement: rc.view.element,
                     folder: folder,
                     props: config.props,
-                    viewName: config.viewName,
+                    viewName: config.root ? 'rot' : undefined,
                     viewProps: config.viewProps,
                 }) })) || this;
             _this.onContainerTransitionEnd_ = _this.onContainerTransitionEnd_.bind(_this);
             _this.onFolderBeforeChange_ = _this.onFolderBeforeChange_.bind(_this);
             _this.onTitleClick_ = _this.onTitleClick_.bind(_this);
-            _this.onRackAdd_ = _this.onRackAdd_.bind(_this);
-            _this.onRackLayout_ = _this.onRackLayout_.bind(_this);
-            _this.onRackRemove_ = _this.onRackRemove_.bind(_this);
             _this.props = config.props;
             _this.folder = folder;
             _this.folder.emitter.on('beforechange', _this.onFolderBeforeChange_);
-            var rack = new BladeRack();
-            rack.emitter.on('add', _this.onRackAdd_);
-            rack.emitter.on('layout', _this.onRackLayout_);
-            rack.emitter.on('remove', _this.onRackRemove_);
-            _this.bladeRack = rack;
             _this.view.buttonElement.addEventListener('click', _this.onTitleClick_);
             _this.view.containerElement.addEventListener('transitionend', _this.onContainerTransitionEnd_);
             return _this;
@@ -2453,12 +2651,6 @@
             enumerable: false,
             configurable: true
         });
-        FolderController.prototype.onDispose = function () {
-            for (var i = this.bladeRack.children.length - 1; i >= 0; i--) {
-                var bc = this.bladeRack.children[i];
-                bc.blade.dispose();
-            }
-        };
         FolderController.prototype.onFolderBeforeChange_ = function (ev) {
             if (ev.propertyName !== 'expanded') {
                 return;
@@ -2472,38 +2664,6 @@
         FolderController.prototype.onTitleClick_ = function () {
             this.folder.expanded = !this.folder.expanded;
         };
-        FolderController.prototype.applyRackChange_ = function () {
-            var visibleItems = this.bladeRack.children.filter(function (bc) { return !bc.viewProps.get('hidden'); });
-            var firstVisibleItem = visibleItems[0];
-            var lastVisibleItem = visibleItems[visibleItems.length - 1];
-            this.bladeRack.children.forEach(function (bc) {
-                var ps = [];
-                if (bc === firstVisibleItem) {
-                    ps.push('first');
-                }
-                if (bc === lastVisibleItem) {
-                    ps.push('last');
-                }
-                bc.blade.positions = ps;
-            });
-        };
-        FolderController.prototype.onRackAdd_ = function (ev) {
-            if (!ev.isRoot) {
-                return;
-            }
-            insertElementAt(this.view.containerElement, ev.bladeController.view.element, ev.index);
-            this.applyRackChange_();
-        };
-        FolderController.prototype.onRackRemove_ = function (ev) {
-            if (!ev.isRoot) {
-                return;
-            }
-            removeElement(ev.bladeController.view.element);
-            this.applyRackChange_();
-        };
-        FolderController.prototype.onRackLayout_ = function (_) {
-            this.applyRackChange_();
-        };
         FolderController.prototype.onContainerTransitionEnd_ = function (ev) {
             if (ev.propertyName !== 'height') {
                 return;
@@ -2512,7 +2672,7 @@
             this.folder.expandedHeight = null;
         };
         return FolderController;
-    }(BladeController));
+    }(RackLikeController));
 
     var FolderBladePlugin = {
         id: 'button',
@@ -2529,8 +2689,8 @@
                 },
             };
         },
-        api: function (args) {
-            var c = new FolderController(args.document, {
+        controller: function (args) {
+            return new FolderController(args.document, {
                 blade: args.blade,
                 expanded: args.params.expanded,
                 props: new ValueMap({
@@ -2538,7 +2698,12 @@
                 }),
                 viewProps: args.viewProps,
             });
-            return new FolderApi(c);
+        },
+        api: function (controller) {
+            if (!(controller instanceof FolderController)) {
+                return null;
+            }
+            return new FolderApi(controller);
         },
     };
 
@@ -2550,17 +2715,17 @@
         return SeparatorApi;
     }(BladeApi));
 
-    var className$i = ClassName('spr');
+    var className$k = ClassName('spr');
     /**
      * @hidden
      */
     var SeparatorView = /** @class */ (function () {
         function SeparatorView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$i());
+            this.element.classList.add(className$k());
             bindClassModifier(config.viewProps, this.element);
             var hrElem = doc.createElement('hr');
-            hrElem.classList.add(className$i('r'));
+            hrElem.classList.add(className$k('r'));
             this.element.appendChild(hrElem);
         }
         return SeparatorView;
@@ -2591,12 +2756,17 @@
                 },
             };
         },
-        api: function (args) {
-            var c = new SeparatorController(args.document, {
+        controller: function (args) {
+            return new SeparatorController(args.document, {
                 blade: args.blade,
                 viewProps: args.viewProps,
             });
-            return new SeparatorApi(c);
+        },
+        api: function (controller) {
+            if (!(controller instanceof SeparatorController)) {
+                return null;
+            }
+            return new SeparatorApi(controller);
         },
     };
 
@@ -2650,7 +2820,7 @@
          * @param preset The preset object to import.
          */
         RootApi.prototype.importPreset = function (preset) {
-            var targets = this.controller_.bladeRack
+            var targets = this.controller_.rackController.rack
                 .find(InputBindingController)
                 .map(function (ibc) {
                 return ibc.binding.target;
@@ -2663,7 +2833,7 @@
          * @return An exported preset object.
          */
         RootApi.prototype.exportPreset = function () {
-            var targets = this.controller_.bladeRack
+            var targets = this.controller_.rackController.rack
                 .find(InputBindingController)
                 .map(function (ibc) {
                 return ibc.binding.target;
@@ -2675,11 +2845,15 @@
          */
         RootApi.prototype.refresh = function () {
             // Force-read all input bindings
-            this.controller_.bladeRack.find(InputBindingController).forEach(function (ibc) {
+            this.controller_.rackController.rack
+                .find(InputBindingController)
+                .forEach(function (ibc) {
                 ibc.binding.read();
             });
             // Force-read all monitor bindings
-            this.controller_.bladeRack.find(MonitorBindingController).forEach(function (mbc) {
+            this.controller_.rackController.rack
+                .find(MonitorBindingController)
+                .forEach(function (mbc) {
                 mbc.binding.read();
             });
         };
@@ -2702,8 +2876,8 @@
                 expanded: config.expanded,
                 blade: config.blade,
                 props: config.props,
+                root: true,
                 viewProps: config.viewProps,
-                viewName: 'rot',
             }) || this;
         }
         return RootController;
@@ -3118,21 +3292,21 @@
         };
     }
 
-    var className$h = ClassName('sldtxt');
+    var className$j = ClassName('sldtxt');
     /**
      * @hidden
      */
     var SliderTextView = /** @class */ (function () {
         function SliderTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$h());
+            this.element.classList.add(className$j());
             var sliderElem = doc.createElement('div');
-            sliderElem.classList.add(className$h('s'));
+            sliderElem.classList.add(className$j('s'));
             this.sliderView_ = config.sliderView;
             sliderElem.appendChild(this.sliderView_.element);
             this.element.appendChild(sliderElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$h('t'));
+            textElem.classList.add(className$j('t'));
             this.textView_ = config.textView;
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
@@ -3307,20 +3481,20 @@
         return PointerHandler;
     }());
 
-    var className$g = ClassName('txt');
+    var className$i = ClassName('txt');
     var NumberTextView = /** @class */ (function () {
         function NumberTextView(doc, config) {
             this.onChange_ = this.onChange_.bind(this);
             this.props_ = config.props;
             this.props_.emitter.on('change', this.onChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$g(), className$g(undefined, 'num'));
+            this.element.classList.add(className$i(), className$i(undefined, 'num'));
             if (config.arrayPosition) {
-                this.element.classList.add(className$g(undefined, config.arrayPosition));
+                this.element.classList.add(className$i(undefined, config.arrayPosition));
             }
             bindClassModifier(config.viewProps, this.element);
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$g('i'));
+            inputElem.classList.add(className$i('i'));
             inputElem.type = 'text';
             bindDisabled(config.viewProps, inputElem);
             this.element.appendChild(inputElem);
@@ -3328,21 +3502,21 @@
             this.onDraggingChange_ = this.onDraggingChange_.bind(this);
             this.dragging_ = config.dragging;
             this.dragging_.emitter.on('change', this.onDraggingChange_);
-            this.element.classList.add(className$g());
-            this.inputElement.classList.add(className$g('i'));
+            this.element.classList.add(className$i());
+            this.inputElement.classList.add(className$i('i'));
             var knobElem = doc.createElement('div');
-            knobElem.classList.add(className$g('k'));
+            knobElem.classList.add(className$i('k'));
             this.element.appendChild(knobElem);
             this.knobElement = knobElem;
             var guideElem = doc.createElementNS(SVG_NS, 'svg');
-            guideElem.classList.add(className$g('g'));
+            guideElem.classList.add(className$i('g'));
             this.knobElement.appendChild(guideElem);
             var bodyElem = doc.createElementNS(SVG_NS, 'path');
-            bodyElem.classList.add(className$g('gb'));
+            bodyElem.classList.add(className$i('gb'));
             guideElem.appendChild(bodyElem);
             this.guideBodyElem_ = bodyElem;
             var headElem = doc.createElementNS(SVG_NS, 'path');
-            headElem.classList.add(className$g('gh'));
+            headElem.classList.add(className$i('gh'));
             guideElem.appendChild(headElem);
             this.guideHeadElem_ = headElem;
             var tooltipElem = doc.createElement('div');
@@ -3351,14 +3525,14 @@
             this.tooltipElem_ = tooltipElem;
             config.value.emitter.on('change', this.onChange_);
             this.value = config.value;
-            this.update_();
+            this.refresh();
         }
         NumberTextView.prototype.onDraggingChange_ = function (ev) {
             if (ev.rawValue === null) {
-                this.element.classList.remove(className$g(undefined, 'drg'));
+                this.element.classList.remove(className$i(undefined, 'drg'));
                 return;
             }
-            this.element.classList.add(className$g(undefined, 'drg'));
+            this.element.classList.add(className$i(undefined, 'drg'));
             var x = ev.rawValue / this.props_.get('draggingScale');
             var aox = x + (x > 0 ? -1 : x < 0 ? +1 : 0);
             var adx = constrainRange(-aox, -4, +4);
@@ -3368,12 +3542,12 @@
             this.tooltipElem_.textContent = formatter(this.value.rawValue);
             this.tooltipElem_.style.left = x + "px";
         };
-        NumberTextView.prototype.update_ = function () {
+        NumberTextView.prototype.refresh = function () {
             var formatter = this.props_.get('formatter');
             this.inputElement.value = formatter(this.value.rawValue);
         };
         NumberTextView.prototype.onChange_ = function () {
-            this.update_();
+            this.refresh();
         };
         return NumberTextView;
     }());
@@ -3416,6 +3590,7 @@
             if (!isEmpty(parsedValue)) {
                 this.value.rawValue = parsedValue;
             }
+            this.view.refresh();
         };
         NumberTextController.prototype.onInputKeyDown_ = function (e) {
             var step = getStepForKey(this.baseStep_, getVerticalStepKeys(e));
@@ -3442,7 +3617,7 @@
         return NumberTextController;
     }());
 
-    var className$f = ClassName('sld');
+    var className$h = ClassName('sld');
     /**
      * @hidden
      */
@@ -3452,15 +3627,15 @@
             this.props_ = config.props;
             this.props_.emitter.on('change', this.onChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$f());
+            this.element.classList.add(className$h());
             bindClassModifier(config.viewProps, this.element);
             var trackElem = doc.createElement('div');
-            trackElem.classList.add(className$f('t'));
+            trackElem.classList.add(className$h('t'));
             bindTabIndex(config.viewProps, trackElem);
             this.element.appendChild(trackElem);
             this.trackElement = trackElem;
             var knobElem = doc.createElement('div');
-            knobElem.classList.add(className$f('k'));
+            knobElem.classList.add(className$h('k'));
             this.trackElement.appendChild(knobElem);
             this.knobElement = knobElem;
             config.value.emitter.on('change', this.onChange_);
@@ -3556,9 +3731,9 @@
         return SliderTextController;
     }());
 
-    var SliderBladeApi = /** @class */ (function (_super) {
-        __extends(SliderBladeApi, _super);
-        function SliderBladeApi(controller) {
+    var SliderApi = /** @class */ (function (_super) {
+        __extends(SliderApi, _super);
+        function SliderApi(controller) {
             var _this = _super.call(this, controller) || this;
             _this.emitter_ = new Emitter();
             _this.controller_.valueController.value.emitter.on('change', function (ev) {
@@ -3568,7 +3743,7 @@
             });
             return _this;
         }
-        Object.defineProperty(SliderBladeApi.prototype, "label", {
+        Object.defineProperty(SliderApi.prototype, "label", {
             get: function () {
                 return this.controller_.props.get('label');
             },
@@ -3578,7 +3753,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(SliderBladeApi.prototype, "maxValue", {
+        Object.defineProperty(SliderApi.prototype, "maxValue", {
             get: function () {
                 return this.controller_.valueController.sliderController.props.get('maxValue');
             },
@@ -3588,7 +3763,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(SliderBladeApi.prototype, "minValue", {
+        Object.defineProperty(SliderApi.prototype, "minValue", {
             get: function () {
                 return this.controller_.valueController.sliderController.props.get('minValue');
             },
@@ -3598,7 +3773,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(SliderBladeApi.prototype, "value", {
+        Object.defineProperty(SliderApi.prototype, "value", {
             get: function () {
                 return this.controller_.valueController.value.rawValue;
             },
@@ -3608,14 +3783,14 @@
             enumerable: false,
             configurable: true
         });
-        SliderBladeApi.prototype.on = function (eventName, handler) {
+        SliderApi.prototype.on = function (eventName, handler) {
             var bh = handler.bind(this);
             this.emitter_.on(eventName, function (ev) {
                 bh(ev.event);
             });
             return this;
         };
-        return SliderBladeApi;
+        return SliderApi;
     }(BladeApi));
 
     var SliderBladePlugin = {
@@ -3640,7 +3815,7 @@
                 },
             };
         },
-        api: function (args) {
+        controller: function (args) {
             var _a, _b;
             var v = (_a = args.params.value) !== null && _a !== void 0 ? _a : 0;
             var vc = new SliderTextController(args.document, {
@@ -3657,14 +3832,441 @@
                 value: new PrimitiveValue(v),
                 viewProps: args.viewProps,
             });
-            var c = new LabeledController(args.document, {
+            return new LabelController(args.document, {
                 blade: args.blade,
                 props: new ValueMap({
                     label: args.params.label,
                 }),
                 valueController: vc,
             });
-            return new SliderBladeApi(c);
+        },
+        api: function (controller) {
+            if (!(controller instanceof LabelController)) {
+                return null;
+            }
+            if (!(controller.valueController instanceof SliderTextController)) {
+                return null;
+            }
+            return new SliderApi(controller);
+        },
+    };
+
+    var className$g = ClassName('tbi');
+    /**
+     * @hidden
+     */
+    var TabItemView = /** @class */ (function () {
+        function TabItemView(doc, config) {
+            var _this = this;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$g());
+            bindClassModifier(config.viewProps, this.element);
+            bindValueMap(config.props, 'selected', function (selected) {
+                if (selected) {
+                    _this.element.classList.add(className$g(undefined, 'sel'));
+                }
+                else {
+                    _this.element.classList.remove(className$g(undefined, 'sel'));
+                }
+            });
+            var buttonElem = doc.createElement('button');
+            buttonElem.classList.add(className$g('b'));
+            bindDisabled(config.viewProps, buttonElem);
+            this.element.appendChild(buttonElem);
+            this.buttonElement = buttonElem;
+            var titleElem = doc.createElement('div');
+            titleElem.classList.add(className$g('t'));
+            bindTextContent(config.props, 'title', titleElem);
+            this.buttonElement.appendChild(titleElem);
+            this.titleElement = titleElem;
+        }
+        return TabItemView;
+    }());
+
+    /**
+     * @hidden
+     */
+    var TabItemController = /** @class */ (function () {
+        function TabItemController(doc, config) {
+            this.emitter = new Emitter();
+            this.onClick_ = this.onClick_.bind(this);
+            this.props = config.props;
+            this.viewProps = config.viewProps;
+            this.view = new TabItemView(doc, {
+                props: config.props,
+                viewProps: config.viewProps,
+            });
+            this.view.buttonElement.addEventListener('click', this.onClick_);
+        }
+        TabItemController.prototype.onClick_ = function () {
+            this.emitter.emit('click', {
+                sender: this,
+            });
+        };
+        return TabItemController;
+    }());
+
+    var TabPageController = /** @class */ (function () {
+        function TabPageController(doc, config) {
+            var _this = this;
+            this.onItemClick_ = this.onItemClick_.bind(this);
+            this.ic_ = new TabItemController(doc, {
+                props: config.itemProps,
+                viewProps: createViewProps(),
+            });
+            this.ic_.emitter.on('click', this.onItemClick_);
+            this.cc_ = new RackController(doc, {
+                blade: new Blade(),
+                viewProps: createViewProps(),
+            });
+            this.props = config.props;
+            bindValueMap(this.props, 'selected', function (selected) {
+                _this.itemController.props.set('selected', selected);
+                _this.contentController.viewProps.set('hidden', !selected);
+            });
+        }
+        Object.defineProperty(TabPageController.prototype, "itemController", {
+            get: function () {
+                return this.ic_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(TabPageController.prototype, "contentController", {
+            get: function () {
+                return this.cc_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        TabPageController.prototype.onItemClick_ = function () {
+            this.props.set('selected', true);
+        };
+        return TabPageController;
+    }());
+
+    var TabPageApi = /** @class */ (function () {
+        function TabPageApi(controller, contentRackApi) {
+            this.controller_ = controller;
+            this.rackApi_ = contentRackApi;
+        }
+        Object.defineProperty(TabPageApi.prototype, "title", {
+            get: function () {
+                return this.controller_.itemController.props.get('title');
+            },
+            set: function (title) {
+                this.controller_.itemController.props.set('title', title);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(TabPageApi.prototype, "selected", {
+            get: function () {
+                return this.controller_.props.get('selected');
+            },
+            set: function (selected) {
+                this.controller_.props.set('selected', selected);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(TabPageApi.prototype, "children", {
+            get: function () {
+                return this.rackApi_.children;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        TabPageApi.prototype.addButton = function (params) {
+            return this.rackApi_.addButton(params);
+        };
+        TabPageApi.prototype.addFolder = function (params) {
+            return this.rackApi_.addFolder(params);
+        };
+        TabPageApi.prototype.addSeparator = function (opt_params) {
+            return this.rackApi_.addSeparator(opt_params);
+        };
+        TabPageApi.prototype.addTab = function (params) {
+            return this.rackApi_.addTab(params);
+        };
+        TabPageApi.prototype.add = function (api, opt_index) {
+            this.rackApi_.add(api, opt_index);
+        };
+        TabPageApi.prototype.remove = function (api) {
+            this.rackApi_.remove(api);
+        };
+        TabPageApi.prototype.addInput = function (object, key, opt_params) {
+            return this.rackApi_.addInput(object, key, opt_params);
+        };
+        TabPageApi.prototype.addMonitor = function (object, key, opt_params) {
+            return this.rackApi_.addMonitor(object, key, opt_params);
+        };
+        TabPageApi.prototype.addBlade_v3_ = function (opt_params) {
+            return this.rackApi_.addBlade_v3_(opt_params);
+        };
+        return TabPageApi;
+    }());
+
+    var TabApi = /** @class */ (function (_super) {
+        __extends(TabApi, _super);
+        /**
+         * @hidden
+         */
+        function TabApi(controller) {
+            var _this = _super.call(this, controller, new RackApi(controller.rackController)) || this;
+            _this.onPageAdd_ = _this.onPageAdd_.bind(_this);
+            _this.onPageRemove_ = _this.onPageRemove_.bind(_this);
+            _this.emitter_ = new Emitter();
+            _this.pageApiMap_ = new Map();
+            _this.rackApi_.on('change', function (ev) {
+                _this.emitter_.emit('change', {
+                    event: ev,
+                });
+            });
+            _this.rackApi_.on('update', function (ev) {
+                _this.emitter_.emit('update', {
+                    event: ev,
+                });
+            });
+            _this.controller_.pageSet.emitter.on('add', _this.onPageAdd_);
+            _this.controller_.pageSet.emitter.on('remove', _this.onPageRemove_);
+            _this.controller_.pageSet.items.forEach(function (pc) {
+                _this.setUpPageApi_(pc);
+            });
+            return _this;
+        }
+        Object.defineProperty(TabApi.prototype, "pages", {
+            get: function () {
+                var _this = this;
+                return this.controller_.pageSet.items.map(function (pc) {
+                    var api = _this.pageApiMap_.get(pc);
+                    /* istanbul ignore next */
+                    if (!api) {
+                        throw TpError.shouldNeverHappen();
+                    }
+                    return api;
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        TabApi.prototype.addPage = function (params) {
+            var doc = this.controller_.view.element.ownerDocument;
+            var pc = new TabPageController(doc, {
+                itemProps: new ValueMap({
+                    selected: false,
+                    title: params.title,
+                }),
+                props: new ValueMap({
+                    selected: false,
+                }),
+            });
+            this.controller_.add(pc, params.index);
+            var api = this.pageApiMap_.get(pc);
+            /* istanbul ignore next */
+            if (!api) {
+                throw TpError.shouldNeverHappen();
+            }
+            return api;
+        };
+        TabApi.prototype.removePage = function (index) {
+            this.controller_.remove(index);
+        };
+        TabApi.prototype.on = function (eventName, handler) {
+            var bh = handler.bind(this);
+            this.emitter_.on(eventName, function (ev) {
+                bh(ev.event);
+            });
+            return this;
+        };
+        TabApi.prototype.setUpPageApi_ = function (pc) {
+            var rackApi = this.rackApi_['apiSet_'].find(function (api) { return api.controller_ === pc.contentController; });
+            if (!rackApi) {
+                throw TpError.shouldNeverHappen();
+            }
+            var api = new TabPageApi(pc, rackApi);
+            this.pageApiMap_.set(pc, api);
+        };
+        TabApi.prototype.onPageAdd_ = function (ev) {
+            this.setUpPageApi_(ev.item);
+        };
+        TabApi.prototype.onPageRemove_ = function (ev) {
+            var api = this.pageApiMap_.get(ev.item);
+            /* istanbul ignore next */
+            if (!api) {
+                throw TpError.shouldNeverHappen();
+            }
+            this.pageApiMap_.delete(ev.item);
+        };
+        return TabApi;
+    }(RackLikeApi));
+
+    var className$f = ClassName('tab');
+    /**
+     * @hidden
+     */
+    var TabView = /** @class */ (function () {
+        function TabView(doc, config) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$f(), bladeContainerClassName());
+            bindClassModifier(config.viewProps, this.element);
+            bindValue(config.empty, valueToClassName(this.element, className$f(undefined, 'nop')));
+            var itemsElem = doc.createElement('div');
+            itemsElem.classList.add(className$f('i'));
+            this.element.appendChild(itemsElem);
+            this.itemsElement = itemsElem;
+            var contentsElem = config.contentsElement;
+            contentsElem.classList.add(className$f('c'));
+            this.element.appendChild(contentsElem);
+            this.contentsElement = contentsElem;
+        }
+        return TabView;
+    }());
+
+    var TabController = /** @class */ (function (_super) {
+        __extends(TabController, _super);
+        function TabController(doc, config) {
+            var _this = this;
+            var cr = new RackController(doc, {
+                blade: config.blade,
+                viewProps: config.viewProps,
+            });
+            var empty = new PrimitiveValue(true);
+            _this = _super.call(this, {
+                blade: config.blade,
+                rackController: cr,
+                view: new TabView(doc, {
+                    contentsElement: cr.view.element,
+                    empty: empty,
+                    viewProps: config.viewProps,
+                }),
+            }) || this;
+            _this.onPageAdd_ = _this.onPageAdd_.bind(_this);
+            _this.onPageRemove_ = _this.onPageRemove_.bind(_this);
+            _this.onPageSelectedChange_ = _this.onPageSelectedChange_.bind(_this);
+            _this.pageSet_ = new NestedOrderedSet(function () { return null; });
+            _this.pageSet_.emitter.on('add', _this.onPageAdd_);
+            _this.pageSet_.emitter.on('remove', _this.onPageRemove_);
+            _this.empty_ = empty;
+            _this.applyPages_();
+            return _this;
+        }
+        Object.defineProperty(TabController.prototype, "pageSet", {
+            get: function () {
+                return this.pageSet_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        TabController.prototype.add = function (pc, opt_index) {
+            this.pageSet_.add(pc, opt_index !== null && opt_index !== void 0 ? opt_index : this.pageSet_.items.length);
+        };
+        TabController.prototype.remove = function (index) {
+            this.pageSet_.remove(this.pageSet_.items[index]);
+        };
+        TabController.prototype.applyPages_ = function () {
+            this.keepSelection_();
+            this.empty_.rawValue = this.pageSet_.items.length === 0;
+        };
+        TabController.prototype.onPageAdd_ = function (ev) {
+            var pc = ev.item;
+            insertElementAt(this.view.itemsElement, pc.itemController.view.element, ev.index);
+            this.rackController.rack.add(pc.contentController, ev.index);
+            pc.props.value('selected').emitter.on('change', this.onPageSelectedChange_);
+            this.applyPages_();
+        };
+        TabController.prototype.onPageRemove_ = function (ev) {
+            var pc = ev.item;
+            removeElement(pc.itemController.view.element);
+            this.rackController.rack.remove(pc.contentController);
+            pc.props
+                .value('selected')
+                .emitter.off('change', this.onPageSelectedChange_);
+            this.applyPages_();
+        };
+        TabController.prototype.keepSelection_ = function () {
+            if (this.pageSet_.items.length === 0) {
+                return;
+            }
+            var firstSelIndex = this.pageSet_.items.findIndex(function (pc) {
+                return pc.props.get('selected');
+            });
+            if (firstSelIndex < 0) {
+                this.pageSet_.items.forEach(function (pc, i) {
+                    pc.props.set('selected', i === 0);
+                });
+            }
+            else {
+                this.pageSet_.items.forEach(function (pc, i) {
+                    pc.props.set('selected', i === firstSelIndex);
+                });
+            }
+        };
+        TabController.prototype.onPageSelectedChange_ = function (ev) {
+            if (ev.rawValue) {
+                var index_1 = this.pageSet_.items.findIndex(function (pc) { return pc.props.value('selected') === ev.sender; });
+                this.pageSet_.items.forEach(function (pc, i) {
+                    pc.props.set('selected', i === index_1);
+                });
+            }
+            else {
+                this.keepSelection_();
+            }
+        };
+        return TabController;
+    }(RackLikeController));
+
+    var TabBladePlugin = {
+        id: 'tab',
+        accept: function (params) {
+            var pageObjs = findObjectArrayParam(params, 'pages');
+            if (findStringParam(params, 'view') !== 'tab' || !pageObjs) {
+                return null;
+            }
+            var pages = [];
+            for (var i = 0; i < pageObjs.length; i++) {
+                var title = findStringParam(pageObjs[i], 'title');
+                if (isEmpty(title)) {
+                    return null;
+                }
+                pages.push({
+                    title: title,
+                });
+            }
+            if (pages.length === 0) {
+                return null;
+            }
+            return {
+                params: {
+                    pages: pages,
+                    view: 'tab',
+                },
+            };
+        },
+        controller: function (args) {
+            var c = new TabController(args.document, {
+                blade: args.blade,
+                viewProps: args.viewProps,
+            });
+            args.params.pages.forEach(function (p) {
+                var pc = new TabPageController(args.document, {
+                    itemProps: new ValueMap({
+                        selected: false,
+                        title: p.title,
+                    }),
+                    props: new ValueMap({
+                        selected: false,
+                    }),
+                });
+                c.add(pc);
+            });
+            return c;
+        },
+        api: function (controller) {
+            if (!(controller instanceof TabController)) {
+                return null;
+            }
+            return new TabApi(controller);
         },
     };
 
@@ -3688,14 +4290,14 @@
             this.inputElement = inputElem;
             config.value.emitter.on('change', this.onChange_);
             this.value_ = config.value;
-            this.update_();
+            this.refresh();
         }
-        TextView.prototype.update_ = function () {
+        TextView.prototype.refresh = function () {
             var formatter = this.props_.get('formatter');
             this.inputElement.value = formatter(this.value_.rawValue);
         };
         TextView.prototype.onChange_ = function () {
-            this.update_();
+            this.refresh();
         };
         return TextView;
     }());
@@ -3724,13 +4326,14 @@
             if (!isEmpty(parsedValue)) {
                 this.value.rawValue = parsedValue;
             }
+            this.view.refresh();
         };
         return TextController;
     }());
 
-    var TextBladeApi = /** @class */ (function (_super) {
-        __extends(TextBladeApi, _super);
-        function TextBladeApi(controller) {
+    var TextApi = /** @class */ (function (_super) {
+        __extends(TextApi, _super);
+        function TextApi(controller) {
             var _this = _super.call(this, controller) || this;
             _this.emitter_ = new Emitter();
             _this.controller_.valueController.value.emitter.on('change', function (ev) {
@@ -3740,7 +4343,7 @@
             });
             return _this;
         }
-        Object.defineProperty(TextBladeApi.prototype, "label", {
+        Object.defineProperty(TextApi.prototype, "label", {
             get: function () {
                 return this.controller_.props.get('label');
             },
@@ -3750,7 +4353,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(TextBladeApi.prototype, "formatter", {
+        Object.defineProperty(TextApi.prototype, "formatter", {
             get: function () {
                 return this.controller_.valueController.props.get('formatter');
             },
@@ -3760,7 +4363,7 @@
             enumerable: false,
             configurable: true
         });
-        Object.defineProperty(TextBladeApi.prototype, "value", {
+        Object.defineProperty(TextApi.prototype, "value", {
             get: function () {
                 return this.controller_.valueController.value.rawValue;
             },
@@ -3770,14 +4373,14 @@
             enumerable: false,
             configurable: true
         });
-        TextBladeApi.prototype.on = function (eventName, handler) {
+        TextApi.prototype.on = function (eventName, handler) {
             var bh = handler.bind(this);
             this.emitter_.on(eventName, function (ev) {
                 bh(ev.event);
             });
             return this;
         };
-        return TextBladeApi;
+        return TextApi;
     }(BladeApi));
 
     var TextBladePlugin = (function () {
@@ -3802,7 +4405,7 @@
                     },
                 };
             },
-            api: function (args) {
+            controller: function (args) {
                 var _a;
                 var ic = new TextController(args.document, {
                     parser: args.params.parse,
@@ -3812,14 +4415,22 @@
                     value: new PrimitiveValue(args.params.value),
                     viewProps: args.viewProps,
                 });
-                var c = new LabeledController(args.document, {
+                return new LabelController(args.document, {
                     blade: args.blade,
                     props: new ValueMap({
                         label: args.params.label,
                     }),
                     valueController: ic,
                 });
-                return new TextBladeApi(c);
+            },
+            api: function (controller) {
+                if (!(controller instanceof LabelController)) {
+                    return null;
+                }
+                if (!(controller.valueController instanceof TextController)) {
+                    return null;
+                }
+                return new TextApi(controller);
             },
         };
     })();
@@ -5720,7 +6331,7 @@
         return PointNdConstraint;
     }());
 
-    var className$5 = ClassName('p2dtxt');
+    var className$5 = ClassName('pndtxt');
     /**
      * @hidden
      */
@@ -6924,7 +7535,7 @@
         doc.head.appendChild(styleElem);
     }
     function embedDefaultStyleIfNeeded(doc) {
-        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_b,.tp-rotv_b,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--btn-bg);border-radius:var(--elm-br);color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--bld-h);line-height:var(--bld-h);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--btn-bg-a)}.tp-lstv_s:disabled,.tp-btnv_b:disabled,.tp-p2dpadtxtv_b:disabled{opacity:0.5}.tp-fldv_b,.tp-rotv_b{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);overflow:hidden;padding-left:calc(var(--cnt-p) + 8px);padding-right:calc(2px * 2 + var(--bld-h) + var(--cnt-p));position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_b:hover,.tp-rotv_b:hover{background-color:var(--cnt-bg-h)}.tp-fldv_b:focus,.tp-rotv_b:focus{background-color:var(--cnt-bg-f)}.tp-fldv_b:active,.tp-rotv_b:active{background-color:var(--cnt-bg-a)}.tp-fldv_b:disabled,.tp-rotv_b:disabled{opacity:0.5}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(var(--cnt-p) + (var(--bld-h) + 4px - 6px) / 2 - 2px);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_b>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv_c>.tp-fldv.tp-v-first,.tp-rotv_c>.tp-fldv.tp-v-first{margin-top:calc(-1 * var(--cnt-p))}.tp-fldv_c>.tp-fldv.tp-v-last,.tp-rotv_c>.tp-fldv.tp-v-last{margin-bottom:calc(-1 * var(--cnt-p))}.tp-fldv_c>.tp-fldv.tp-v-last .tp-fldv_c,.tp-rotv_c>.tp-fldv.tp-v-last .tp-fldv_c{border-bottom-left-radius:0}.tp-fldv_c>.tp-fldv.tp-v-last .tp-fldv_b,.tp-rotv_c>.tp-fldv.tp-v-last .tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c>*:not(.tp-v-first),.tp-rotv_c>*:not(.tp-v-first){margin-top:var(--bld-s)}.tp-fldv_c>.tp-fldv:not(.tp-v-first),.tp-rotv_c>.tp-fldv:not(.tp-v-first),.tp-fldv_c>.tp-sprv:not(.tp-v-first),.tp-rotv_c>.tp-sprv:not(.tp-v-first){margin-top:var(--cnt-p)}.tp-fldv_c>.tp-fldv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-fldv+*:not(.tp-v-hidden),.tp-fldv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-sprv+*:not(.tp-v-hidden){margin-top:var(--cnt-p)}.tp-fldv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-rotv_c>.tp-fldv:not(.tp-v-hidden)+.tp-fldv,.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv{margin-top:0}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:var(--cnt-p);padding-top:var(--cnt-p);transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--bld-h);line-height:var(--bld-h);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-clswv_sw:disabled,.tp-p2dpadv_p:disabled,.tp-txtv_i:disabled{opacity:0.5}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--mo-fg);height:var(--bld-h);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:var(--cnt-p);position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-p2dtxtv,.tp-p3dtxtv{display:flex}.tp-cltxtv_c,.tp-p2dtxtv_a,.tp-p3dtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-p2dtxtv_a+.tp-cltxtv_c,.tp-p3dtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-p2dtxtv_a,.tp-p2dtxtv_a+.tp-p2dtxtv_a,.tp-p3dtxtv_a+.tp-p2dtxtv_a,.tp-cltxtv_c+.tp-p3dtxtv_a,.tp-p2dtxtv_a+.tp-p3dtxtv_a,.tp-p3dtxtv_a+.tp-p3dtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:var(--elm-br);cursor:pointer;display:block;height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-ckbv.tp-v-disabled .tp-ckbv_w{opacity:0.5}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:var(--bld-s)}.tp-clpv_rgb{display:flex;margin-top:var(--bld-s);width:100%}.tp-clpv_a{display:flex;margin-top:var(--cnt-p);padding-top:calc(var(--cnt-p) + 2px);position:relative}.tp-clpv_a:before{background-color:var(--spr-fg);content:\'\';height:2px;left:calc(-1 * var(--cnt-p));position:absolute;right:calc(-1 * var(--cnt-p));top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:var(--elm-br);outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:calc(var(--bld-h) * 4);width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:var(--elm-br);box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:var(--elm-br)}.tp-clswv.tp-v-disabled{opacity:0.5}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--bld-h);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--bld-h)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:var(--elm-br);bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:calc(-1 * var(--cnt-p));position:absolute;right:calc(-1 * var(--cnt-p));top:var(--bld-h)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--bld-h)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:var(--elm-br);color:var(--lbl-fg);cursor:pointer;height:var(--bld-h);line-height:var(--bld-h);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-cltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-cltxtv_ms:active{background-color:var(--in-bg-a)}.tp-cltxtv_mm{color:var(--lbl-fg)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-not .tp-fldv_b{display:none}.tp-fldv.tp-fldv-expanded .tp-fldv_b{transition:border-radius 0s}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_b:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_b:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_b:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-fldv_c>.tp-fldv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_b{border-top-left-radius:var(--elm-br);border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c{border-bottom-left-radius:var(--elm-br)}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--bld-h) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv.tp-v-disabled .tp-grlv_g{opacity:0.5}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:var(--cnt-p);padding-right:var(--cnt-p)}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv.tp-v-disabled .tp-lblv_l{opacity:0.5}.tp-lblv.tp-lblv-nol .tp-lblv_l{display:none}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv.tp-v-disabled .tp-lstv_s{opacity:0.5}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-sglv.tp-v-disabled .tp-sglv_i{opacity:0.5}.tp-mllv_i{display:block;height:calc(var(--bld-h) * 3);line-height:var(--bld-h);padding:0 4px;resize:none;white-space:pre}.tp-mllv.tp-v-disabled .tp-mllv_i{opacity:0.5}.tp-p2dpadv{padding-left:calc(var(--cnt-p) + 4px + var(--bld-h))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{opacity:0.1;stroke:var(--in-fg)}.tp-p2dpadv_l{stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-p2dpadv_m{fill:var(--in-fg)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:calc(-1 * var(--cnt-p));position:absolute;right:calc(-1 * var(--cnt-p));top:var(--bld-h)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--bs-br: var(--tp-base-border-radius-v3, 6px);--cnt-p: var(--tp-container-padding-v3, 4px);--elm-br: var(--tp-element-border-radius-v3, 2px);--bld-h: var(--tp-blade-height-v3, 20px);--bld-s: var(--tp-blade-spacing-v3, 4px);--value-width: var(--tp-value-width-v3, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-folder-background-color, rgba(200,202,208,0.1));--cnt-bg-a: var(--tp-folder-background-color-active, rgba(200,202,208,0.25));--cnt-bg-f: var(--tp-folder-background-color-focus, rgba(200,202,208,0.2));--cnt-bg-h: var(--tp-folder-background-color-hover, rgba(200,202,208,0.15));--cnt-fg: var(--tp-folder-foreground-color, #c8cad0);--in-bg: var(--tp-input-background-color, rgba(200,202,208,0.1));--in-bg-a: var(--tp-input-background-color-active, rgba(200,202,208,0.25));--in-bg-f: var(--tp-input-background-color-focus, rgba(200,202,208,0.2));--in-bg-h: var(--tp-input-background-color-hover, rgba(200,202,208,0.15));--in-fg: var(--tp-input-foreground-color, #c8cad0);--lbl-fg: var(--tp-label-foreground-color, rgba(200,202,208,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(200,202,208,0.7));--spr-fg: var(--tp-separator-color, rgba(0,0,0,0.2));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--spr-fg);--unit-size: var(--bld-h)}.tp-rotv{background-color:var(--bs-bg);border-radius:var(--bs-br);box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br);border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br);padding-left:calc(2px * 2 + var(--bld-h) + var(--cnt-p));text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_b{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv.tp-rotv-not .tp-rotv_b{display:none}.tp-rotv_c>.tp-fldv.tp-v-last>.tp-fldv_c{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-last:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-last .tp-fldv_c>.tp-fldv.tp-v-last:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-first>.tp-fldv_b{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled{pointer-events:none}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--spr-fg);border-width:0;display:block;height:2px;margin:0;width:100%}.tp-sldv.tp-v-disabled{opacity:0.5}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--bld-h);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:var(--elm-br);bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-4px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:2px 0 0 2px;bottom:0;content:\'\';height:var(--bld-h);left:50%;margin-bottom:auto;margin-left:-2px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:height 0.1s;width:4px}.tp-txtv.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-lst .tp-txtv_k::before{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:2px;height:4px}.tp-txtv.tp-txtv-drg.tp-txtv-mid .tp-txtv_k::before,.tp-txtv.tp-txtv-drg.tp-txtv-list .tp-txtv_k::before{border-bottom-left-radius:2px;border-top-left-radius:2px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:var(--elm-br);color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
+        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_b,.tp-rotv_b,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms,.tp-tbiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-fldv_c>.tp-cntv.tp-v-lst,.tp-rotv_c>.tp-cntv.tp-v-lst,.tp-tabv_c .tp-brkv>.tp-cntv.tp-v-lst{margin-bottom:calc(-1 * var(--cnt-v-p))}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_c{border-bottom-left-radius:0}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c>*:not(.tp-v-fst),.tp-rotv_c>*:not(.tp-v-fst),.tp-tabv_c .tp-brkv>*:not(.tp-v-fst){margin-top:var(--bld-s)}.tp-fldv_c>.tp-sprv:not(.tp-v-fst),.tp-rotv_c>.tp-sprv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-fst),.tp-fldv_c>.tp-cntv:not(.tp-v-fst),.tp-rotv_c>.tp-cntv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-fst){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-sprv+*:not(.tp-v-hidden),.tp-fldv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-cntv+*:not(.tp-v-hidden){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-fldv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-rotv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-hidden)+.tp-cntv{margin-top:0}.tp-fldv_c>.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv>.tp-fldv_b{border-top-left-radius:var(--elm-br);border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-fldv-expanded>.tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c,.tp-tabv_c .tp-brkv .tp-fldv>.tp-fldv_c{border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-tabv>.tp-tabv_i,.tp-tabv_c .tp-brkv>.tp-tabv>.tp-tabv_i{border-top-left-radius:var(--elm-br)}.tp-fldv_c .tp-tabv>.tp-tabv_c,.tp-tabv_c .tp-brkv .tp-tabv>.tp-tabv_c{border-bottom-left-radius:var(--elm-br)}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--btn-bg);border-radius:var(--elm-br);color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--bld-h);line-height:var(--bld-h);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--btn-bg-a)}.tp-lstv_s:disabled,.tp-btnv_b:disabled,.tp-p2dpadtxtv_b:disabled{opacity:0.5}.tp-fldv_b,.tp-rotv_b{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);overflow:hidden;padding-left:calc(var(--cnt-h-p) + 8px);padding-right:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_b:hover,.tp-rotv_b:hover{background-color:var(--cnt-bg-h)}.tp-fldv_b:focus,.tp-rotv_b:focus{background-color:var(--cnt-bg-f)}.tp-fldv_b:active,.tp-rotv_b:active{background-color:var(--cnt-bg-a)}.tp-fldv_b:disabled,.tp-rotv_b:disabled{opacity:0.5}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(var(--cnt-h-p) + (var(--bld-h) + 4px - 6px) / 2 - 2px);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_b>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p);transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--bld-h);line-height:var(--bld-h);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-clswv_sw:disabled,.tp-p2dpadv_p:disabled,.tp-txtv_i:disabled{opacity:0.5}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--mo-fg);height:var(--bld-h);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:var(--cnt-v-p) var(--cnt-h-p);position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-pndtxtv{display:flex}.tp-cltxtv_c,.tp-pndtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-pndtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-pndtxtv_a,.tp-pndtxtv_a+.tp-pndtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:var(--elm-br);cursor:pointer;display:block;height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-ckbv.tp-v-disabled .tp-ckbv_w{opacity:0.5}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:var(--bld-s)}.tp-clpv_rgb{display:flex;margin-top:var(--bld-s);width:100%}.tp-clpv_a{display:flex;margin-top:var(--cnt-v-p);padding-top:calc(var(--cnt-v-p) + 2px);position:relative}.tp-clpv_a:before{background-color:var(--grv-fg);content:\'\';height:2px;left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:var(--elm-br);outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:calc(var(--bld-h) * 4);width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:var(--elm-br);box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:var(--elm-br)}.tp-clswv.tp-v-disabled{opacity:0.5}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--bld-h);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--bld-h)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:var(--elm-br);bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--bld-h)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:var(--elm-br);color:var(--lbl-fg);cursor:pointer;height:var(--bld-h);line-height:var(--bld-h);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-cltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-cltxtv_ms:active{background-color:var(--in-bg-a)}.tp-cltxtv_mm{color:var(--lbl-fg)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-not .tp-fldv_b{display:none}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_b:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_b:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_b:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--bld-h) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv.tp-v-disabled .tp-grlv_g{opacity:0.5}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:var(--cnt-h-p);padding-right:var(--cnt-h-p)}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv.tp-v-disabled .tp-lblv_l{opacity:0.5}.tp-lblv.tp-lblv-nol .tp-lblv_l{display:none}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv.tp-v-disabled .tp-lstv_s{opacity:0.5}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-sglv.tp-v-disabled .tp-sglv_i{opacity:0.5}.tp-mllv_i{display:block;height:calc(var(--bld-h) * 3);line-height:var(--bld-h);padding:0 4px;resize:none;white-space:pre}.tp-mllv.tp-v-disabled .tp-mllv_i{opacity:0.5}.tp-p2dpadv{padding-left:calc(var(--cnt-h-p) + 4px + var(--bld-h))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{opacity:0.1;stroke:var(--in-fg)}.tp-p2dpadv_l{stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-p2dpadv_m{fill:var(--in-fg)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--bs-br: var(--tp-base-border-radius-v3, 6px);--cnt-h-p: var(--tp-container-horizontal-padding-v3, 4px);--cnt-v-p: var(--tp-container-vertical-padding-v3, 4px);--elm-br: var(--tp-element-border-radius-v3, 2px);--bld-h: var(--tp-blade-height-v3, 20px);--bld-s: var(--tp-blade-spacing-v3, 4px);--value-width: var(--tp-value-width-v3, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-container-background-color, var(--tp-folder-background-color, rgba(187,188,196,0.1)));--cnt-bg-a: var(--tp-container-background-color-active, var(--tp-folder-background-color-active, rgba(187,188,196,0.25)));--cnt-bg-f: var(--tp-container-background-color-focus, var(--tp-folder-background-color-focus, rgba(187,188,196,0.2)));--cnt-bg-h: var(--tp-container-background-color-hover, var(--tp-folder-background-color-hover, rgba(187,188,196,0.15)));--cnt-fg: var(--tp-container-foreground-color, var(--tp-folder-foreground-color, #bbbcc4));--in-bg: var(--tp-input-background-color, rgba(0,0,0,0.2));--in-bg-a: var(--tp-input-background-color-active, rgba(0,0,0,0.35));--in-bg-f: var(--tp-input-background-color-focus, rgba(0,0,0,0.3));--in-bg-h: var(--tp-input-background-color-hover, rgba(0,0,0,0.25));--in-fg: var(--tp-input-foreground-color, #bbbcc4);--lbl-fg: var(--tp-label-foreground-color, rgba(187,188,196,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(187,188,196,0.7));--grv-fg: var(--tp-groove-foreground-color, var(--tp-separator-color, rgba(0,0,0,0.2)));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--grv-fg);--unit-size: var(--bld-h)}.tp-rotv{background-color:var(--bs-bg);border-radius:var(--bs-br);box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br);border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br);padding-left:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_b{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv.tp-rotv-not .tp-rotv_b{display:none}.tp-rotv_c>.tp-fldv.tp-v-lst>.tp-fldv_c,.tp-rotv_c>.tp-tabv.tp-v-lst>.tp-tabv_c{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-lst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c .tp-fldv.tp-v-vlst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst>.tp-fldv_b{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst>.tp-tabv_i{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled{pointer-events:none}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--grv-fg);border-width:0;display:block;height:2px;margin:0;width:100%}.tp-sldv.tp-v-disabled{opacity:0.5}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--bld-h);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:var(--elm-br);bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-tabv.tp-v-disabled{opacity:0.5}.tp-tabv_i{align-items:flex-end;display:flex;overflow:hidden}.tp-tabv.tp-tabv-nop .tp-tabv_i{height:calc(var(--bld-h) + 4px);position:relative}.tp-tabv.tp-tabv-nop .tp-tabv_i::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:0;position:absolute;right:0}.tp-tabv_c{border-left:var(--cnt-bg) solid 4px;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p)}.tp-tbiv{flex:1;min-width:0;position:relative}.tp-tbiv+.tp-tbiv{margin-left:2px}.tp-tbiv+.tp-tbiv::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:-2px;position:absolute;width:2px}.tp-tbiv_b{background-color:var(--cnt-bg);display:block;padding-left:calc(var(--cnt-h-p) + 4px);padding-right:calc(var(--cnt-h-p) + 4px);width:100%}.tp-tbiv_b:hover{background-color:var(--cnt-bg-h)}.tp-tbiv_b:focus{background-color:var(--cnt-bg-f)}.tp-tbiv_b:active{background-color:var(--cnt-bg-a)}.tp-tbiv_b:disabled{opacity:0.5}.tp-tbiv_t{color:var(--cnt-fg);height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);opacity:0.5;overflow:hidden;text-overflow:ellipsis}.tp-tbiv.tp-tbiv-sel .tp-tbiv_t{opacity:1}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-3px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';height:calc(var(--bld-h) - 4px);left:50%;margin-bottom:auto;margin-left:-1px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:border-radius 0.1s, height 0.1s, transform 0.1s, width 0.1s;width:2px}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:50%;height:4px;transform:translateX(-1px);width:4px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:var(--elm-br);color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
         getAllPlugins().forEach(function (plugin) {
             if (plugin.css) {
                 embedStyle(doc, "plugin-" + plugin.id, plugin.css);
@@ -6982,7 +7593,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.3.0');
+        Tweakpane.version = new Semver('2.4.0');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
@@ -7008,7 +7619,7 @@
                 plugin: p,
             });
         });
-        [SliderBladePlugin, ListBladePlugin, TextBladePlugin].forEach(function (p) {
+        [SliderBladePlugin, ListBladePlugin, TabBladePlugin, TextBladePlugin].forEach(function (p) {
             registerPlugin({
                 type: 'blade',
                 plugin: p,

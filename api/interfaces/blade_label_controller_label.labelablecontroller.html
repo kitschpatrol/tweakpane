@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>InputBindingApiEvents | tweakpane</title>
+	<title>LabelableController | tweakpane</title>
 	<meta name="description" content="Documentation for tweakpane">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,32 +55,29 @@
 					<a href="../index.html">tweakpane</a>
 				</li>
 				<li>
-					<a href="../modules/blade_common_api_input_binding.html">blade/common/api/input-binding</a>
+					<a href="../modules/blade_label_controller_label.html">blade/label/controller/label</a>
 				</li>
 				<li>
-					<a href="blade_common_api_input_binding.inputbindingapievents.html">InputBindingApiEvents</a>
+					<a href="blade_label_controller_label.labelablecontroller.html">LabelableController</a>
 				</li>
 			</ul>
-			<h1>Interface InputBindingApiEvents&lt;Ex&gt;</h1>
+			<h1>Interface LabelableController</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<section class="tsd-panel tsd-type-parameters">
-				<h3>Type parameters</h3>
-				<ul class="tsd-type-parameters">
-					<li>
-						<h4>Ex</h4>
-					</li>
-				</ul>
-			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">InputBindingApiEvents</span>
+						<a href="common_controller_controller.controller.html" class="tsd-signature-type" data-tsd-kind="Interface">Controller</a>
+						<ul class="tsd-hierarchy">
+							<li>
+								<span class="target">LabelableController</span>
+							</li>
+						</ul>
 					</li>
 				</ul>
 			</section>
@@ -91,7 +88,14 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="blade_common_api_input_binding.inputbindingapievents.html#change" class="tsd-kind-icon">change</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="blade_label_controller_label.labelablecontroller.html#view" class="tsd-kind-icon">view</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="blade_label_controller_label.labelablecontroller.html#viewprops" class="tsd-kind-icon">view<wbr>Props</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section tsd-is-inherited">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-interface tsd-is-inherited"><a href="blade_label_controller_label.labelablecontroller.html#ondispose" class="tsd-kind-icon">on<wbr>Dispose</a></li>
 							</ul>
 						</section>
 					</div>
@@ -100,22 +104,53 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="change" class="tsd-anchor"></a>
-					<h3>change</h3>
-					<div class="tsd-signature tsd-kind-icon">change<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span>event<span class="tsd-signature-symbol">: </span><a href="../classes/blade_common_api_tp_event.tpchangeevent.html" class="tsd-signature-type" data-tsd-kind="Class">TpChangeEvent</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Ex</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> }</span></div>
+					<a name="view" class="tsd-anchor"></a>
+					<h3>view</h3>
+					<div class="tsd-signature tsd-kind-icon">view<span class="tsd-signature-symbol">:</span> <a href="common_view_view.view.html" class="tsd-signature-type" data-tsd-kind="Interface">View</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/16e2abb/lib/blade/common/api/input-binding.ts#L9">blade/common/api/input-binding.ts:9</a></li>
+							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a4c26cd/lib/blade/label/controller/label.ts#L9">blade/label/controller/label.ts:9</a></li>
 						</ul>
 					</aside>
-					<div class="tsd-type-declaration">
-						<h4>Type declaration</h4>
-						<ul class="tsd-parameters">
-							<li class="tsd-parameter">
-								<h5>event<span class="tsd-signature-symbol">: </span><a href="../classes/blade_common_api_tp_event.tpchangeevent.html" class="tsd-signature-type" data-tsd-kind="Class">TpChangeEvent</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Ex</span><span class="tsd-signature-symbol">&gt;</span></h5>
-							</li>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+					<a name="viewprops" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> view<wbr>Props</h3>
+					<div class="tsd-signature tsd-kind-icon">view<wbr>Props<span class="tsd-signature-symbol">:</span> <a href="../modules/common_model_view_props.html#viewprops" class="tsd-signature-type" data-tsd-kind="Type alias">ViewProps</a></div>
+					<aside class="tsd-sources">
+						<p>Inherited from <a href="common_controller_controller.controller.html">Controller</a>.<a href="common_controller_controller.controller.html#viewprops">viewProps</a></p>
+						<ul>
+							<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a4c26cd/lib/common/controller/controller.ts#L7">common/controller/controller.ts:7</a></li>
 						</ul>
-					</div>
+					</aside>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+					<a name="ondispose" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> on<wbr>Dispose</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">on<wbr>Dispose<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="common_controller_controller.controller.html">Controller</a>.<a href="common_controller_controller.controller.html#ondispose">onDispose</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/cocopon/tweakpane/blob/a4c26cd/lib/common/controller/controller.ts#L11">common/controller/controller.ts:11</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<dl class="tsd-comment-tags">
+									<dt>deprecated</dt>
+									<dd><p>Use ViewProps.value(&#39;disposed&#39;).emitter instead.</p>
+									</dd>
+								</dl>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
 				</section>
 			</section>
 		</div>
@@ -126,22 +161,28 @@
 						<a href="../index.html">Exports</a>
 					</li>
 					<li class="current tsd-kind-module">
-						<a href="../modules/blade_common_api_input_binding.html">blade/common/api/input-<wbr>binding</a>
+						<a href="../modules/blade_label_controller_label.html">blade/label/controller/label</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
 					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
-						<a href="../classes/blade_common_api_input_binding.inputbindingapi.html" class="tsd-kind-icon">Input<wbr>Binding<wbr>Api</a>
+						<a href="../classes/blade_label_controller_label.labelcontroller.html" class="tsd-kind-icon">Label<wbr>Controller</a>
 					</li>
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
-						<a href="blade_common_api_input_binding.inputbindingapievents.html" class="tsd-kind-icon">Input<wbr>Binding<wbr>Api<wbr>Events</a>
+					<li class="current tsd-kind-interface tsd-parent-kind-module">
+						<a href="blade_label_controller_label.labelablecontroller.html" class="tsd-kind-icon">Labelable<wbr>Controller</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="blade_common_api_input_binding.inputbindingapievents.html#change" class="tsd-kind-icon">change</a>
+								<a href="blade_label_controller_label.labelablecontroller.html#view" class="tsd-kind-icon">view</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+								<a href="blade_label_controller_label.labelablecontroller.html#viewprops" class="tsd-kind-icon">view<wbr>Props</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+								<a href="blade_label_controller_label.labelablecontroller.html#ondispose" class="tsd-kind-icon">on<wbr>Dispose</a>
 							</li>
 						</ul>
 					</li>
