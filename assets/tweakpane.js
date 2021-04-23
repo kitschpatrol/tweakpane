@@ -1,4 +1,4 @@
-/*! Tweakpane 2.4.0 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.4.1 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -28,12 +28,10 @@
         };
         return __assign.apply(this, arguments);
     };
-    function __spreadArrays() {
-        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-        for (var r = Array(s), k = 0, i = 0; i < il; i++)
-            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-                r[k] = a[j];
-        return r;
+    function __spreadArray(to, from) {
+        for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+            to[j] = from[i];
+        return to;
     }
 
     function forceCast(v) {
@@ -70,7 +68,8 @@
     var TpError = /** @class */ (function () {
         function TpError(config) {
             var _a;
-            this.message = (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
+            this.message =
+                (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
             this.name = this.constructor.name;
             this.stack = new Error(this.message).stack;
             this.type = config.type;
@@ -218,9 +217,9 @@
             applyClass(elem, className, value);
         };
     }
-    var className$p = ClassName('');
+    var className$q = ClassName('');
     function valueToModifier(elem, modifier) {
-        return valueToClassName(elem, className$p(undefined, modifier));
+        return valueToClassName(elem, className$q(undefined, modifier));
     }
     function bindValue(value, applyValue) {
         value.emitter.on('change', compose(extractValue, applyValue));
@@ -267,7 +266,7 @@
         return ['veryfirst', 'first', 'last', 'verylast'];
     }
 
-    var className$o = ClassName('');
+    var className$p = ClassName('');
     var POS_TO_CLASS_NAME_MAP = {
         veryfirst: 'vfst',
         first: 'fst',
@@ -285,10 +284,10 @@
             this.blade.emitter.on('change', function (ev) {
                 if (ev.propertyName === 'positions') {
                     getAllBladePositions().forEach(function (pos) {
-                        elem.classList.remove(className$o(undefined, POS_TO_CLASS_NAME_MAP[pos]));
+                        elem.classList.remove(className$p(undefined, POS_TO_CLASS_NAME_MAP[pos]));
                     });
                     _this.blade.positions.forEach(function (pos) {
-                        elem.classList.add(className$o(undefined, POS_TO_CLASS_NAME_MAP[pos]));
+                        elem.classList.add(className$p(undefined, POS_TO_CLASS_NAME_MAP[pos]));
                     });
                 }
             });
@@ -380,7 +379,7 @@
         return null;
     }
 
-    var className$n = ClassName('lbl');
+    var className$o = ClassName('lbl');
     function createLabelNode(doc, label) {
         var frag = doc.createDocumentFragment();
         var lineNodes = label.split('\n').map(function (line) {
@@ -401,16 +400,16 @@
         function LabelView(doc, config) {
             var _this = this;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$n());
+            this.element.classList.add(className$o());
             bindClassModifier(config.viewProps, this.element);
             var labelElem = doc.createElement('div');
-            labelElem.classList.add(className$n('l'));
+            labelElem.classList.add(className$o('l'));
             bindValueMap(config.props, 'label', function (value) {
                 if (isEmpty(value)) {
-                    _this.element.classList.add(className$n(undefined, 'nol'));
+                    _this.element.classList.add(className$o(undefined, 'nol'));
                 }
                 else {
-                    _this.element.classList.remove(className$n(undefined, 'nol'));
+                    _this.element.classList.remove(className$o(undefined, 'nol'));
                     removeChildNodes(labelElem);
                     labelElem.appendChild(createLabelNode(doc, value));
                 }
@@ -418,7 +417,7 @@
             this.element.appendChild(labelElem);
             this.labelElement = labelElem;
             var valueElem = doc.createElement('div');
-            valueElem.classList.add(className$n('v'));
+            valueElem.classList.add(className$o('v'));
             this.element.appendChild(valueElem);
             this.valueElement = valueElem;
         }
@@ -857,7 +856,7 @@
      * @hidden
      */
     function createPushedBuffer(buffer, newValue) {
-        var newBuffer = __spreadArrays(createTrimmedBuffer(buffer), [newValue]);
+        var newBuffer = __spreadArray(__spreadArray([], createTrimmedBuffer(buffer)), [newValue]);
         if (newBuffer.length > buffer.length) {
             newBuffer.splice(0, newBuffer.length - buffer.length);
         }
@@ -1915,7 +1914,7 @@
         monitors: [],
     };
     function getAllPlugins() {
-        return __spreadArrays(Plugins.blades, Plugins.inputs, Plugins.monitors);
+        return __spreadArray(__spreadArray(__spreadArray([], Plugins.blades), Plugins.inputs), Plugins.monitors);
     }
     /**
      * @hidden
@@ -2007,7 +2006,7 @@
         return api;
     }
 
-    var className$m = ClassName('lst');
+    var className$n = ClassName('lst');
     /**
      * @hidden
      */
@@ -2016,10 +2015,10 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.props_ = config.props;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$m());
+            this.element.classList.add(className$n());
             bindClassModifier(config.viewProps, this.element);
             var selectElem = doc.createElement('select');
-            selectElem.classList.add(className$m('s'));
+            selectElem.classList.add(className$n('s'));
             bindValueMap(this.props_, 'options', function (opts) {
                 removeChildElements(selectElem);
                 opts.forEach(function (item, index) {
@@ -2034,7 +2033,7 @@
             this.element.appendChild(selectElem);
             this.selectElement = selectElem;
             var markElem = doc.createElement('div');
-            markElem.classList.add(className$m('m'));
+            markElem.classList.add(className$n('m'));
             markElem.appendChild(createSvgIconElement(doc, 'dropdown'));
             this.element.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
@@ -2233,17 +2232,17 @@
         return ButtonApi;
     }(BladeApi));
 
-    var className$l = ClassName('btn');
+    var className$m = ClassName('btn');
     /**
      * @hidden
      */
     var ButtonView = /** @class */ (function () {
         function ButtonView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$l());
+            this.element.classList.add(className$m());
             bindClassModifier(config.viewProps, this.element);
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$l('b'));
+            buttonElem.classList.add(className$m('b'));
             bindDisabled(config.viewProps, buttonElem);
             bindTextContent(config.props, 'title', buttonElem);
             this.element.appendChild(buttonElem);
@@ -2716,17 +2715,17 @@
         return SeparatorApi;
     }(BladeApi));
 
-    var className$k = ClassName('spr');
+    var className$l = ClassName('spr');
     /**
      * @hidden
      */
     var SeparatorView = /** @class */ (function () {
         function SeparatorView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$k());
+            this.element.classList.add(className$l());
             bindClassModifier(config.viewProps, this.element);
             var hrElem = doc.createElement('hr');
-            hrElem.classList.add(className$k('r'));
+            hrElem.classList.add(className$l('r'));
             this.element.appendChild(hrElem);
         }
         return SeparatorView;
@@ -3293,21 +3292,21 @@
         };
     }
 
-    var className$j = ClassName('sldtxt');
+    var className$k = ClassName('sldtxt');
     /**
      * @hidden
      */
     var SliderTextView = /** @class */ (function () {
         function SliderTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$j());
+            this.element.classList.add(className$k());
             var sliderElem = doc.createElement('div');
-            sliderElem.classList.add(className$j('s'));
+            sliderElem.classList.add(className$k('s'));
             this.sliderView_ = config.sliderView;
             sliderElem.appendChild(this.sliderView_.element);
             this.element.appendChild(sliderElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$j('t'));
+            textElem.classList.add(className$k('t'));
             this.textView_ = config.textView;
             textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
@@ -3410,40 +3409,47 @@
                     : null,
             };
         };
-        PointerHandler.prototype.onMouseDown_ = function (e) {
+        PointerHandler.prototype.onMouseDown_ = function (ev) {
             var _a;
             // Prevent native text selection
-            e.preventDefault();
-            (_a = e.currentTarget) === null || _a === void 0 ? void 0 : _a.focus();
+            ev.preventDefault();
+            (_a = ev.currentTarget) === null || _a === void 0 ? void 0 : _a.focus();
             var doc = this.elem_.ownerDocument;
             doc.addEventListener('mousemove', this.onDocumentMouseMove_);
             doc.addEventListener('mouseup', this.onDocumentMouseUp_);
             this.emitter.emit('down', {
-                data: this.computePosition_(computeOffset(e, this.elem_)),
+                altKey: ev.altKey,
+                data: this.computePosition_(computeOffset(ev, this.elem_)),
                 sender: this,
+                shiftKey: ev.shiftKey,
             });
         };
-        PointerHandler.prototype.onDocumentMouseMove_ = function (e) {
+        PointerHandler.prototype.onDocumentMouseMove_ = function (ev) {
             this.emitter.emit('move', {
-                data: this.computePosition_(computeOffset(e, this.elem_)),
+                altKey: ev.altKey,
+                data: this.computePosition_(computeOffset(ev, this.elem_)),
                 sender: this,
+                shiftKey: ev.shiftKey,
             });
         };
-        PointerHandler.prototype.onDocumentMouseUp_ = function (e) {
+        PointerHandler.prototype.onDocumentMouseUp_ = function (ev) {
             var doc = this.elem_.ownerDocument;
             doc.removeEventListener('mousemove', this.onDocumentMouseMove_);
             doc.removeEventListener('mouseup', this.onDocumentMouseUp_);
             this.emitter.emit('up', {
-                data: this.computePosition_(computeOffset(e, this.elem_)),
+                altKey: ev.altKey,
+                data: this.computePosition_(computeOffset(ev, this.elem_)),
                 sender: this,
+                shiftKey: ev.shiftKey,
             });
         };
-        PointerHandler.prototype.onTouchStart_ = function (e) {
+        PointerHandler.prototype.onTouchStart_ = function (ev) {
             // Prevent native page scroll
-            e.preventDefault();
-            var touch = e.targetTouches.item(0);
+            ev.preventDefault();
+            var touch = ev.targetTouches.item(0);
             var rect = this.elem_.getBoundingClientRect();
             this.emitter.emit('down', {
+                altKey: ev.altKey,
                 data: this.computePosition_(touch
                     ? {
                         x: touch.clientX - rect.left,
@@ -3451,12 +3457,14 @@
                     }
                     : undefined),
                 sender: this,
+                shiftKey: ev.shiftKey,
             });
         };
-        PointerHandler.prototype.onTouchMove_ = function (e) {
-            var touch = e.targetTouches.item(0);
+        PointerHandler.prototype.onTouchMove_ = function (ev) {
+            var touch = ev.targetTouches.item(0);
             var rect = this.elem_.getBoundingClientRect();
             this.emitter.emit('move', {
+                altKey: ev.altKey,
                 data: this.computePosition_(touch
                     ? {
                         x: touch.clientX - rect.left,
@@ -3464,12 +3472,14 @@
                     }
                     : undefined),
                 sender: this,
+                shiftKey: ev.shiftKey,
             });
         };
-        PointerHandler.prototype.onTouchEnd_ = function (e) {
-            var touch = e.targetTouches.item(0);
+        PointerHandler.prototype.onTouchEnd_ = function (ev) {
+            var touch = ev.targetTouches.item(0);
             var rect = this.elem_.getBoundingClientRect();
             this.emitter.emit('up', {
+                altKey: ev.altKey,
                 data: this.computePosition_(touch
                     ? {
                         x: touch.clientX - rect.left,
@@ -3477,25 +3487,26 @@
                     }
                     : undefined),
                 sender: this,
+                shiftKey: ev.shiftKey,
             });
         };
         return PointerHandler;
     }());
 
-    var className$i = ClassName('txt');
+    var className$j = ClassName('txt');
     var NumberTextView = /** @class */ (function () {
         function NumberTextView(doc, config) {
             this.onChange_ = this.onChange_.bind(this);
             this.props_ = config.props;
             this.props_.emitter.on('change', this.onChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$i(), className$i(undefined, 'num'));
+            this.element.classList.add(className$j(), className$j(undefined, 'num'));
             if (config.arrayPosition) {
-                this.element.classList.add(className$i(undefined, config.arrayPosition));
+                this.element.classList.add(className$j(undefined, config.arrayPosition));
             }
             bindClassModifier(config.viewProps, this.element);
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$i('i'));
+            inputElem.classList.add(className$j('i'));
             inputElem.type = 'text';
             bindDisabled(config.viewProps, inputElem);
             this.element.appendChild(inputElem);
@@ -3503,21 +3514,21 @@
             this.onDraggingChange_ = this.onDraggingChange_.bind(this);
             this.dragging_ = config.dragging;
             this.dragging_.emitter.on('change', this.onDraggingChange_);
-            this.element.classList.add(className$i());
-            this.inputElement.classList.add(className$i('i'));
+            this.element.classList.add(className$j());
+            this.inputElement.classList.add(className$j('i'));
             var knobElem = doc.createElement('div');
-            knobElem.classList.add(className$i('k'));
+            knobElem.classList.add(className$j('k'));
             this.element.appendChild(knobElem);
             this.knobElement = knobElem;
             var guideElem = doc.createElementNS(SVG_NS, 'svg');
-            guideElem.classList.add(className$i('g'));
+            guideElem.classList.add(className$j('g'));
             this.knobElement.appendChild(guideElem);
             var bodyElem = doc.createElementNS(SVG_NS, 'path');
-            bodyElem.classList.add(className$i('gb'));
+            bodyElem.classList.add(className$j('gb'));
             guideElem.appendChild(bodyElem);
             this.guideBodyElem_ = bodyElem;
             var headElem = doc.createElementNS(SVG_NS, 'path');
-            headElem.classList.add(className$i('gh'));
+            headElem.classList.add(className$j('gh'));
             guideElem.appendChild(headElem);
             this.guideHeadElem_ = headElem;
             var tooltipElem = doc.createElement('div');
@@ -3530,10 +3541,10 @@
         }
         NumberTextView.prototype.onDraggingChange_ = function (ev) {
             if (ev.rawValue === null) {
-                this.element.classList.remove(className$i(undefined, 'drg'));
+                this.element.classList.remove(className$j(undefined, 'drg'));
                 return;
             }
-            this.element.classList.add(className$i(undefined, 'drg'));
+            this.element.classList.add(className$j(undefined, 'drg'));
             var x = ev.rawValue / this.props_.get('draggingScale');
             var aox = x + (x > 0 ? -1 : x < 0 ? +1 : 0);
             var adx = constrainRange(-aox, -4, +4);
@@ -3618,7 +3629,7 @@
         return NumberTextController;
     }());
 
-    var className$h = ClassName('sld');
+    var className$i = ClassName('sld');
     /**
      * @hidden
      */
@@ -3628,15 +3639,15 @@
             this.props_ = config.props;
             this.props_.emitter.on('change', this.onChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$h());
+            this.element.classList.add(className$i());
             bindClassModifier(config.viewProps, this.element);
             var trackElem = doc.createElement('div');
-            trackElem.classList.add(className$h('t'));
+            trackElem.classList.add(className$i('t'));
             bindTabIndex(config.viewProps, trackElem);
             this.element.appendChild(trackElem);
             this.trackElement = trackElem;
             var knobElem = doc.createElement('div');
-            knobElem.classList.add(className$h('k'));
+            knobElem.classList.add(className$i('k'));
             this.trackElement.appendChild(knobElem);
             this.knobElement = knobElem;
             config.value.emitter.on('change', this.onChange_);
@@ -3852,7 +3863,7 @@
         },
     };
 
-    var className$g = ClassName('tbi');
+    var className$h = ClassName('tbi');
     /**
      * @hidden
      */
@@ -3860,23 +3871,23 @@
         function TabItemView(doc, config) {
             var _this = this;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$g());
+            this.element.classList.add(className$h());
             bindClassModifier(config.viewProps, this.element);
             bindValueMap(config.props, 'selected', function (selected) {
                 if (selected) {
-                    _this.element.classList.add(className$g(undefined, 'sel'));
+                    _this.element.classList.add(className$h(undefined, 'sel'));
                 }
                 else {
-                    _this.element.classList.remove(className$g(undefined, 'sel'));
+                    _this.element.classList.remove(className$h(undefined, 'sel'));
                 }
             });
             var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$g('b'));
+            buttonElem.classList.add(className$h('b'));
             bindDisabled(config.viewProps, buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var titleElem = doc.createElement('div');
-            titleElem.classList.add(className$g('t'));
+            titleElem.classList.add(className$h('t'));
             bindTextContent(config.props, 'title', titleElem);
             this.buttonElement.appendChild(titleElem);
             this.titleElement = titleElem;
@@ -4102,22 +4113,22 @@
         return TabApi;
     }(RackLikeApi));
 
-    var className$f = ClassName('tab');
+    var className$g = ClassName('tab');
     /**
      * @hidden
      */
     var TabView = /** @class */ (function () {
         function TabView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$f(), bladeContainerClassName());
+            this.element.classList.add(className$g(), bladeContainerClassName());
             bindClassModifier(config.viewProps, this.element);
-            bindValue(config.empty, valueToClassName(this.element, className$f(undefined, 'nop')));
+            bindValue(config.empty, valueToClassName(this.element, className$g(undefined, 'nop')));
             var itemsElem = doc.createElement('div');
-            itemsElem.classList.add(className$f('i'));
+            itemsElem.classList.add(className$g('i'));
             this.element.appendChild(itemsElem);
             this.itemsElement = itemsElem;
             var contentsElem = config.contentsElement;
-            contentsElem.classList.add(className$f('c'));
+            contentsElem.classList.add(className$g('c'));
             this.element.appendChild(contentsElem);
             this.contentsElement = contentsElem;
         }
@@ -4271,7 +4282,7 @@
         },
     };
 
-    var className$e = ClassName('txt');
+    var className$f = ClassName('txt');
     /**
      * @hidden
      */
@@ -4279,12 +4290,12 @@
         function TextView(doc, config) {
             this.onChange_ = this.onChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$e());
+            this.element.classList.add(className$f());
             bindClassModifier(config.viewProps, this.element);
             this.props_ = config.props;
             this.props_.emitter.on('change', this.onChange_);
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$e('i'));
+            inputElem.classList.add(className$f('i'));
             inputElem.type = 'text';
             bindDisabled(config.viewProps, inputElem);
             this.element.appendChild(inputElem);
@@ -4467,7 +4478,7 @@
         target.write(value);
     }
 
-    var className$d = ClassName('ckb');
+    var className$e = ClassName('ckb');
     /**
      * @hidden
      */
@@ -4475,19 +4486,19 @@
         function CheckboxView(doc, config) {
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$d());
+            this.element.classList.add(className$e());
             bindClassModifier(config.viewProps, this.element);
             var labelElem = doc.createElement('label');
-            labelElem.classList.add(className$d('l'));
+            labelElem.classList.add(className$e('l'));
             this.element.appendChild(labelElem);
             var inputElem = doc.createElement('input');
-            inputElem.classList.add(className$d('i'));
+            inputElem.classList.add(className$e('i'));
             inputElem.type = 'checkbox';
             labelElem.appendChild(inputElem);
             this.inputElement = inputElem;
             bindDisabled(config.viewProps, this.inputElement);
             var wrapperElem = doc.createElement('div');
-            wrapperElem.classList.add(className$d('w'));
+            wrapperElem.classList.add(className$e('w'));
             labelElem.appendChild(wrapperElem);
             var markElem = createSvgIconElement(doc, 'check');
             wrapperElem.appendChild(markElem);
@@ -4565,26 +4576,52 @@
         },
     };
 
-    var className$c = ClassName('clswtxt');
+    var className$d = ClassName('clswtxt');
     /**
      * @hidden
      */
     var ColorSwatchTextView = /** @class */ (function () {
         function ColorSwatchTextView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$c());
+            this.element.classList.add(className$d());
             var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$c('s'));
+            swatchElem.classList.add(className$d('s'));
             this.swatchView_ = config.swatchView;
             swatchElem.appendChild(this.swatchView_.element);
             this.element.appendChild(swatchElem);
             var textElem = doc.createElement('div');
-            textElem.classList.add(className$c('t'));
+            textElem.classList.add(className$d('t'));
             this.textView = config.textView;
             textElem.appendChild(this.textView.element);
             this.element.appendChild(textElem);
         }
         return ColorSwatchTextView;
+    }());
+
+    var className$c = ClassName('pop');
+    /**
+     * @hidden
+     */
+    var PopupView = /** @class */ (function () {
+        function PopupView(doc, config) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$c());
+            bindClassModifier(config.viewProps, this.element);
+            bindValue(config.shows, valueToClassName(this.element, className$c(undefined, 'v')));
+        }
+        return PopupView;
+    }());
+
+    var PopupController = /** @class */ (function () {
+        function PopupController(doc, config) {
+            this.shows = new PrimitiveValue(false);
+            this.viewProps = config.viewProps;
+            this.view = new PopupView(doc, {
+                shows: this.shows,
+                viewProps: this.viewProps,
+            });
+        }
+        return PopupController;
     }());
 
     var PickedColor = /** @class */ (function () {
@@ -5166,11 +5203,6 @@
             bindDisabled(config.viewProps, buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
-            var pickerElem = doc.createElement('div');
-            pickerElem.classList.add(className$b('p'));
-            this.pickerView_ = config.pickerView;
-            pickerElem.appendChild(this.pickerView_.element);
-            this.element.appendChild(pickerElem);
             this.update_();
         }
         ColorSwatchView.prototype.update_ = function () {
@@ -5252,12 +5284,6 @@
     var ColorPickerView = /** @class */ (function () {
         function ColorPickerView(doc, config) {
             this.alphaViews_ = null;
-            this.onFoldableChange_ = this.onFoldableChange_.bind(this);
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.pickedColor = config.pickedColor;
-            this.pickedColor.value.emitter.on('change', this.onValueChange_);
-            this.expanded_ = config.expanded;
-            this.expanded_.emitter.on('change', this.onFoldableChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$a());
             var hsvElem = doc.createElement('div');
@@ -5295,36 +5321,22 @@
                 aElem.appendChild(atElem);
                 this.element.appendChild(aElem);
             }
-            this.update_();
         }
         Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
             get: function () {
-                var elems = __spreadArrays([
+                var elems = __spreadArray([
                     this.svPaletteView_.element,
-                    this.hPaletteView_.element
+                    this.hPaletteView_.element,
+                    this.textView_.modeSelectElement
                 ], this.textView_.textViews.map(function (v) { return v.inputElement; }));
                 if (this.alphaViews_) {
                     elems.push(this.alphaViews_.palette.element, this.alphaViews_.text.inputElement);
                 }
-                return forceCast(elems);
+                return elems;
             },
             enumerable: false,
             configurable: true
         });
-        ColorPickerView.prototype.update_ = function () {
-            if (this.expanded_.rawValue) {
-                this.element.classList.add(className$a(undefined, 'expanded'));
-            }
-            else {
-                this.element.classList.remove(className$a(undefined, 'expanded'));
-            }
-        };
-        ColorPickerView.prototype.onValueChange_ = function () {
-            this.update_();
-        };
-        ColorPickerView.prototype.onFoldableChange_ = function () {
-            this.update_();
-        };
         return ColorPickerView;
     }());
 
@@ -5814,13 +5826,8 @@
      */
     var ColorPickerController = /** @class */ (function () {
         function ColorPickerController(doc, config) {
-            var _this = this;
-            this.triggerElement = null;
-            this.onFocusableElementBlur_ = this.onFocusableElementBlur_.bind(this);
-            this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.pickedColor = config.pickedColor;
             this.viewProps = config.viewProps;
-            this.expanded = new PrimitiveValue(false);
             this.hPaletteIc_ = new HPaletteController(doc, {
                 value: this.pickedColor.value,
                 viewProps: this.viewProps,
@@ -5863,7 +5870,7 @@
                     },
                 });
             }
-            this.tc_ = new ColorTextController(doc, {
+            this.textC_ = new ColorTextController(doc, {
                 parser: parseNumber,
                 pickedColor: this.pickedColor,
                 viewProps: this.viewProps,
@@ -5875,16 +5882,10 @@
                         text: this.alphaIcs_.text.view,
                     }
                     : null,
-                expanded: this.expanded,
                 hPaletteView: this.hPaletteIc_.view,
-                pickedColor: this.pickedColor,
                 supportsAlpha: config.supportsAlpha,
                 svPaletteView: this.svPaletteIc_.view,
-                textView: this.tc_.view,
-            });
-            this.view.element.addEventListener('keydown', this.onKeyDown_);
-            this.view.allFocusableElements.forEach(function (elem) {
-                elem.addEventListener('blur', _this.onFocusableElementBlur_);
+                textView: this.textC_.view,
             });
         }
         Object.defineProperty(ColorPickerController.prototype, "value", {
@@ -5896,31 +5897,11 @@
         });
         Object.defineProperty(ColorPickerController.prototype, "textController", {
             get: function () {
-                return this.tc_;
+                return this.textC_;
             },
             enumerable: false,
             configurable: true
         });
-        ColorPickerController.prototype.onFocusableElementBlur_ = function (ev) {
-            var elem = this.view.element;
-            var nextTarget = findNextTarget(ev);
-            if (nextTarget && elem.contains(nextTarget)) {
-                // Next target is in the picker
-                return;
-            }
-            if (nextTarget &&
-                nextTarget === this.triggerElement &&
-                !supportsTouch(elem.ownerDocument)) {
-                // Next target is the trigger button
-                return;
-            }
-            this.expanded.rawValue = false;
-        };
-        ColorPickerController.prototype.onKeyDown_ = function (ev) {
-            if (ev.key === 'Escape') {
-                this.expanded.rawValue = false;
-            }
-        };
         return ColorPickerController;
     }());
 
@@ -5929,35 +5910,66 @@
      */
     var ColorSwatchController = /** @class */ (function () {
         function ColorSwatchController(doc, config) {
+            var _this = this;
             this.onButtonBlur_ = this.onButtonBlur_.bind(this);
             this.onButtonClick_ = this.onButtonClick_.bind(this);
+            this.onPopupChildBlur_ = this.onPopupChildBlur_.bind(this);
+            this.onPopupChildKeydown_ = this.onPopupChildKeydown_.bind(this);
             this.value = config.value;
             this.viewProps = config.viewProps;
-            this.pickerIc_ = new ColorPickerController(doc, {
-                pickedColor: new PickedColor(this.value),
-                supportsAlpha: config.supportsAlpha,
-                viewProps: this.viewProps,
-            });
             this.view = new ColorSwatchView(doc, {
-                pickerView: this.pickerIc_.view,
                 value: this.value,
                 viewProps: this.viewProps,
             });
             this.view.buttonElement.addEventListener('blur', this.onButtonBlur_);
             this.view.buttonElement.addEventListener('click', this.onButtonClick_);
-            this.pickerIc_.triggerElement = this.view.buttonElement;
+            this.popC_ = new PopupController(doc, {
+                viewProps: this.viewProps,
+            });
+            this.view.element.appendChild(this.popC_.view.element);
+            var pickerC = new ColorPickerController(doc, {
+                pickedColor: new PickedColor(this.value),
+                supportsAlpha: config.supportsAlpha,
+                viewProps: this.viewProps,
+            });
+            pickerC.view.allFocusableElements.forEach(function (elem) {
+                elem.addEventListener('blur', _this.onPopupChildBlur_);
+                elem.addEventListener('keydown', _this.onPopupChildKeydown_);
+            });
+            this.popC_.view.element.appendChild(pickerC.view.element);
+            this.pickerC_ = pickerC;
         }
         ColorSwatchController.prototype.onButtonBlur_ = function (e) {
             var elem = this.view.element;
             var nextTarget = forceCast(e.relatedTarget);
             if (!nextTarget || !elem.contains(nextTarget)) {
-                this.pickerIc_.expanded.rawValue = false;
+                this.popC_.shows.rawValue = false;
             }
         };
         ColorSwatchController.prototype.onButtonClick_ = function () {
-            this.pickerIc_.expanded.rawValue = !this.pickerIc_.expanded.rawValue;
-            if (this.pickerIc_.expanded.rawValue) {
-                this.pickerIc_.view.allFocusableElements[0].focus();
+            this.popC_.shows.rawValue = !this.popC_.shows.rawValue;
+            if (this.popC_.shows.rawValue) {
+                this.pickerC_.view.allFocusableElements[0].focus();
+            }
+        };
+        ColorSwatchController.prototype.onPopupChildBlur_ = function (ev) {
+            var elem = this.popC_.view.element;
+            var nextTarget = findNextTarget(ev);
+            if (nextTarget && elem.contains(nextTarget)) {
+                // Next target is in the picker
+                return;
+            }
+            if (nextTarget &&
+                nextTarget === this.view.buttonElement &&
+                !supportsTouch(elem.ownerDocument)) {
+                // Next target is the trigger button
+                return;
+            }
+            this.popC_.shows.rawValue = false;
+        };
+        ColorSwatchController.prototype.onPopupChildKeydown_ = function (ev) {
+            if (ev.key === 'Escape') {
+                this.popC_.shows.rawValue = false;
             }
         };
         return ColorSwatchController;
@@ -6430,7 +6442,7 @@
     }());
     var Point2dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point2d.bind.apply(Point2d, __spreadArrays([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point2d.bind.apply(Point2d, __spreadArray([void 0], comps)))(); },
     };
 
     var className$4 = ClassName('p2dpadtxt');
@@ -6442,33 +6454,17 @@
             this.element = doc.createElement('div');
             this.element.classList.add(className$4());
             bindClassModifier(config.viewProps, this.element);
-            var padWrapperElem = doc.createElement('div');
-            padWrapperElem.classList.add(className$4('w'));
-            this.element.appendChild(padWrapperElem);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$4('b'));
             buttonElem.appendChild(createSvgIconElement(doc, 'p2dpad'));
             bindDisabled(config.viewProps, buttonElem);
-            padWrapperElem.appendChild(buttonElem);
-            this.padButtonElem_ = buttonElem;
-            var padElem = doc.createElement('div');
-            padElem.classList.add(className$4('p'));
-            padWrapperElem.appendChild(padElem);
-            this.padView_ = config.padView;
-            padElem.appendChild(this.padView_.element);
+            this.element.appendChild(buttonElem);
+            this.padButtonElement = buttonElem;
             var textElem = doc.createElement('div');
             textElem.classList.add(className$4('t'));
-            this.textView_ = config.textView;
-            textElem.appendChild(this.textView_.element);
             this.element.appendChild(textElem);
+            this.textElement = textElem;
         }
-        Object.defineProperty(Point2dPadTextView.prototype, "padButtonElement", {
-            get: function () {
-                return this.padButtonElem_;
-            },
-            enumerable: false,
-            configurable: true
-        });
         return Point2dPadTextView;
     }());
 
@@ -6480,8 +6476,6 @@
         function Point2dPadView(doc, config) {
             this.onFoldableChange_ = this.onFoldableChange_.bind(this);
             this.onValueChange_ = this.onValueChange_.bind(this);
-            this.expanded_ = config.expanded;
-            this.expanded_.emitter.on('change', this.onFoldableChange_);
             this.invertsY_ = config.invertsY;
             this.maxValue_ = config.maxValue;
             this.element = doc.createElement('div');
@@ -6515,10 +6509,9 @@
             lineElem.setAttributeNS(null, 'y1', '50%');
             this.svgElem_.appendChild(lineElem);
             this.lineElem_ = lineElem;
-            var markerElem = doc.createElementNS(SVG_NS, 'circle');
+            var markerElem = doc.createElement('div');
             markerElem.classList.add(className$3('m'));
-            markerElem.setAttributeNS(null, 'r', '2px');
-            this.svgElem_.appendChild(markerElem);
+            this.padElement.appendChild(markerElem);
             this.markerElem_ = markerElem;
             config.value.emitter.on('change', this.onValueChange_);
             this.value = config.value;
@@ -6532,12 +6525,6 @@
             configurable: true
         });
         Point2dPadView.prototype.update_ = function () {
-            if (this.expanded_.rawValue) {
-                this.element.classList.add(className$3(undefined, 'expanded'));
-            }
-            else {
-                this.element.classList.remove(className$3(undefined, 'expanded'));
-            }
             var _a = this.value.rawValue.getComponents(), x = _a[0], y = _a[1];
             var max = this.maxValue_;
             var px = mapRange(x, -max, +max, 0, 100);
@@ -6545,8 +6532,8 @@
             var ipy = this.invertsY_ ? 100 - py : py;
             this.lineElem_.setAttributeNS(null, 'x2', px + "%");
             this.lineElem_.setAttributeNS(null, 'y2', ipy + "%");
-            this.markerElem_.setAttributeNS(null, 'cx', px + "%");
-            this.markerElem_.setAttributeNS(null, 'cy', ipy + "%");
+            this.markerElem_.style.left = px + "%";
+            this.markerElem_.style.top = ipy + "%";
         };
         Point2dPadView.prototype.onValueChange_ = function () {
             this.update_();
@@ -6562,22 +6549,16 @@
      */
     var Point2dPadController = /** @class */ (function () {
         function Point2dPadController(doc, config) {
-            var _this = this;
-            this.triggerElement = null;
-            this.onFocusableElementBlur_ = this.onFocusableElementBlur_.bind(this);
-            this.onKeyDown_ = this.onKeyDown_.bind(this);
             this.onPadKeyDown_ = this.onPadKeyDown_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
-            this.expanded = new PrimitiveValue(false);
             this.value = config.value;
             this.viewProps = config.viewProps;
             this.baseSteps_ = config.baseSteps;
             this.maxValue_ = config.maxValue;
             this.invertsY_ = config.invertsY;
             this.view = new Point2dPadView(doc, {
-                expanded: this.expanded,
                 invertsY: this.invertsY_,
                 maxValue: this.maxValue_,
                 value: this.value,
@@ -6588,10 +6569,6 @@
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.padElement.addEventListener('keydown', this.onPadKeyDown_);
-            this.view.element.addEventListener('keydown', this.onKeyDown_);
-            this.view.allFocusableElements.forEach(function (elem) {
-                elem.addEventListener('blur', _this.onFocusableElementBlur_);
-            });
         }
         Point2dPadController.prototype.handlePointerEvent_ = function (d) {
             if (!d.point) {
@@ -6620,26 +6597,6 @@
                 getStepForKey(this.baseSteps_[1], getVerticalStepKeys(ev)) *
                     (this.invertsY_ ? 1 : -1));
         };
-        Point2dPadController.prototype.onFocusableElementBlur_ = function (ev) {
-            var elem = this.view.element;
-            var nextTarget = findNextTarget(ev);
-            if (nextTarget && elem.contains(nextTarget)) {
-                // Next target is in the picker
-                return;
-            }
-            if (nextTarget &&
-                nextTarget === this.triggerElement &&
-                !supportsTouch(elem.ownerDocument)) {
-                // Next target is the trigger button
-                return;
-            }
-            this.expanded.rawValue = false;
-        };
-        Point2dPadController.prototype.onKeyDown_ = function (ev) {
-            if (ev.key === 'Escape') {
-                this.expanded.rawValue = false;
-            }
-        };
         return Point2dPadController;
     }());
 
@@ -6648,17 +6605,29 @@
      */
     var Point2dPadTextController = /** @class */ (function () {
         function Point2dPadTextController(doc, config) {
+            var _this = this;
+            this.onPopupChildBlur_ = this.onPopupChildBlur_.bind(this);
+            this.onPopupChildKeydown_ = this.onPopupChildKeydown_.bind(this);
             this.onPadButtonBlur_ = this.onPadButtonBlur_.bind(this);
             this.onPadButtonClick_ = this.onPadButtonClick_.bind(this);
             this.value = config.value;
             this.viewProps = config.viewProps;
-            this.padIc_ = new Point2dPadController(doc, {
+            this.popC_ = new PopupController(doc, {
+                viewProps: this.viewProps,
+            });
+            var padC = new Point2dPadController(doc, {
                 baseSteps: [config.axes[0].baseStep, config.axes[1].baseStep],
                 invertsY: config.invertsY,
                 maxValue: config.maxValue,
                 value: this.value,
                 viewProps: this.viewProps,
             });
+            padC.view.allFocusableElements.forEach(function (elem) {
+                elem.addEventListener('blur', _this.onPopupChildBlur_);
+                elem.addEventListener('keydown', _this.onPopupChildKeydown_);
+            });
+            this.popC_.view.element.appendChild(padC.view.element);
+            this.padC_ = padC;
             this.textIc_ = new PointNdTextController(doc, {
                 assembly: Point2dAssembly,
                 axes: config.axes,
@@ -6667,25 +6636,44 @@
                 viewProps: this.viewProps,
             });
             this.view = new Point2dPadTextView(doc, {
-                padView: this.padIc_.view,
-                textView: this.textIc_.view,
                 viewProps: this.viewProps,
             });
+            this.view.element.appendChild(this.popC_.view.element);
+            this.view.textElement.appendChild(this.textIc_.view.element);
             this.view.padButtonElement.addEventListener('blur', this.onPadButtonBlur_);
             this.view.padButtonElement.addEventListener('click', this.onPadButtonClick_);
-            this.padIc_.triggerElement = this.view.padButtonElement;
         }
         Point2dPadTextController.prototype.onPadButtonBlur_ = function (e) {
             var elem = this.view.element;
             var nextTarget = forceCast(e.relatedTarget);
             if (!nextTarget || !elem.contains(nextTarget)) {
-                this.padIc_.expanded.rawValue = false;
+                this.popC_.shows.rawValue = false;
             }
         };
         Point2dPadTextController.prototype.onPadButtonClick_ = function () {
-            this.padIc_.expanded.rawValue = !this.padIc_.expanded.rawValue;
-            if (this.padIc_.expanded.rawValue) {
-                this.padIc_.view.allFocusableElements[0].focus();
+            this.popC_.shows.rawValue = !this.popC_.shows.rawValue;
+            if (this.popC_.shows.rawValue) {
+                this.padC_.view.allFocusableElements[0].focus();
+            }
+        };
+        Point2dPadTextController.prototype.onPopupChildBlur_ = function (ev) {
+            var elem = this.popC_.view.element;
+            var nextTarget = findNextTarget(ev);
+            if (nextTarget && elem.contains(nextTarget)) {
+                // Next target is in the popup
+                return;
+            }
+            if (nextTarget &&
+                nextTarget === this.view.padButtonElement &&
+                !supportsTouch(elem.ownerDocument)) {
+                // Next target is the trigger button
+                return;
+            }
+            this.popC_.shows.rawValue = false;
+        };
+        Point2dPadTextController.prototype.onPopupChildKeydown_ = function (ev) {
+            if (ev.key === 'Escape') {
+                this.popC_.shows.rawValue = false;
             }
         };
         return Point2dPadTextController;
@@ -6841,7 +6829,7 @@
     }());
     var Point3dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point3d.bind.apply(Point3d, __spreadArrays([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point3d.bind.apply(Point3d, __spreadArray([void 0], comps)))(); },
     };
 
     /**
@@ -6971,7 +6959,7 @@
     }());
     var Point4dAssembly = {
         toComponents: function (p) { return p.getComponents(); },
-        fromComponents: function (comps) { return new (Point4d.bind.apply(Point4d, __spreadArrays([void 0], comps)))(); },
+        fromComponents: function (comps) { return new (Point4d.bind.apply(Point4d, __spreadArray([void 0], comps)))(); },
     };
 
     /**
@@ -7536,7 +7524,7 @@
         doc.head.appendChild(styleElem);
     }
     function embedDefaultStyleIfNeeded(doc) {
-        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_b,.tp-rotv_b,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms,.tp-tbiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-fldv_c>.tp-cntv.tp-v-lst,.tp-rotv_c>.tp-cntv.tp-v-lst,.tp-tabv_c .tp-brkv>.tp-cntv.tp-v-lst{margin-bottom:calc(-1 * var(--cnt-v-p))}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_c{border-bottom-left-radius:0}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c>*:not(.tp-v-fst),.tp-rotv_c>*:not(.tp-v-fst),.tp-tabv_c .tp-brkv>*:not(.tp-v-fst){margin-top:var(--bld-s)}.tp-fldv_c>.tp-sprv:not(.tp-v-fst),.tp-rotv_c>.tp-sprv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-fst),.tp-fldv_c>.tp-cntv:not(.tp-v-fst),.tp-rotv_c>.tp-cntv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-fst){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-sprv+*:not(.tp-v-hidden),.tp-fldv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-cntv+*:not(.tp-v-hidden){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-fldv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-rotv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-hidden)+.tp-cntv{margin-top:0}.tp-fldv_c>.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv>.tp-fldv_b{border-top-left-radius:var(--elm-br);border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-fldv-expanded>.tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c,.tp-tabv_c .tp-brkv .tp-fldv>.tp-fldv_c{border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-tabv>.tp-tabv_i,.tp-tabv_c .tp-brkv>.tp-tabv>.tp-tabv_i{border-top-left-radius:var(--elm-br)}.tp-fldv_c .tp-tabv>.tp-tabv_c,.tp-tabv_c .tp-brkv .tp-tabv>.tp-tabv_c{border-bottom-left-radius:var(--elm-br)}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--btn-bg);border-radius:var(--elm-br);color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--bld-h);line-height:var(--bld-h);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--btn-bg-a)}.tp-lstv_s:disabled,.tp-btnv_b:disabled,.tp-p2dpadtxtv_b:disabled{opacity:0.5}.tp-fldv_b,.tp-rotv_b{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);overflow:hidden;padding-left:calc(var(--cnt-h-p) + 8px);padding-right:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_b:hover,.tp-rotv_b:hover{background-color:var(--cnt-bg-h)}.tp-fldv_b:focus,.tp-rotv_b:focus{background-color:var(--cnt-bg-f)}.tp-fldv_b:active,.tp-rotv_b:active{background-color:var(--cnt-bg-a)}.tp-fldv_b:disabled,.tp-rotv_b:disabled{opacity:0.5}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(var(--cnt-h-p) + (var(--bld-h) + 4px - 6px) / 2 - 2px);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_b>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p);transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--bld-h);line-height:var(--bld-h);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-clswv_sw:disabled,.tp-p2dpadv_p:disabled,.tp-txtv_i:disabled{opacity:0.5}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--mo-fg);height:var(--bld-h);width:100%}.tp-clpv,.tp-p2dpadv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:var(--cnt-v-p) var(--cnt-h-p);position:relative;visibility:hidden;z-index:1000}.tp-clpv.tp-clpv-expanded,.tp-p2dpadv.tp-p2dpadv-expanded{display:block;visibility:visible}.tp-cltxtv_w,.tp-pndtxtv{display:flex}.tp-cltxtv_c,.tp-pndtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-pndtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-pndtxtv_a,.tp-pndtxtv_a+.tp-pndtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:var(--elm-br);cursor:pointer;display:block;height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-ckbv.tp-v-disabled .tp-ckbv_w{opacity:0.5}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:var(--bld-s)}.tp-clpv_rgb{display:flex;margin-top:var(--bld-s);width:100%}.tp-clpv_a{display:flex;margin-top:var(--cnt-v-p);padding-top:calc(var(--cnt-v-p) + 2px);position:relative}.tp-clpv_a:before{background-color:var(--grv-fg);content:\'\';height:2px;left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:var(--elm-br);outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:calc(var(--bld-h) * 4);width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:var(--elm-br);box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:var(--elm-br)}.tp-clswv.tp-v-disabled{opacity:0.5}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--bld-h);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--bld-h)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:var(--elm-br);bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv_p{left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--bld-h)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:var(--elm-br);color:var(--lbl-fg);cursor:pointer;height:var(--bld-h);line-height:var(--bld-h);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-cltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-cltxtv_ms:active{background-color:var(--in-bg-a)}.tp-cltxtv_mm{color:var(--lbl-fg)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-not .tp-fldv_b{display:none}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_b:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_b:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_b:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--bld-h) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv.tp-v-disabled .tp-grlv_g{opacity:0.5}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:var(--cnt-h-p);padding-right:var(--cnt-h-p)}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv.tp-v-disabled .tp-lblv_l{opacity:0.5}.tp-lblv.tp-lblv-nol .tp-lblv_l{display:none}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv.tp-v-disabled .tp-lstv_s{opacity:0.5}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-sglv.tp-v-disabled .tp-sglv_i{opacity:0.5}.tp-mllv_i{display:block;height:calc(var(--bld-h) * 3);line-height:var(--bld-h);padding:0 4px;resize:none;white-space:pre}.tp-mllv.tp-v-disabled .tp-mllv_i{opacity:0.5}.tp-p2dpadv{padding-left:calc(var(--cnt-h-p) + 4px + var(--bld-h))}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{opacity:0.1;stroke:var(--in-fg)}.tp-p2dpadv_l{stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-p2dpadv_m{fill:var(--in-fg)}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_p{left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-p2dpadtxtv_t{margin-left:4px}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--bs-br: var(--tp-base-border-radius-v3, 6px);--cnt-h-p: var(--tp-container-horizontal-padding-v3, 4px);--cnt-v-p: var(--tp-container-vertical-padding-v3, 4px);--elm-br: var(--tp-element-border-radius-v3, 2px);--bld-h: var(--tp-blade-height-v3, 20px);--bld-s: var(--tp-blade-spacing-v3, 4px);--value-width: var(--tp-value-width-v3, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-container-background-color, var(--tp-folder-background-color, rgba(187,188,196,0.1)));--cnt-bg-a: var(--tp-container-background-color-active, var(--tp-folder-background-color-active, rgba(187,188,196,0.25)));--cnt-bg-f: var(--tp-container-background-color-focus, var(--tp-folder-background-color-focus, rgba(187,188,196,0.2)));--cnt-bg-h: var(--tp-container-background-color-hover, var(--tp-folder-background-color-hover, rgba(187,188,196,0.15)));--cnt-fg: var(--tp-container-foreground-color, var(--tp-folder-foreground-color, #bbbcc4));--in-bg: var(--tp-input-background-color, rgba(0,0,0,0.2));--in-bg-a: var(--tp-input-background-color-active, rgba(0,0,0,0.35));--in-bg-f: var(--tp-input-background-color-focus, rgba(0,0,0,0.3));--in-bg-h: var(--tp-input-background-color-hover, rgba(0,0,0,0.25));--in-fg: var(--tp-input-foreground-color, #bbbcc4);--lbl-fg: var(--tp-label-foreground-color, rgba(187,188,196,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(187,188,196,0.7));--grv-fg: var(--tp-groove-foreground-color, var(--tp-separator-color, rgba(0,0,0,0.2)));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--grv-fg);--unit-size: var(--bld-h)}.tp-rotv{background-color:var(--bs-bg);border-radius:var(--bs-br);box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br);border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br);padding-left:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_b{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv.tp-rotv-not .tp-rotv_b{display:none}.tp-rotv_c>.tp-fldv.tp-v-lst>.tp-fldv_c,.tp-rotv_c>.tp-tabv.tp-v-lst>.tp-tabv_c{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-lst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c .tp-fldv.tp-v-vlst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst>.tp-fldv_b{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst>.tp-tabv_i{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled{pointer-events:none}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--grv-fg);border-width:0;display:block;height:2px;margin:0;width:100%}.tp-sldv.tp-v-disabled{opacity:0.5}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--bld-h);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:var(--elm-br);bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-tabv.tp-v-disabled{opacity:0.5}.tp-tabv_i{align-items:flex-end;display:flex;overflow:hidden}.tp-tabv.tp-tabv-nop .tp-tabv_i{height:calc(var(--bld-h) + 4px);position:relative}.tp-tabv.tp-tabv-nop .tp-tabv_i::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:0;position:absolute;right:0}.tp-tabv_c{border-left:var(--cnt-bg) solid 4px;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p)}.tp-tbiv{flex:1;min-width:0;position:relative}.tp-tbiv+.tp-tbiv{margin-left:2px}.tp-tbiv+.tp-tbiv::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:-2px;position:absolute;width:2px}.tp-tbiv_b{background-color:var(--cnt-bg);display:block;padding-left:calc(var(--cnt-h-p) + 4px);padding-right:calc(var(--cnt-h-p) + 4px);width:100%}.tp-tbiv_b:hover{background-color:var(--cnt-bg-h)}.tp-tbiv_b:focus{background-color:var(--cnt-bg-f)}.tp-tbiv_b:active{background-color:var(--cnt-bg-a)}.tp-tbiv_b:disabled{opacity:0.5}.tp-tbiv_t{color:var(--cnt-fg);height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);opacity:0.5;overflow:hidden;text-overflow:ellipsis}.tp-tbiv.tp-tbiv-sel .tp-tbiv_t{opacity:1}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-3px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';height:calc(var(--bld-h) - 4px);left:50%;margin-bottom:auto;margin-left:-1px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:border-radius 0.1s, height 0.1s, transform 0.1s, width 0.1s;width:2px}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:50%;height:4px;transform:translateX(-1px);width:4px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:2px 2px}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:var(--elm-br);color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
+        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_b,.tp-rotv_b,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms,.tp-tbiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-fldv_c>.tp-cntv.tp-v-lst,.tp-rotv_c>.tp-cntv.tp-v-lst,.tp-tabv_c .tp-brkv>.tp-cntv.tp-v-lst{margin-bottom:calc(-1 * var(--cnt-v-p))}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_c{border-bottom-left-radius:0}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c>*:not(.tp-v-fst),.tp-rotv_c>*:not(.tp-v-fst),.tp-tabv_c .tp-brkv>*:not(.tp-v-fst){margin-top:var(--bld-s)}.tp-fldv_c>.tp-sprv:not(.tp-v-fst),.tp-rotv_c>.tp-sprv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-fst),.tp-fldv_c>.tp-cntv:not(.tp-v-fst),.tp-rotv_c>.tp-cntv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-fst){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-sprv+*:not(.tp-v-hidden),.tp-fldv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-cntv+*:not(.tp-v-hidden){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-fldv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-rotv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-hidden)+.tp-cntv{margin-top:0}.tp-fldv_c>.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv>.tp-fldv_b{border-top-left-radius:var(--elm-br);border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-fldv-expanded>.tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c,.tp-tabv_c .tp-brkv .tp-fldv>.tp-fldv_c{border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-tabv>.tp-tabv_i,.tp-tabv_c .tp-brkv>.tp-tabv>.tp-tabv_i{border-top-left-radius:var(--elm-br)}.tp-fldv_c .tp-tabv>.tp-tabv_c,.tp-tabv_c .tp-brkv .tp-tabv>.tp-tabv_c{border-bottom-left-radius:var(--elm-br)}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--btn-bg);border-radius:var(--elm-br);color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--bld-h);line-height:var(--bld-h);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--btn-bg-a)}.tp-lstv_s:disabled,.tp-btnv_b:disabled,.tp-p2dpadtxtv_b:disabled{opacity:0.5}.tp-fldv_b,.tp-rotv_b{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);overflow:hidden;padding-left:calc(var(--cnt-h-p) + 8px);padding-right:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_b:hover,.tp-rotv_b:hover{background-color:var(--cnt-bg-h)}.tp-fldv_b:focus,.tp-rotv_b:focus{background-color:var(--cnt-bg-f)}.tp-fldv_b:active,.tp-rotv_b:active{background-color:var(--cnt-bg-a)}.tp-fldv_b:disabled,.tp-rotv_b:disabled{opacity:0.5}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(var(--cnt-h-p) + (var(--bld-h) + 4px - 6px) / 2 - 2px);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_b>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p);transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--bld-h);line-height:var(--bld-h);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-clswv_sw:disabled,.tp-p2dpadv_p:disabled,.tp-txtv_i:disabled{opacity:0.5}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--mo-fg);height:var(--bld-h);width:100%}.tp-cltxtv_w,.tp-pndtxtv{display:flex}.tp-cltxtv_c,.tp-pndtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-pndtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-pndtxtv_a,.tp-pndtxtv_a+.tp-pndtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:var(--elm-br);cursor:pointer;display:block;height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-ckbv.tp-v-disabled .tp-ckbv_w{opacity:0.5}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:var(--bld-s)}.tp-clpv_rgb{display:flex;margin-top:var(--bld-s);width:100%}.tp-clpv_a{display:flex;margin-top:var(--cnt-v-p);padding-top:calc(var(--cnt-v-p) + 2px);position:relative}.tp-clpv_a:before{background-color:var(--grv-fg);content:\'\';height:2px;left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:var(--elm-br);outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:calc(var(--bld-h) * 4);width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:var(--elm-br);box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:var(--elm-br)}.tp-clswv.tp-v-disabled{opacity:0.5}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--bld-h);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--bld-h)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:var(--elm-br);bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv .tp-popv{left:calc(-1 * var(--cnt-h-p));right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--bld-h)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:var(--elm-br);color:var(--lbl-fg);cursor:pointer;height:var(--bld-h);line-height:var(--bld-h);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-cltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-cltxtv_ms:active{background-color:var(--in-bg-a)}.tp-cltxtv_mm{color:var(--lbl-fg)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-not .tp-fldv_b{display:none}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_b:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_b:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_b:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--bld-h) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv.tp-v-disabled .tp-grlv_g{opacity:0.5}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:var(--cnt-h-p);padding-right:var(--cnt-h-p)}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv.tp-v-disabled .tp-lblv_l{opacity:0.5}.tp-lblv.tp-lblv-nol .tp-lblv_l{display:none}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv.tp-v-disabled .tp-lstv_s{opacity:0.5}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-sglv.tp-v-disabled .tp-sglv_i{opacity:0.5}.tp-mllv_i{display:block;height:calc(var(--bld-h) * 3);line-height:var(--bld-h);padding:0 4px;resize:none;white-space:pre}.tp-mllv.tp-v-disabled .tp-mllv_i{opacity:0.5}.tp-p2dpadv{padding-left:calc(var(--bld-h) + 4px)}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{opacity:0.1;stroke:var(--in-fg);stroke-dasharray:1}.tp-p2dpadv_l{opacity:0.5;stroke:var(--in-fg);stroke-dasharray:1}.tp-p2dpadv_m{border:var(--in-fg) solid 1px;border-radius:50%;box-sizing:border-box;height:4px;margin-left:-2px;margin-top:-2px;position:absolute;width:4px}.tp-p2dpadv_p:focus .tp-p2dpadv_m{background-color:var(--in-fg);border-width:0}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_t{flex:1;margin-left:4px}.tp-p2dpadtxtv .tp-popv{left:calc(-1 * var(--cnt-h-p));right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-popv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:var(--cnt-v-p) var(--cnt-h-p);position:absolute;visibility:hidden;z-index:1000}.tp-popv.tp-popv-v{display:block;visibility:visible}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--bs-br: var(--tp-base-border-radius-v3, 6px);--cnt-h-p: var(--tp-container-horizontal-padding-v3, 4px);--cnt-v-p: var(--tp-container-vertical-padding-v3, 4px);--elm-br: var(--tp-element-border-radius-v3, 2px);--bld-h: var(--tp-blade-height-v3, 20px);--bld-s: var(--tp-blade-spacing-v3, 4px);--value-width: var(--tp-value-width-v3, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-container-background-color, var(--tp-folder-background-color, rgba(187,188,196,0.1)));--cnt-bg-a: var(--tp-container-background-color-active, var(--tp-folder-background-color-active, rgba(187,188,196,0.25)));--cnt-bg-f: var(--tp-container-background-color-focus, var(--tp-folder-background-color-focus, rgba(187,188,196,0.2)));--cnt-bg-h: var(--tp-container-background-color-hover, var(--tp-folder-background-color-hover, rgba(187,188,196,0.15)));--cnt-fg: var(--tp-container-foreground-color, var(--tp-folder-foreground-color, #bbbcc4));--in-bg: var(--tp-input-background-color, rgba(0,0,0,0.2));--in-bg-a: var(--tp-input-background-color-active, rgba(0,0,0,0.35));--in-bg-f: var(--tp-input-background-color-focus, rgba(0,0,0,0.3));--in-bg-h: var(--tp-input-background-color-hover, rgba(0,0,0,0.25));--in-fg: var(--tp-input-foreground-color, #bbbcc4);--lbl-fg: var(--tp-label-foreground-color, rgba(187,188,196,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(187,188,196,0.7));--grv-fg: var(--tp-groove-foreground-color, var(--tp-separator-color, rgba(0,0,0,0.2)));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--grv-fg);--unit-size: var(--bld-h)}.tp-rotv{background-color:var(--bs-bg);border-radius:var(--bs-br);box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br);border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br);padding-left:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_b{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv.tp-rotv-not .tp-rotv_b{display:none}.tp-rotv_c>.tp-fldv.tp-v-lst>.tp-fldv_c,.tp-rotv_c>.tp-tabv.tp-v-lst>.tp-tabv_c{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-lst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c .tp-fldv.tp-v-vlst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst>.tp-fldv_b{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst>.tp-tabv_i{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled{pointer-events:none}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--grv-fg);border-width:0;display:block;height:2px;margin:0;width:100%}.tp-sldv.tp-v-disabled{opacity:0.5}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--bld-h);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:var(--elm-br);bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-tabv.tp-v-disabled{opacity:0.5}.tp-tabv_i{align-items:flex-end;display:flex;overflow:hidden}.tp-tabv.tp-tabv-nop .tp-tabv_i{height:calc(var(--bld-h) + 4px);position:relative}.tp-tabv.tp-tabv-nop .tp-tabv_i::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:0;position:absolute;right:0}.tp-tabv_c{border-left:var(--cnt-bg) solid 4px;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p)}.tp-tbiv{flex:1;min-width:0;position:relative}.tp-tbiv+.tp-tbiv{margin-left:2px}.tp-tbiv+.tp-tbiv::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:-2px;position:absolute;width:2px}.tp-tbiv_b{background-color:var(--cnt-bg);display:block;padding-left:calc(var(--cnt-h-p) + 4px);padding-right:calc(var(--cnt-h-p) + 4px);width:100%}.tp-tbiv_b:hover{background-color:var(--cnt-bg-h)}.tp-tbiv_b:focus{background-color:var(--cnt-bg-f)}.tp-tbiv_b:active{background-color:var(--cnt-bg-a)}.tp-tbiv_b:disabled{opacity:0.5}.tp-tbiv_t{color:var(--cnt-fg);height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);opacity:0.5;overflow:hidden;text-overflow:ellipsis}.tp-tbiv.tp-tbiv-sel .tp-tbiv_t{opacity:1}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-3px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';height:calc(var(--bld-h) - 4px);left:50%;margin-bottom:auto;margin-left:-1px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:border-radius 0.1s, height 0.1s, transform 0.1s, width 0.1s;width:2px}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:50%;height:4px;transform:translateX(-1px);width:4px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:1}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:var(--elm-br);color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
         getAllPlugins().forEach(function (plugin) {
             if (plugin.css) {
                 embedStyle(doc, "plugin-" + plugin.id, plugin.css);
@@ -7594,7 +7582,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.4.0');
+        Tweakpane.version = new Semver('2.4.1');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
