@@ -1,4 +1,4 @@
-/*! Tweakpane 2.4.1 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.4.2 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -523,13 +523,17 @@
                     ? this.constraint_.constrain(rawValue)
                     : rawValue;
                 var changed = !this.equals_(this.rawValue_, constrainedValue);
-                if (changed) {
-                    this.rawValue_ = constrainedValue;
-                    this.emitter.emit('change', {
-                        rawValue: constrainedValue,
-                        sender: this,
-                    });
+                if (!changed) {
+                    return;
                 }
+                this.emitter.emit('beforechange', {
+                    sender: this,
+                });
+                this.rawValue_ = constrainedValue;
+                this.emitter.emit('change', {
+                    rawValue: constrainedValue,
+                    sender: this,
+                });
             },
             enumerable: false,
             configurable: true
@@ -550,6 +554,9 @@
                 if (this.value_ === value) {
                     return;
                 }
+                this.emitter.emit('beforechange', {
+                    sender: this,
+                });
                 this.value_ = value;
                 this.emitter.emit('change', {
                     sender: this,
@@ -1207,51 +1214,122 @@
         return MonitorBindingApi;
     }(BladeApi));
 
-    function createParamFinder(test) {
-        return function (params, key) {
-            if (!(key in params)) {
-                return;
+    function parseObject(value, keyToParserMap) {
+        var keys = Object.keys(keyToParserMap);
+        var result = keys.reduce(function (tmp, key) {
+            var _a;
+            if (tmp === undefined) {
+                return undefined;
             }
-            var value = params[key];
-            return test(value) ? value : undefined;
-        };
+            var parser = keyToParserMap[key];
+            var result = parser(value[key]);
+            return result.succeeded
+                ? __assign(__assign({}, tmp), (_a = {}, _a[key] = result.value, _a)) : undefined;
+        }, {});
+        return forceCast(result);
     }
-    var findBooleanParam = createParamFinder(function (value) { return typeof value === 'boolean'; });
-    var findNumberParam = createParamFinder(function (value) { return typeof value === 'number'; });
-    var findStringParam = createParamFinder(function (value) { return typeof value === 'string'; });
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    var findFunctionParam = createParamFinder(
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    function (value) { return typeof value === 'function'; });
+    function parseArray(value, parseItem) {
+        return value.reduce(function (tmp, item) {
+            if (tmp === undefined) {
+                return undefined;
+            }
+            var result = parseItem(item);
+            if (!result.succeeded || result.value === undefined) {
+                return undefined;
+            }
+            return __spreadArray(__spreadArray([], tmp), [result.value]);
+        }, []);
+    }
     function isObject(value) {
         if (value === null) {
             return false;
         }
         return typeof value === 'object';
     }
-    var findObjectParam = createParamFinder(isObject);
-    function createArrayParamFinder(test) {
-        return createParamFinder(function (value) {
-            if (!Array.isArray(value)) {
-                return false;
+    function createParamsParserBuilder(parse) {
+        return function (optional) { return function (v) {
+            if (!optional && v === undefined) {
+                return {
+                    succeeded: false,
+                    value: undefined,
+                };
             }
-            for (var i = 0; i < value.length; i++) {
-                if (!test(value[i])) {
-                    return false;
+            if (optional && v === undefined) {
+                return {
+                    succeeded: true,
+                    value: undefined,
+                };
+            }
+            var result = parse(v);
+            return result !== undefined
+                ? {
+                    succeeded: true,
+                    value: result,
                 }
-            }
-            return true;
-        });
+                : {
+                    succeeded: false,
+                    value: undefined,
+                };
+        }; };
     }
-    var findObjectArrayParam = createArrayParamFinder(isObject);
+    function createParamsParserBuilders(optional) {
+        return {
+            custom: function (parse) {
+                return createParamsParserBuilder(parse)(optional);
+            },
+            boolean: createParamsParserBuilder(function (v) {
+                return typeof v === 'boolean' ? v : undefined;
+            })(optional),
+            number: createParamsParserBuilder(function (v) {
+                return typeof v === 'number' ? v : undefined;
+            })(optional),
+            string: createParamsParserBuilder(function (v) {
+                return typeof v === 'string' ? v : undefined;
+            })(optional),
+            // eslint-disable-next-line @typescript-eslint/ban-types
+            function: createParamsParserBuilder(function (v) {
+                // eslint-disable-next-line @typescript-eslint/ban-types
+                return typeof v === 'function' ? v : undefined;
+            })(optional),
+            constant: function (value) {
+                return createParamsParserBuilder(function (v) { return (v === value ? value : undefined); })(optional);
+            },
+            raw: createParamsParserBuilder(function (v) { return v; })(optional),
+            object: function (keyToParserMap) {
+                return createParamsParserBuilder(function (v) {
+                    if (!isObject(v)) {
+                        return undefined;
+                    }
+                    return parseObject(v, keyToParserMap);
+                })(optional);
+            },
+            array: function (itemParser) {
+                return createParamsParserBuilder(function (v) {
+                    if (!Array.isArray(v)) {
+                        return undefined;
+                    }
+                    return parseArray(v, itemParser);
+                })(optional);
+            },
+        };
+    }
+    var ParamsParsers = {
+        optional: createParamsParserBuilders(true),
+        required: createParamsParserBuilders(false),
+    };
+    function parseParams(value, keyToParserMap) {
+        var result = ParamsParsers.required.object(keyToParserMap)(value);
+        return result.succeeded ? result.value : undefined;
+    }
 
     function createBladeController(plugin, args) {
         var ac = plugin.accept(args.params);
         if (!ac) {
             return null;
         }
-        var disabled = findBooleanParam(args.params, 'disabled');
-        var hidden = findBooleanParam(args.params, 'hidden');
+        var disabled = ParamsParsers.optional.boolean(args.params['disabled'])
+            .value;
+        var hidden = ParamsParsers.optional.boolean(args.params['hidden']).value;
         return plugin.controller({
             blade: new Blade(),
             document: args.document,
@@ -2129,26 +2207,32 @@
         return ListApi;
     }(BladeApi));
 
+    function parseOptions(value) {
+        var p = ParamsParsers;
+        if (Array.isArray(value)) {
+            return p.required.array(p.required.object({
+                text: p.required.string,
+                value: p.required.raw,
+            }))(value).value;
+        }
+        if (typeof value === 'object') {
+            return p.required.raw(value)
+                .value;
+        }
+        return undefined;
+    }
     var ListBladePlugin = (function () {
         return {
             id: 'list',
             accept: function (params) {
-                if (findStringParam(params, 'view') !== 'list') {
-                    return null;
-                }
-                var value = params['value'];
-                var options = findObjectParam(params, 'options');
-                if (isEmpty(value) || !options) {
-                    return null;
-                }
-                return {
-                    params: {
-                        label: findStringParam(params, 'label'),
-                        options: forceCast(options),
-                        value: forceCast(value),
-                        view: 'list',
-                    },
-                };
+                var p = ParamsParsers;
+                var result = parseParams(params, {
+                    options: p.required.custom(parseOptions),
+                    value: p.required.raw,
+                    view: p.required.constant('list'),
+                    label: p.optional.string,
+                });
+                return result ? { params: result } : null;
             },
             controller: function (args) {
                 var ic = new ListController(args.document, {
@@ -2277,20 +2361,13 @@
     var ButtonBladePlugin = {
         id: 'button',
         accept: function (params) {
-            if (findStringParam(params, 'view') !== 'button') {
-                return null;
-            }
-            var title = findStringParam(params, 'title');
-            if (title === undefined) {
-                return null;
-            }
-            return {
-                params: {
-                    label: findStringParam(params, 'label'),
-                    title: title,
-                    view: 'button',
-                },
-            };
+            var p = ParamsParsers;
+            var result = parseParams(params, {
+                title: p.required.string,
+                view: p.required.constant('button'),
+                label: p.optional.string,
+            });
+            return result ? { params: result } : null;
         },
         controller: function (args) {
             return new LabelController(args.document, {
@@ -2324,9 +2401,14 @@
          */
         function FolderApi(controller) {
             var _this = _super.call(this, controller, new RackApi(controller.rackController)) || this;
-            _this.onFolderChange_ = _this.onFolderChange_.bind(_this);
             _this.emitter_ = new Emitter();
-            _this.controller_.folder.emitter.on('change', _this.onFolderChange_);
+            _this.controller_.foldable
+                .value('expanded')
+                .emitter.on('change', function (ev) {
+                _this.emitter_.emit('fold', {
+                    event: new TpFoldEvent(_this, ev.sender.rawValue),
+                });
+            });
             _this.rackApi_.on('change', function (ev) {
                 _this.emitter_.emit('change', {
                     event: ev,
@@ -2341,10 +2423,10 @@
         }
         Object.defineProperty(FolderApi.prototype, "expanded", {
             get: function () {
-                return this.controller_.folder.expanded;
+                return this.controller_.foldable.get('expanded');
             },
             set: function (expanded) {
-                this.controller_.folder.expanded = expanded;
+                this.controller_.foldable.set('expanded', expanded);
             },
             enumerable: false,
             configurable: true
@@ -2405,139 +2487,69 @@
             });
             return this;
         };
-        FolderApi.prototype.onFolderChange_ = function (ev) {
-            if (ev.propertyName !== 'expanded') {
-                return;
-            }
-            this.emitter_.emit('fold', {
-                event: new TpFoldEvent(this, ev.sender.expanded),
-            });
-        };
         return FolderApi;
     }(RackLikeApi));
 
-    /**
-     * @hidden
-     */
-    var Folder = /** @class */ (function () {
-        function Folder(expanded) {
-            this.emitter = new Emitter();
-            this.expanded_ = expanded;
-            this.expandedHeight_ = null;
-            this.temporaryExpanded_ = null;
-            this.shouldFixHeight_ = false;
+    function createFoldable(expanded) {
+        return new ValueMap({
+            expanded: expanded,
+            expandedHeight: null,
+            shouldFixHeight: false,
+            temporaryExpanded: null,
+        });
+    }
+    function computeExpandedFolderHeight(folder, containerElement) {
+        var height = 0;
+        disableTransitionTemporarily(containerElement, function () {
+            // Expand folder temporarily
+            folder.set('expandedHeight', null);
+            folder.set('temporaryExpanded', true);
+            forceReflow(containerElement);
+            // Compute height
+            height = containerElement.clientHeight;
+            // Restore expanded
+            folder.set('temporaryExpanded', null);
+            forceReflow(containerElement);
+        });
+        return height;
+    }
+    function getFoldableStyleExpanded(foldable) {
+        var _a;
+        return (_a = foldable.get('temporaryExpanded')) !== null && _a !== void 0 ? _a : foldable.get('expanded');
+    }
+    function getFoldableStyleHeight(foldable) {
+        if (!getFoldableStyleExpanded(foldable)) {
+            return '0';
         }
-        Object.defineProperty(Folder.prototype, "expanded", {
-            get: function () {
-                return this.expanded_;
-            },
-            set: function (expanded) {
-                var changed = this.expanded_ !== expanded;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'expanded',
-                    sender: this,
-                });
-                this.expanded_ = expanded;
-                this.emitter.emit('change', {
-                    propertyName: 'expanded',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
+        var exHeight = foldable.get('expandedHeight');
+        if (foldable.get('shouldFixHeight') && !isEmpty(exHeight)) {
+            return exHeight + "px";
+        }
+        return 'auto';
+    }
+    function applyHeight(foldable, elem) {
+        elem.style.height = getFoldableStyleHeight(foldable);
+    }
+    function bindFoldable(foldable, elem) {
+        foldable.value('expanded').emitter.on('beforechange', function () {
+            if (isEmpty(foldable.get('expandedHeight'))) {
+                foldable.set('expandedHeight', computeExpandedFolderHeight(foldable, elem));
+            }
+            foldable.set('shouldFixHeight', true);
+            forceReflow(elem);
         });
-        Object.defineProperty(Folder.prototype, "temporaryExpanded", {
-            get: function () {
-                return this.temporaryExpanded_;
-            },
-            set: function (expanded) {
-                var changed = this.temporaryExpanded_ !== expanded;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'temporaryExpanded',
-                    sender: this,
-                });
-                this.temporaryExpanded_ = expanded;
-                this.emitter.emit('change', {
-                    propertyName: 'temporaryExpanded',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
+        foldable.emitter.on('change', function () {
+            applyHeight(foldable, elem);
         });
-        Object.defineProperty(Folder.prototype, "expandedHeight", {
-            get: function () {
-                return this.expandedHeight_;
-            },
-            set: function (expandedHeight) {
-                var changed = this.expandedHeight_ !== expandedHeight;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'expandedHeight',
-                    sender: this,
-                });
-                this.expandedHeight_ = expandedHeight;
-                this.emitter.emit('change', {
-                    propertyName: 'expandedHeight',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
+        applyHeight(foldable, elem);
+        elem.addEventListener('transitionend', function (ev) {
+            if (ev.propertyName !== 'height') {
+                return;
+            }
+            foldable.set('shouldFixHeight', false);
+            foldable.set('expandedHeight', null);
         });
-        Object.defineProperty(Folder.prototype, "shouldFixHeight", {
-            get: function () {
-                return this.shouldFixHeight_;
-            },
-            set: function (shouldFixHeight) {
-                var changed = this.shouldFixHeight_ !== shouldFixHeight;
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    propertyName: 'shouldFixHeight',
-                    sender: this,
-                });
-                this.shouldFixHeight_ = shouldFixHeight;
-                this.emitter.emit('change', {
-                    propertyName: 'shouldFixHeight',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Folder.prototype, "styleExpanded", {
-            get: function () {
-                var _a;
-                return (_a = this.temporaryExpanded) !== null && _a !== void 0 ? _a : this.expanded;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(Folder.prototype, "styleHeight", {
-            get: function () {
-                if (!this.styleExpanded) {
-                    return '0';
-                }
-                if (this.shouldFixHeight && !isEmpty(this.expandedHeight)) {
-                    return this.expandedHeight + "px";
-                }
-                return 'auto';
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return Folder;
-    }());
+    }
 
     var bladeContainerClassName = ClassName('cnt');
 
@@ -2547,13 +2559,13 @@
     var FolderView = /** @class */ (function () {
         function FolderView(doc, config) {
             var _this = this;
-            this.onFolderChange_ = this.onFolderChange_.bind(this);
-            this.folder_ = config.folder;
-            this.folder_.emitter.on('change', this.onFolderChange_);
+            this.onFoldableExpandedChange_ = this.onFoldableExpandedChange_.bind(this);
             this.className_ = ClassName(config.viewName || 'fld');
             this.element = doc.createElement('div');
             this.element.classList.add(this.className_(), bladeContainerClassName());
             bindClassModifier(config.viewProps, this.element);
+            this.foldable_ = config.foldable;
+            bindValueMap(this.foldable_, 'expanded', this.onFoldableExpandedChange_);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(this.className_('b'));
             bindValueMap(config.props, 'title', function (title) {
@@ -2579,10 +2591,9 @@
             containerElem.classList.add(this.className_('c'));
             this.element.appendChild(containerElem);
             this.containerElement = containerElem;
-            this.applyModel_();
         }
-        FolderView.prototype.applyModel_ = function () {
-            var expanded = this.folder_.styleExpanded;
+        FolderView.prototype.onFoldableExpandedChange_ = function () {
+            var expanded = getFoldableStyleExpanded(this.foldable_);
             var expandedClass = this.className_(undefined, 'expanded');
             if (expanded) {
                 this.element.classList.add(expandedClass);
@@ -2590,29 +2601,10 @@
             else {
                 this.element.classList.remove(expandedClass);
             }
-            this.containerElement.style.height = this.folder_.styleHeight;
-        };
-        FolderView.prototype.onFolderChange_ = function () {
-            this.applyModel_();
         };
         return FolderView;
     }());
 
-    function computeExpandedFolderHeight(folder, containerElement) {
-        var height = 0;
-        disableTransitionTemporarily(containerElement, function () {
-            // Expand folder temporarily
-            folder.expandedHeight = null;
-            folder.temporaryExpanded = true;
-            forceReflow(containerElement);
-            // Compute height
-            height = containerElement.clientHeight;
-            // Restore expanded
-            folder.temporaryExpanded = null;
-            forceReflow(containerElement);
-        });
-        return height;
-    }
     /**
      * @hidden
      */
@@ -2621,7 +2613,7 @@
         function FolderController(doc, config) {
             var _a;
             var _this = this;
-            var folder = new Folder((_a = config.expanded) !== null && _a !== void 0 ? _a : true);
+            var foldable = createFoldable((_a = config.expanded) !== null && _a !== void 0 ? _a : true);
             var rc = new RackController(doc, {
                 blade: config.blade,
                 root: config.root,
@@ -2629,19 +2621,16 @@
             });
             _this = _super.call(this, __assign(__assign({}, config), { rackController: rc, view: new FolderView(doc, {
                     containerElement: rc.view.element,
-                    folder: folder,
+                    foldable: foldable,
                     props: config.props,
                     viewName: config.root ? 'rot' : undefined,
                     viewProps: config.viewProps,
                 }) })) || this;
-            _this.onContainerTransitionEnd_ = _this.onContainerTransitionEnd_.bind(_this);
-            _this.onFolderBeforeChange_ = _this.onFolderBeforeChange_.bind(_this);
             _this.onTitleClick_ = _this.onTitleClick_.bind(_this);
             _this.props = config.props;
-            _this.folder = folder;
-            _this.folder.emitter.on('beforechange', _this.onFolderBeforeChange_);
+            _this.foldable = foldable;
+            bindFoldable(_this.foldable, _this.view.containerElement);
             _this.view.buttonElement.addEventListener('click', _this.onTitleClick_);
-            _this.view.containerElement.addEventListener('transitionend', _this.onContainerTransitionEnd_);
             return _this;
         }
         Object.defineProperty(FolderController.prototype, "document", {
@@ -2651,25 +2640,8 @@
             enumerable: false,
             configurable: true
         });
-        FolderController.prototype.onFolderBeforeChange_ = function (ev) {
-            if (ev.propertyName !== 'expanded') {
-                return;
-            }
-            if (isEmpty(this.folder.expandedHeight)) {
-                this.folder.expandedHeight = computeExpandedFolderHeight(this.folder, this.view.containerElement);
-            }
-            this.folder.shouldFixHeight = true;
-            forceReflow(this.view.containerElement);
-        };
         FolderController.prototype.onTitleClick_ = function () {
-            this.folder.expanded = !this.folder.expanded;
-        };
-        FolderController.prototype.onContainerTransitionEnd_ = function (ev) {
-            if (ev.propertyName !== 'height') {
-                return;
-            }
-            this.folder.shouldFixHeight = false;
-            this.folder.expandedHeight = null;
+            this.foldable.set('expanded', !this.foldable.get('expanded'));
         };
         return FolderController;
     }(RackLikeController));
@@ -2677,17 +2649,13 @@
     var FolderBladePlugin = {
         id: 'button',
         accept: function (params) {
-            var title = findStringParam(params, 'title');
-            if (title === undefined || findStringParam(params, 'view') !== 'folder') {
-                return null;
-            }
-            return {
-                params: {
-                    expanded: findBooleanParam(params, 'expanded'),
-                    title: title,
-                    view: 'folder',
-                },
-            };
+            var p = ParamsParsers;
+            var result = parseParams(params, {
+                title: p.required.string,
+                view: p.required.constant('folder'),
+                expanded: p.optional.boolean,
+            });
+            return result ? { params: result } : null;
         },
         controller: function (args) {
             return new FolderController(args.document, {
@@ -2747,14 +2715,11 @@
     var SeparatorBladePlugin = {
         id: 'separator',
         accept: function (params) {
-            if (findStringParam(params, 'view') !== 'separator') {
-                return null;
-            }
-            return {
-                params: {
-                    view: 'separator',
-                },
-            };
+            var p = ParamsParsers;
+            var result = parseParams(params, {
+                view: p.required.constant('separator'),
+            });
+            return result ? { params: result } : null;
         },
         controller: function (args) {
             return new SeparatorController(args.document, {
@@ -3808,24 +3773,16 @@
     var SliderBladePlugin = {
         id: 'slider',
         accept: function (params) {
-            if (findStringParam(params, 'view') !== 'slider') {
-                return null;
-            }
-            var max = findNumberParam(params, 'max');
-            var min = findNumberParam(params, 'min');
-            if (max === undefined || min === undefined) {
-                return null;
-            }
-            return {
-                params: {
-                    format: forceCast(findFunctionParam(params, 'format')),
-                    label: findStringParam(params, 'label'),
-                    max: max,
-                    min: min,
-                    value: findNumberParam(params, 'value'),
-                    view: 'slider',
-                },
-            };
+            var p = ParamsParsers;
+            var result = parseParams(params, {
+                max: p.required.number,
+                min: p.required.number,
+                view: p.required.constant('slider'),
+                format: p.optional.function,
+                label: p.optional.string,
+                value: p.optional.number,
+            });
+            return result ? { params: result } : null;
         },
         controller: function (args) {
             var _a, _b;
@@ -4231,29 +4188,15 @@
     var TabBladePlugin = {
         id: 'tab',
         accept: function (params) {
-            var pageObjs = findObjectArrayParam(params, 'pages');
-            if (findStringParam(params, 'view') !== 'tab' || !pageObjs) {
+            var p = ParamsParsers;
+            var result = parseParams(params, {
+                pages: p.required.array(p.required.object({ title: p.required.string })),
+                view: p.required.constant('tab'),
+            });
+            if (!result || result.pages.length === 0) {
                 return null;
             }
-            var pages = [];
-            for (var i = 0; i < pageObjs.length; i++) {
-                var title = findStringParam(pageObjs[i], 'title');
-                if (isEmpty(title)) {
-                    return null;
-                }
-                pages.push({
-                    title: title,
-                });
-            }
-            if (pages.length === 0) {
-                return null;
-            }
-            return {
-                params: {
-                    pages: pages,
-                    view: 'tab',
-                },
-            };
+            return { params: result };
         },
         controller: function (args) {
             var c = new TabController(args.document, {
@@ -4399,23 +4342,15 @@
         return {
             id: 'text',
             accept: function (params) {
-                if (findStringParam(params, 'view') !== 'text') {
-                    return null;
-                }
-                var parser = findFunctionParam(params, 'parse');
-                var value = params['value'];
-                if (!parser || !value) {
-                    return null;
-                }
-                return {
-                    params: {
-                        format: forceCast(findFunctionParam(params, 'format')),
-                        label: findStringParam(params, 'label'),
-                        parse: forceCast(parser),
-                        value: forceCast(value),
-                        view: 'text',
-                    },
-                };
+                var p = ParamsParsers;
+                var result = parseParams(params, {
+                    parse: p.required.function,
+                    value: p.required.raw,
+                    view: p.required.constant('text'),
+                    format: p.optional.function,
+                    label: p.optional.string,
+                });
+                return result ? { params: result } : null;
             },
             controller: function (args) {
                 var _a;
@@ -4576,38 +4511,16 @@
         },
     };
 
-    var className$d = ClassName('clswtxt');
-    /**
-     * @hidden
-     */
-    var ColorSwatchTextView = /** @class */ (function () {
-        function ColorSwatchTextView(doc, config) {
-            this.element = doc.createElement('div');
-            this.element.classList.add(className$d());
-            var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$d('s'));
-            this.swatchView_ = config.swatchView;
-            swatchElem.appendChild(this.swatchView_.element);
-            this.element.appendChild(swatchElem);
-            var textElem = doc.createElement('div');
-            textElem.classList.add(className$d('t'));
-            this.textView = config.textView;
-            textElem.appendChild(this.textView.element);
-            this.element.appendChild(textElem);
-        }
-        return ColorSwatchTextView;
-    }());
-
-    var className$c = ClassName('pop');
+    var className$d = ClassName('pop');
     /**
      * @hidden
      */
     var PopupView = /** @class */ (function () {
         function PopupView(doc, config) {
             this.element = doc.createElement('div');
-            this.element.classList.add(className$c());
+            this.element.classList.add(className$d());
             bindClassModifier(config.viewProps, this.element);
-            bindValue(config.shows, valueToClassName(this.element, className$c(undefined, 'v')));
+            bindValue(config.shows, valueToClassName(this.element, className$d(undefined, 'v')));
         }
         return PopupView;
     }());
@@ -4623,6 +4536,47 @@
         }
         return PopupController;
     }());
+
+    /**
+     * Synchronizes two values.
+     */
+    function connectValues(_a) {
+        var primary = _a.primary, secondary = _a.secondary, forward = _a.forward, backward = _a.backward;
+        // Prevents an event firing loop
+        // e.g.
+        // primary changed
+        // -> applies changes to secondary
+        // -> secondary changed
+        // -> applies changes to primary
+        // -> ...
+        var changing = false;
+        function preventFeedback(callback) {
+            if (changing) {
+                return;
+            }
+            changing = true;
+            callback();
+            changing = false;
+        }
+        primary.emitter.on('change', function () {
+            preventFeedback(function () {
+                secondary.rawValue = forward(primary, secondary);
+            });
+        });
+        secondary.emitter.on('change', function () {
+            preventFeedback(function () {
+                primary.rawValue = backward(primary, secondary);
+            });
+            // Re-update secondary value
+            // to apply change from constraint of primary value
+            preventFeedback(function () {
+                secondary.rawValue = forward(primary, secondary);
+            });
+        });
+        preventFeedback(function () {
+            secondary.rawValue = forward(primary, secondary);
+        });
+    }
 
     var PickedColor = /** @class */ (function () {
         function PickedColor(value) {
@@ -4658,13 +4612,59 @@
         return PickedColor;
     }());
 
-    var innerFormatter = createNumberFormatter(0);
+    var className$c = ClassName('col');
     /**
      * @hidden
      */
-    function formatPercentage(value) {
-        return innerFormatter(value) + '%';
-    }
+    var ColorView = /** @class */ (function () {
+        function ColorView(doc, config) {
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$c());
+            bindValue(config.expanded, valueToClassName(this.element, className$c(undefined, 'expanded')));
+            var headElem = doc.createElement('div');
+            headElem.classList.add(className$c('h'));
+            this.element.appendChild(headElem);
+            var swatchElem = doc.createElement('div');
+            swatchElem.classList.add(className$c('s'));
+            headElem.appendChild(swatchElem);
+            this.swatchElement = swatchElem;
+            var textElem = doc.createElement('div');
+            textElem.classList.add(className$c('t'));
+            headElem.appendChild(textElem);
+            this.textElement = textElem;
+            if (config.pickerLayout === 'inline') {
+                var pickerElem = doc.createElement('div');
+                pickerElem.classList.add(className$c('p'));
+                this.element.appendChild(pickerElem);
+                this.pickerElement = pickerElem;
+            }
+            else {
+                this.pickerElement = null;
+            }
+        }
+        return ColorView;
+    }());
+
+    /**
+     * A number range constraint.
+     */
+    var RangeConstraint = /** @class */ (function () {
+        function RangeConstraint(config) {
+            this.maxValue = config.max;
+            this.minValue = config.min;
+        }
+        RangeConstraint.prototype.constrain = function (value) {
+            var result = value;
+            if (!isEmpty(this.minValue)) {
+                result = Math.max(result, this.minValue);
+            }
+            if (!isEmpty(this.maxValue)) {
+                result = Math.min(result, this.maxValue);
+            }
+            return result;
+        };
+        return RangeConstraint;
+    }());
 
     /**
      * Converts RGB color components into HSL (cylindrical, used in CSS).
@@ -4933,6 +4933,84 @@
         return Color;
     }());
 
+    var className$b = ClassName('colp');
+    /**
+     * @hidden
+     */
+    var ColorPickerView = /** @class */ (function () {
+        function ColorPickerView(doc, config) {
+            this.alphaViews_ = null;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$b());
+            var hsvElem = doc.createElement('div');
+            hsvElem.classList.add(className$b('hsv'));
+            var svElem = doc.createElement('div');
+            svElem.classList.add(className$b('sv'));
+            this.svPaletteView_ = config.svPaletteView;
+            svElem.appendChild(this.svPaletteView_.element);
+            hsvElem.appendChild(svElem);
+            var hElem = doc.createElement('div');
+            hElem.classList.add(className$b('h'));
+            this.hPaletteView_ = config.hPaletteView;
+            hElem.appendChild(this.hPaletteView_.element);
+            hsvElem.appendChild(hElem);
+            this.element.appendChild(hsvElem);
+            var rgbElem = doc.createElement('div');
+            rgbElem.classList.add(className$b('rgb'));
+            this.textView_ = config.textView;
+            rgbElem.appendChild(this.textView_.element);
+            this.element.appendChild(rgbElem);
+            if (config.alphaViews) {
+                this.alphaViews_ = {
+                    palette: config.alphaViews.palette,
+                    text: config.alphaViews.text,
+                };
+                var aElem = doc.createElement('div');
+                aElem.classList.add(className$b('a'));
+                var apElem = doc.createElement('div');
+                apElem.classList.add(className$b('ap'));
+                apElem.appendChild(this.alphaViews_.palette.element);
+                aElem.appendChild(apElem);
+                var atElem = doc.createElement('div');
+                atElem.classList.add(className$b('at'));
+                atElem.appendChild(this.alphaViews_.text.element);
+                aElem.appendChild(atElem);
+                this.element.appendChild(aElem);
+            }
+        }
+        Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
+            get: function () {
+                var elems = __spreadArray([
+                    this.svPaletteView_.element,
+                    this.hPaletteView_.element,
+                    this.textView_.modeSelectElement
+                ], this.textView_.textViews.map(function (v) { return v.inputElement; }));
+                if (this.alphaViews_) {
+                    elems.push(this.alphaViews_.palette.element, this.alphaViews_.text.inputElement);
+                }
+                return elems;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return ColorPickerView;
+    }());
+
+    /**
+     * @hidden
+     */
+    function getBaseStepForColor(forAlpha) {
+        return forAlpha ? 0.1 : 1;
+    }
+
+    var innerFormatter = createNumberFormatter(0);
+    /**
+     * @hidden
+     */
+    function formatPercentage(value) {
+        return innerFormatter(value) + '%';
+    }
+
     function parseCssNumberOrPercentage(text, maxValue) {
         var m = text.match(/^(.+)%$/);
         if (!m) {
@@ -5182,172 +5260,7 @@
         return NOTATION_TO_STRINGIFIER_MAP[notation];
     }
 
-    var className$b = ClassName('clsw');
-    /**
-     * @hidden
-     */
-    var ColorSwatchView = /** @class */ (function () {
-        function ColorSwatchView(doc, config) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            config.value.emitter.on('change', this.onValueChange_);
-            this.value = config.value;
-            this.element = doc.createElement('div');
-            this.element.classList.add(className$b());
-            bindClassModifier(config.viewProps, this.element);
-            var swatchElem = doc.createElement('div');
-            swatchElem.classList.add(className$b('sw'));
-            this.element.appendChild(swatchElem);
-            this.swatchElem_ = swatchElem;
-            var buttonElem = doc.createElement('button');
-            buttonElem.classList.add(className$b('b'));
-            bindDisabled(config.viewProps, buttonElem);
-            this.element.appendChild(buttonElem);
-            this.buttonElement = buttonElem;
-            this.update_();
-        }
-        ColorSwatchView.prototype.update_ = function () {
-            var value = this.value.rawValue;
-            this.swatchElem_.style.backgroundColor = colorToHexRgbaString(value);
-        };
-        ColorSwatchView.prototype.onValueChange_ = function () {
-            this.update_();
-        };
-        return ColorSwatchView;
-    }());
-
-    /**
-     * A number range constraint.
-     */
-    var RangeConstraint = /** @class */ (function () {
-        function RangeConstraint(config) {
-            this.maxValue = config.max;
-            this.minValue = config.min;
-        }
-        RangeConstraint.prototype.constrain = function (value) {
-            var result = value;
-            if (!isEmpty(this.minValue)) {
-                result = Math.max(result, this.minValue);
-            }
-            if (!isEmpty(this.maxValue)) {
-                result = Math.min(result, this.maxValue);
-            }
-            return result;
-        };
-        return RangeConstraint;
-    }());
-
-    /**
-     * Synchronizes two values.
-     */
-    function connectValues(_a) {
-        var primary = _a.primary, secondary = _a.secondary, forward = _a.forward, backward = _a.backward;
-        // Prevents an event firing loop
-        // e.g.
-        // primary changed
-        // -> applies changes to secondary
-        // -> secondary changed
-        // -> applies changes to primary
-        // -> ...
-        var changing = false;
-        function preventFeedback(callback) {
-            if (changing) {
-                return;
-            }
-            changing = true;
-            callback();
-            changing = false;
-        }
-        primary.emitter.on('change', function () {
-            preventFeedback(function () {
-                secondary.rawValue = forward(primary, secondary);
-            });
-        });
-        secondary.emitter.on('change', function () {
-            preventFeedback(function () {
-                primary.rawValue = backward(primary, secondary);
-            });
-            // Re-update secondary value
-            // to apply change from constraint of primary value
-            preventFeedback(function () {
-                secondary.rawValue = forward(primary, secondary);
-            });
-        });
-        preventFeedback(function () {
-            secondary.rawValue = forward(primary, secondary);
-        });
-    }
-
-    var className$a = ClassName('clp');
-    /**
-     * @hidden
-     */
-    var ColorPickerView = /** @class */ (function () {
-        function ColorPickerView(doc, config) {
-            this.alphaViews_ = null;
-            this.element = doc.createElement('div');
-            this.element.classList.add(className$a());
-            var hsvElem = doc.createElement('div');
-            hsvElem.classList.add(className$a('hsv'));
-            var svElem = doc.createElement('div');
-            svElem.classList.add(className$a('sv'));
-            this.svPaletteView_ = config.svPaletteView;
-            svElem.appendChild(this.svPaletteView_.element);
-            hsvElem.appendChild(svElem);
-            var hElem = doc.createElement('div');
-            hElem.classList.add(className$a('h'));
-            this.hPaletteView_ = config.hPaletteView;
-            hElem.appendChild(this.hPaletteView_.element);
-            hsvElem.appendChild(hElem);
-            this.element.appendChild(hsvElem);
-            var rgbElem = doc.createElement('div');
-            rgbElem.classList.add(className$a('rgb'));
-            this.textView_ = config.textView;
-            rgbElem.appendChild(this.textView_.element);
-            this.element.appendChild(rgbElem);
-            if (config.alphaViews) {
-                this.alphaViews_ = {
-                    palette: config.alphaViews.palette,
-                    text: config.alphaViews.text,
-                };
-                var aElem = doc.createElement('div');
-                aElem.classList.add(className$a('a'));
-                var apElem = doc.createElement('div');
-                apElem.classList.add(className$a('ap'));
-                apElem.appendChild(this.alphaViews_.palette.element);
-                aElem.appendChild(apElem);
-                var atElem = doc.createElement('div');
-                atElem.classList.add(className$a('at'));
-                atElem.appendChild(this.alphaViews_.text.element);
-                aElem.appendChild(atElem);
-                this.element.appendChild(aElem);
-            }
-        }
-        Object.defineProperty(ColorPickerView.prototype, "allFocusableElements", {
-            get: function () {
-                var elems = __spreadArray([
-                    this.svPaletteView_.element,
-                    this.hPaletteView_.element,
-                    this.textView_.modeSelectElement
-                ], this.textView_.textViews.map(function (v) { return v.inputElement; }));
-                if (this.alphaViews_) {
-                    elems.push(this.alphaViews_.palette.element, this.alphaViews_.text.inputElement);
-                }
-                return elems;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return ColorPickerView;
-    }());
-
-    /**
-     * @hidden
-     */
-    function getBaseStepForColor(forAlpha) {
-        return forAlpha ? 0.1 : 1;
-    }
-
-    var className$9 = ClassName('apl');
+    var className$a = ClassName('apl');
     /**
      * @hidden
      */
@@ -5357,21 +5270,21 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$9());
+            this.element.classList.add(className$a());
             bindTabIndex(config.viewProps, this.element);
             var barElem = doc.createElement('div');
-            barElem.classList.add(className$9('b'));
+            barElem.classList.add(className$a('b'));
             this.element.appendChild(barElem);
             var colorElem = doc.createElement('div');
-            colorElem.classList.add(className$9('c'));
+            colorElem.classList.add(className$a('c'));
             barElem.appendChild(colorElem);
             this.colorElem_ = colorElem;
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$9('m'));
+            markerElem.classList.add(className$a('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             var previewElem = doc.createElement('div');
-            previewElem.classList.add(className$9('p'));
+            previewElem.classList.add(className$a('p'));
             this.markerElem_.appendChild(previewElem);
             this.previewElem_ = previewElem;
             this.update_();
@@ -5445,7 +5358,7 @@
         return APaletteController;
     }());
 
-    var className$8 = ClassName('cltxt');
+    var className$9 = ClassName('coltxt');
     function createModeSelectElement(doc) {
         var selectElem = doc.createElement('select');
         var items = [
@@ -5469,19 +5382,19 @@
         function ColorTextView(doc, config) {
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$8());
+            this.element.classList.add(className$9());
             var modeElem = doc.createElement('div');
-            modeElem.classList.add(className$8('m'));
+            modeElem.classList.add(className$9('m'));
             this.modeElem_ = createModeSelectElement(doc);
-            this.modeElem_.classList.add(className$8('ms'));
+            this.modeElem_.classList.add(className$9('ms'));
             modeElem.appendChild(this.modeSelectElement);
             var modeMarkerElem = doc.createElement('div');
-            modeMarkerElem.classList.add(className$8('mm'));
+            modeMarkerElem.classList.add(className$9('mm'));
             modeMarkerElem.appendChild(createSvgIconElement(doc, 'dropdown'));
             modeElem.appendChild(modeMarkerElem);
             this.element.appendChild(modeElem);
             var textsElem = doc.createElement('div');
-            textsElem.classList.add(className$8('w'));
+            textsElem.classList.add(className$9('w'));
             this.element.appendChild(textsElem);
             this.textsElem_ = textsElem;
             this.textViews_ = config.textViews;
@@ -5517,7 +5430,7 @@
             var doc = this.element.ownerDocument;
             this.textViews_.forEach(function (v) {
                 var compElem = doc.createElement('div');
-                compElem.classList.add(className$8('c'));
+                compElem.classList.add(className$9('c'));
                 compElem.appendChild(v.element);
                 _this.textsElem_.appendChild(compElem);
             });
@@ -5624,7 +5537,7 @@
         return ColorTextController;
     }());
 
-    var className$7 = ClassName('hpl');
+    var className$8 = ClassName('hpl');
     /**
      * @hidden
      */
@@ -5634,13 +5547,13 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$7());
+            this.element.classList.add(className$8());
             bindTabIndex(config.viewProps, this.element);
             var colorElem = doc.createElement('div');
-            colorElem.classList.add(className$7('c'));
+            colorElem.classList.add(className$8('c'));
             this.element.appendChild(colorElem);
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$7('m'));
+            markerElem.classList.add(className$8('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             this.update_();
@@ -5706,7 +5619,7 @@
         return HPaletteController;
     }());
 
-    var className$6 = ClassName('svp');
+    var className$7 = ClassName('svp');
     var CANVAS_RESOL = 64;
     /**
      * @hidden
@@ -5717,16 +5630,16 @@
             this.value = config.value;
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
-            this.element.classList.add(className$6());
+            this.element.classList.add(className$7());
             bindTabIndex(config.viewProps, this.element);
             var canvasElem = doc.createElement('canvas');
             canvasElem.height = CANVAS_RESOL;
             canvasElem.width = CANVAS_RESOL;
-            canvasElem.classList.add(className$6('c'));
+            canvasElem.classList.add(className$7('c'));
             this.element.appendChild(canvasElem);
             this.canvasElement = canvasElem;
             var markerElem = doc.createElement('div');
-            markerElem.classList.add(className$6('m'));
+            markerElem.classList.add(className$7('m'));
             this.element.appendChild(markerElem);
             this.markerElem_ = markerElem;
             this.update_();
@@ -5828,11 +5741,11 @@
         function ColorPickerController(doc, config) {
             this.pickedColor = config.pickedColor;
             this.viewProps = config.viewProps;
-            this.hPaletteIc_ = new HPaletteController(doc, {
+            this.hPaletteC_ = new HPaletteController(doc, {
                 value: this.pickedColor.value,
                 viewProps: this.viewProps,
             });
-            this.svPaletteIc_ = new SvPaletteController(doc, {
+            this.svPaletteC_ = new SvPaletteController(doc, {
                 value: this.pickedColor.value,
                 viewProps: this.viewProps,
             });
@@ -5882,9 +5795,9 @@
                         text: this.alphaIcs_.text.view,
                     }
                     : null,
-                hPaletteView: this.hPaletteIc_.view,
+                hPaletteView: this.hPaletteC_.view,
                 supportsAlpha: config.supportsAlpha,
-                svPaletteView: this.svPaletteIc_.view,
+                svPaletteView: this.svPaletteC_.view,
                 textView: this.textC_.view,
             });
         }
@@ -5905,11 +5818,59 @@
         return ColorPickerController;
     }());
 
+    var className$6 = ClassName('colsw');
+    /**
+     * @hidden
+     */
+    var ColorSwatchView = /** @class */ (function () {
+        function ColorSwatchView(doc, config) {
+            this.onValueChange_ = this.onValueChange_.bind(this);
+            config.value.emitter.on('change', this.onValueChange_);
+            this.value = config.value;
+            this.element = doc.createElement('div');
+            this.element.classList.add(className$6());
+            bindClassModifier(config.viewProps, this.element);
+            var swatchElem = doc.createElement('div');
+            swatchElem.classList.add(className$6('sw'));
+            this.element.appendChild(swatchElem);
+            this.swatchElem_ = swatchElem;
+            var buttonElem = doc.createElement('button');
+            buttonElem.classList.add(className$6('b'));
+            bindDisabled(config.viewProps, buttonElem);
+            this.element.appendChild(buttonElem);
+            this.buttonElement = buttonElem;
+            this.update_();
+        }
+        ColorSwatchView.prototype.update_ = function () {
+            var value = this.value.rawValue;
+            this.swatchElem_.style.backgroundColor = colorToHexRgbaString(value);
+        };
+        ColorSwatchView.prototype.onValueChange_ = function () {
+            this.update_();
+        };
+        return ColorSwatchView;
+    }());
+
     /**
      * @hidden
      */
     var ColorSwatchController = /** @class */ (function () {
         function ColorSwatchController(doc, config) {
+            this.value = config.value;
+            this.viewProps = config.viewProps;
+            this.view = new ColorSwatchView(doc, {
+                value: this.value,
+                viewProps: this.viewProps,
+            });
+        }
+        return ColorSwatchController;
+    }());
+
+    /**
+     * @hidden
+     */
+    var ColorController = /** @class */ (function () {
+        function ColorController(doc, config) {
             var _this = this;
             this.onButtonBlur_ = this.onButtonBlur_.bind(this);
             this.onButtonClick_ = this.onButtonClick_.bind(this);
@@ -5917,16 +5878,34 @@
             this.onPopupChildKeydown_ = this.onPopupChildKeydown_.bind(this);
             this.value = config.value;
             this.viewProps = config.viewProps;
-            this.view = new ColorSwatchView(doc, {
+            this.foldable_ = createFoldable(config.expanded);
+            this.swatchC_ = new ColorSwatchController(doc, {
                 value: this.value,
                 viewProps: this.viewProps,
             });
-            this.view.buttonElement.addEventListener('blur', this.onButtonBlur_);
-            this.view.buttonElement.addEventListener('click', this.onButtonClick_);
-            this.popC_ = new PopupController(doc, {
+            var buttonElem = this.swatchC_.view.buttonElement;
+            buttonElem.addEventListener('blur', this.onButtonBlur_);
+            buttonElem.addEventListener('click', this.onButtonClick_);
+            this.textC_ = new TextController(doc, {
+                parser: config.parser,
+                props: new ValueMap({
+                    formatter: config.formatter,
+                }),
+                value: this.value,
                 viewProps: this.viewProps,
             });
-            this.view.element.appendChild(this.popC_.view.element);
+            this.view = new ColorView(doc, {
+                expanded: this.foldable_.value('expanded'),
+                pickerLayout: config.pickerLayout,
+            });
+            this.view.swatchElement.appendChild(this.swatchC_.view.element);
+            this.view.textElement.appendChild(this.textC_.view.element);
+            this.popC_ =
+                config.pickerLayout === 'popup'
+                    ? new PopupController(doc, {
+                        viewProps: this.viewProps,
+                    })
+                    : null;
             var pickerC = new ColorPickerController(doc, {
                 pickedColor: new PickedColor(this.value),
                 supportsAlpha: config.supportsAlpha,
@@ -5936,23 +5915,49 @@
                 elem.addEventListener('blur', _this.onPopupChildBlur_);
                 elem.addEventListener('keydown', _this.onPopupChildKeydown_);
             });
-            this.popC_.view.element.appendChild(pickerC.view.element);
             this.pickerC_ = pickerC;
+            if (this.popC_) {
+                this.view.element.appendChild(this.popC_.view.element);
+                this.popC_.view.element.appendChild(pickerC.view.element);
+                connectValues({
+                    primary: this.foldable_.value('expanded'),
+                    secondary: this.popC_.shows,
+                    forward: function (p) { return p.rawValue; },
+                    backward: function (_, s) { return s.rawValue; },
+                });
+            }
+            else if (this.view.pickerElement) {
+                this.view.pickerElement.appendChild(this.pickerC_.view.element);
+                bindFoldable(this.foldable_, this.view.pickerElement);
+            }
         }
-        ColorSwatchController.prototype.onButtonBlur_ = function (e) {
+        Object.defineProperty(ColorController.prototype, "textController", {
+            get: function () {
+                return this.textC_;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        ColorController.prototype.onButtonBlur_ = function (e) {
+            if (!this.popC_) {
+                return;
+            }
             var elem = this.view.element;
             var nextTarget = forceCast(e.relatedTarget);
             if (!nextTarget || !elem.contains(nextTarget)) {
                 this.popC_.shows.rawValue = false;
             }
         };
-        ColorSwatchController.prototype.onButtonClick_ = function () {
-            this.popC_.shows.rawValue = !this.popC_.shows.rawValue;
-            if (this.popC_.shows.rawValue) {
+        ColorController.prototype.onButtonClick_ = function () {
+            this.foldable_.set('expanded', !this.foldable_.get('expanded'));
+            if (this.foldable_.get('expanded')) {
                 this.pickerC_.view.allFocusableElements[0].focus();
             }
         };
-        ColorSwatchController.prototype.onPopupChildBlur_ = function (ev) {
+        ColorController.prototype.onPopupChildBlur_ = function (ev) {
+            if (!this.popC_) {
+                return;
+            }
             var elem = this.popC_.view.element;
             var nextTarget = findNextTarget(ev);
             if (nextTarget && elem.contains(nextTarget)) {
@@ -5960,47 +5965,22 @@
                 return;
             }
             if (nextTarget &&
-                nextTarget === this.view.buttonElement &&
+                nextTarget === this.swatchC_.view.buttonElement &&
                 !supportsTouch(elem.ownerDocument)) {
                 // Next target is the trigger button
                 return;
             }
             this.popC_.shows.rawValue = false;
         };
-        ColorSwatchController.prototype.onPopupChildKeydown_ = function (ev) {
+        ColorController.prototype.onPopupChildKeydown_ = function (ev) {
+            if (!this.popC_) {
+                return;
+            }
             if (ev.key === 'Escape') {
                 this.popC_.shows.rawValue = false;
             }
         };
-        return ColorSwatchController;
-    }());
-
-    /**
-     * @hidden
-     */
-    var ColorSwatchTextController = /** @class */ (function () {
-        function ColorSwatchTextController(doc, config) {
-            this.value = config.value;
-            this.viewProps = config.viewProps;
-            this.swatchIc_ = new ColorSwatchController(doc, {
-                supportsAlpha: config.supportsAlpha,
-                value: this.value,
-                viewProps: this.viewProps,
-            });
-            this.textIc_ = new TextController(doc, {
-                parser: config.parser,
-                props: new ValueMap({
-                    formatter: config.formatter,
-                }),
-                value: this.value,
-                viewProps: this.viewProps,
-            });
-            this.view = new ColorSwatchTextView(doc, {
-                swatchView: this.swatchIc_.view,
-                textView: this.textIc_.view,
-            });
-        }
-        return ColorSwatchTextController;
+        return ColorController;
     }());
 
     /**
@@ -6129,12 +6109,16 @@
         },
         controller: function (args) {
             var supportsAlpha = shouldSupportAlpha$1(args.params);
+            var expanded = 'expanded' in args.params ? args.params.expanded : undefined;
+            var picker = 'picker' in args.params ? args.params.picker : undefined;
             var formatter = supportsAlpha
                 ? colorToHexRgbaString
                 : colorToHexRgbString;
-            return new ColorSwatchTextController(args.document, {
+            return new ColorController(args.document, {
+                expanded: expanded !== null && expanded !== void 0 ? expanded : false,
                 formatter: formatter,
                 parser: CompositeColorParser,
+                pickerLayout: picker !== null && picker !== void 0 ? picker : 'popup',
                 supportsAlpha: supportsAlpha,
                 value: args.value,
                 viewProps: args.viewProps,
@@ -6160,12 +6144,16 @@
         },
         controller: function (args) {
             var supportsAlpha = Color.isRgbaColorObject(args.initialValue);
+            var expanded = 'expanded' in args.params ? args.params.expanded : undefined;
+            var picker = 'picker' in args.params ? args.params.picker : undefined;
             var formatter = supportsAlpha
                 ? colorToHexRgbaString
                 : colorToHexRgbString;
-            return new ColorSwatchTextController(args.document, {
+            return new ColorController(args.document, {
+                expanded: expanded !== null && expanded !== void 0 ? expanded : false,
                 formatter: formatter,
                 parser: CompositeColorParser,
+                pickerLayout: picker !== null && picker !== void 0 ? picker : 'popup',
                 supportsAlpha: supportsAlpha,
                 value: args.value,
                 viewProps: args.viewProps,
@@ -6208,9 +6196,13 @@
                 throw TpError.shouldNeverHappen();
             }
             var stringifier = getColorStringifier(notation);
-            return new ColorSwatchTextController(args.document, {
+            var expanded = 'expanded' in args.params ? args.params.expanded : undefined;
+            var picker = 'picker' in args.params ? args.params.picker : undefined;
+            return new ColorController(args.document, {
+                expanded: expanded !== null && expanded !== void 0 ? expanded : false,
                 formatter: stringifier,
                 parser: CompositeColorParser,
+                pickerLayout: picker !== null && picker !== void 0 ? picker : 'popup',
                 supportsAlpha: hasAlphaComponent(notation),
                 value: args.value,
                 viewProps: args.viewProps,
@@ -6445,41 +6437,57 @@
         fromComponents: function (comps) { return new (Point2d.bind.apply(Point2d, __spreadArray([void 0], comps)))(); },
     };
 
-    var className$4 = ClassName('p2dpadtxt');
+    var className$4 = ClassName('p2d');
     /**
      * @hidden
      */
-    var Point2dPadTextView = /** @class */ (function () {
-        function Point2dPadTextView(doc, config) {
+    var Point2dView = /** @class */ (function () {
+        function Point2dView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$4());
             bindClassModifier(config.viewProps, this.element);
+            bindValue(config.expanded, valueToClassName(this.element, className$4(undefined, 'expanded')));
+            var headElem = doc.createElement('div');
+            headElem.classList.add(className$4('h'));
+            this.element.appendChild(headElem);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$4('b'));
             buttonElem.appendChild(createSvgIconElement(doc, 'p2dpad'));
             bindDisabled(config.viewProps, buttonElem);
-            this.element.appendChild(buttonElem);
-            this.padButtonElement = buttonElem;
+            headElem.appendChild(buttonElem);
+            this.buttonElement = buttonElem;
             var textElem = doc.createElement('div');
             textElem.classList.add(className$4('t'));
-            this.element.appendChild(textElem);
+            headElem.appendChild(textElem);
             this.textElement = textElem;
+            if (config.pickerLayout === 'inline') {
+                var pickerElem = doc.createElement('div');
+                pickerElem.classList.add(className$4('p'));
+                this.element.appendChild(pickerElem);
+                this.pickerElement = pickerElem;
+            }
+            else {
+                this.pickerElement = null;
+            }
         }
-        return Point2dPadTextView;
+        return Point2dView;
     }());
 
-    var className$3 = ClassName('p2dpad');
+    var className$3 = ClassName('p2dp');
     /**
      * @hidden
      */
-    var Point2dPadView = /** @class */ (function () {
-        function Point2dPadView(doc, config) {
+    var Point2dPickerView = /** @class */ (function () {
+        function Point2dPickerView(doc, config) {
             this.onFoldableChange_ = this.onFoldableChange_.bind(this);
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.invertsY_ = config.invertsY;
             this.maxValue_ = config.maxValue;
             this.element = doc.createElement('div');
             this.element.classList.add(className$3());
+            if (config.layout === 'popup') {
+                this.element.classList.add(className$3(undefined, 'p'));
+            }
             var padElem = doc.createElement('div');
             padElem.classList.add(className$3('p'));
             bindTabIndex(config.viewProps, padElem);
@@ -6517,14 +6525,14 @@
             this.value = config.value;
             this.update_();
         }
-        Object.defineProperty(Point2dPadView.prototype, "allFocusableElements", {
+        Object.defineProperty(Point2dPickerView.prototype, "allFocusableElements", {
             get: function () {
                 return [this.padElement];
             },
             enumerable: false,
             configurable: true
         });
-        Point2dPadView.prototype.update_ = function () {
+        Point2dPickerView.prototype.update_ = function () {
             var _a = this.value.rawValue.getComponents(), x = _a[0], y = _a[1];
             var max = this.maxValue_;
             var px = mapRange(x, -max, +max, 0, 100);
@@ -6535,20 +6543,20 @@
             this.markerElem_.style.left = px + "%";
             this.markerElem_.style.top = ipy + "%";
         };
-        Point2dPadView.prototype.onValueChange_ = function () {
+        Point2dPickerView.prototype.onValueChange_ = function () {
             this.update_();
         };
-        Point2dPadView.prototype.onFoldableChange_ = function () {
+        Point2dPickerView.prototype.onFoldableChange_ = function () {
             this.update_();
         };
-        return Point2dPadView;
+        return Point2dPickerView;
     }());
 
     /**
      * @hidden
      */
-    var Point2dPadController = /** @class */ (function () {
-        function Point2dPadController(doc, config) {
+    var Point2dPickerController = /** @class */ (function () {
+        function Point2dPickerController(doc, config) {
             this.onPadKeyDown_ = this.onPadKeyDown_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
@@ -6558,8 +6566,9 @@
             this.baseSteps_ = config.baseSteps;
             this.maxValue_ = config.maxValue;
             this.invertsY_ = config.invertsY;
-            this.view = new Point2dPadView(doc, {
+            this.view = new Point2dPickerView(doc, {
                 invertsY: this.invertsY_,
+                layout: config.layout,
                 maxValue: this.maxValue_,
                 value: this.value,
                 viewProps: this.viewProps,
@@ -6570,7 +6579,7 @@
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.padElement.addEventListener('keydown', this.onPadKeyDown_);
         }
-        Point2dPadController.prototype.handlePointerEvent_ = function (d) {
+        Point2dPickerController.prototype.handlePointerEvent_ = function (d) {
             if (!d.point) {
                 return;
             }
@@ -6579,16 +6588,16 @@
             var py = mapRange(this.invertsY_ ? d.bounds.height - d.point.y : d.point.y, 0, d.bounds.height, -max, +max);
             this.value.rawValue = new Point2d(px, py);
         };
-        Point2dPadController.prototype.onPointerDown_ = function (ev) {
+        Point2dPickerController.prototype.onPointerDown_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        Point2dPadController.prototype.onPointerMove_ = function (ev) {
+        Point2dPickerController.prototype.onPointerMove_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        Point2dPadController.prototype.onPointerUp_ = function (ev) {
+        Point2dPickerController.prototype.onPointerUp_ = function (ev) {
             this.handlePointerEvent_(ev.data);
         };
-        Point2dPadController.prototype.onPadKeyDown_ = function (ev) {
+        Point2dPickerController.prototype.onPadKeyDown_ = function (ev) {
             if (isArrowKey(ev.key)) {
                 ev.preventDefault();
             }
@@ -6597,27 +6606,33 @@
                 getStepForKey(this.baseSteps_[1], getVerticalStepKeys(ev)) *
                     (this.invertsY_ ? 1 : -1));
         };
-        return Point2dPadController;
+        return Point2dPickerController;
     }());
 
     /**
      * @hidden
      */
-    var Point2dPadTextController = /** @class */ (function () {
-        function Point2dPadTextController(doc, config) {
+    var Point2dController = /** @class */ (function () {
+        function Point2dController(doc, config) {
             var _this = this;
+            var _a, _b;
             this.onPopupChildBlur_ = this.onPopupChildBlur_.bind(this);
             this.onPopupChildKeydown_ = this.onPopupChildKeydown_.bind(this);
             this.onPadButtonBlur_ = this.onPadButtonBlur_.bind(this);
             this.onPadButtonClick_ = this.onPadButtonClick_.bind(this);
             this.value = config.value;
             this.viewProps = config.viewProps;
-            this.popC_ = new PopupController(doc, {
-                viewProps: this.viewProps,
-            });
-            var padC = new Point2dPadController(doc, {
+            this.foldable_ = createFoldable(config.expanded);
+            this.popC_ =
+                config.pickerLayout === 'popup'
+                    ? new PopupController(doc, {
+                        viewProps: this.viewProps,
+                    })
+                    : null;
+            var padC = new Point2dPickerController(doc, {
                 baseSteps: [config.axes[0].baseStep, config.axes[1].baseStep],
                 invertsY: config.invertsY,
+                layout: config.pickerLayout,
                 maxValue: config.maxValue,
                 value: this.value,
                 viewProps: this.viewProps,
@@ -6626,37 +6641,54 @@
                 elem.addEventListener('blur', _this.onPopupChildBlur_);
                 elem.addEventListener('keydown', _this.onPopupChildKeydown_);
             });
-            this.popC_.view.element.appendChild(padC.view.element);
-            this.padC_ = padC;
-            this.textIc_ = new PointNdTextController(doc, {
+            this.pickerC_ = padC;
+            this.textC_ = new PointNdTextController(doc, {
                 assembly: Point2dAssembly,
                 axes: config.axes,
                 parser: config.parser,
                 value: this.value,
                 viewProps: this.viewProps,
             });
-            this.view = new Point2dPadTextView(doc, {
+            this.view = new Point2dView(doc, {
+                expanded: this.foldable_.value('expanded'),
+                pickerLayout: config.pickerLayout,
                 viewProps: this.viewProps,
             });
-            this.view.element.appendChild(this.popC_.view.element);
-            this.view.textElement.appendChild(this.textIc_.view.element);
-            this.view.padButtonElement.addEventListener('blur', this.onPadButtonBlur_);
-            this.view.padButtonElement.addEventListener('click', this.onPadButtonClick_);
+            this.view.textElement.appendChild(this.textC_.view.element);
+            (_a = this.view.buttonElement) === null || _a === void 0 ? void 0 : _a.addEventListener('blur', this.onPadButtonBlur_);
+            (_b = this.view.buttonElement) === null || _b === void 0 ? void 0 : _b.addEventListener('click', this.onPadButtonClick_);
+            if (this.popC_) {
+                this.view.element.appendChild(this.popC_.view.element);
+                this.popC_.view.element.appendChild(this.pickerC_.view.element);
+                connectValues({
+                    primary: this.foldable_.value('expanded'),
+                    secondary: this.popC_.shows,
+                    forward: function (p) { return p.rawValue; },
+                    backward: function (_, s) { return s.rawValue; },
+                });
+            }
+            else if (this.view.pickerElement) {
+                this.view.pickerElement.appendChild(this.pickerC_.view.element);
+                bindFoldable(this.foldable_, this.view.pickerElement);
+            }
         }
-        Point2dPadTextController.prototype.onPadButtonBlur_ = function (e) {
+        Point2dController.prototype.onPadButtonBlur_ = function (e) {
+            if (!this.popC_) {
+                return;
+            }
             var elem = this.view.element;
             var nextTarget = forceCast(e.relatedTarget);
             if (!nextTarget || !elem.contains(nextTarget)) {
                 this.popC_.shows.rawValue = false;
             }
         };
-        Point2dPadTextController.prototype.onPadButtonClick_ = function () {
-            this.popC_.shows.rawValue = !this.popC_.shows.rawValue;
-            if (this.popC_.shows.rawValue) {
-                this.padC_.view.allFocusableElements[0].focus();
-            }
+        Point2dController.prototype.onPadButtonClick_ = function () {
+            this.foldable_.set('expanded', !this.foldable_.get('expanded'));
         };
-        Point2dPadTextController.prototype.onPopupChildBlur_ = function (ev) {
+        Point2dController.prototype.onPopupChildBlur_ = function (ev) {
+            if (!this.popC_) {
+                return;
+            }
             var elem = this.popC_.view.element;
             var nextTarget = findNextTarget(ev);
             if (nextTarget && elem.contains(nextTarget)) {
@@ -6664,19 +6696,22 @@
                 return;
             }
             if (nextTarget &&
-                nextTarget === this.view.padButtonElement &&
+                nextTarget === this.view.buttonElement &&
                 !supportsTouch(elem.ownerDocument)) {
                 // Next target is the trigger button
                 return;
             }
             this.popC_.shows.rawValue = false;
         };
-        Point2dPadTextController.prototype.onPopupChildKeydown_ = function (ev) {
+        Point2dController.prototype.onPopupChildKeydown_ = function (ev) {
+            if (!this.popC_) {
+                return;
+            }
             if (ev.key === 'Escape') {
                 this.popC_.shows.rawValue = false;
             }
         };
-        return Point2dPadTextController;
+        return Point2dController;
     }());
 
     function point2dFromUnknown(value) {
@@ -6775,14 +6810,18 @@
             if (!(c instanceof PointNdConstraint)) {
                 throw TpError.shouldNeverHappen();
             }
-            return new Point2dPadTextController(doc, {
+            var expanded = 'expanded' in args.params ? args.params.expanded : undefined;
+            var picker = 'picker' in args.params ? args.params.picker : undefined;
+            return new Point2dController(doc, {
                 axes: [
                     createAxis$2(value.rawValue.x, c.components[0]),
                     createAxis$2(value.rawValue.y, c.components[1]),
                 ],
+                expanded: expanded !== null && expanded !== void 0 ? expanded : false,
                 invertsY: shouldInvertY(args.params),
                 maxValue: getSuitableMaxValue(value.rawValue, c),
                 parser: parseNumber,
+                pickerLayout: picker !== null && picker !== void 0 ? picker : 'popup',
                 value: value,
                 viewProps: args.viewProps,
             });
@@ -7524,7 +7563,7 @@
         doc.head.appendChild(styleElem);
     }
     function embedDefaultStyleIfNeeded(doc) {
-        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b,.tp-fldv_b,.tp-rotv_b,.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-cltxtv_ms,.tp-tbiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-fldv_c>.tp-cntv.tp-v-lst,.tp-rotv_c>.tp-cntv.tp-v-lst,.tp-tabv_c .tp-brkv>.tp-cntv.tp-v-lst{margin-bottom:calc(-1 * var(--cnt-v-p))}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_c{border-bottom-left-radius:0}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c>*:not(.tp-v-fst),.tp-rotv_c>*:not(.tp-v-fst),.tp-tabv_c .tp-brkv>*:not(.tp-v-fst){margin-top:var(--bld-s)}.tp-fldv_c>.tp-sprv:not(.tp-v-fst),.tp-rotv_c>.tp-sprv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-fst),.tp-fldv_c>.tp-cntv:not(.tp-v-fst),.tp-rotv_c>.tp-cntv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-fst){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-sprv+*:not(.tp-v-hidden),.tp-fldv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-cntv+*:not(.tp-v-hidden){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-fldv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-rotv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-hidden)+.tp-cntv{margin-top:0}.tp-fldv_c>.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv>.tp-fldv_b{border-top-left-radius:var(--elm-br);border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-fldv-expanded>.tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c,.tp-tabv_c .tp-brkv .tp-fldv>.tp-fldv_c{border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-tabv>.tp-tabv_i,.tp-tabv_c .tp-brkv>.tp-tabv>.tp-tabv_i{border-top-left-radius:var(--elm-br)}.tp-fldv_c .tp-tabv>.tp-tabv_c,.tp-tabv_c .tp-brkv .tp-tabv>.tp-tabv_c{border-bottom-left-radius:var(--elm-br)}.tp-lstv_s,.tp-btnv_b,.tp-p2dpadtxtv_b{background-color:var(--btn-bg);border-radius:var(--elm-br);color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--bld-h);line-height:var(--bld-h);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dpadtxtv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dpadtxtv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dpadtxtv_b:active{background-color:var(--btn-bg-a)}.tp-lstv_s:disabled,.tp-btnv_b:disabled,.tp-p2dpadtxtv_b:disabled{opacity:0.5}.tp-fldv_b,.tp-rotv_b{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);overflow:hidden;padding-left:calc(var(--cnt-h-p) + 8px);padding-right:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_b:hover,.tp-rotv_b:hover{background-color:var(--cnt-bg-h)}.tp-fldv_b:focus,.tp-rotv_b:focus{background-color:var(--cnt-bg-f)}.tp-fldv_b:active,.tp-rotv_b:active{background-color:var(--cnt-bg-a)}.tp-fldv_b:disabled,.tp-rotv_b:disabled{opacity:0.5}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(var(--cnt-h-p) + (var(--bld-h) + 4px - 6px) / 2 - 2px);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_b>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p);transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-clswv_sw,.tp-p2dpadv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--bld-h);line-height:var(--bld-h);min-width:0;width:100%}.tp-clswv_sw:hover,.tp-p2dpadv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-clswv_sw:focus,.tp-p2dpadv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-clswv_sw:active,.tp-p2dpadv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-clswv_sw:disabled,.tp-p2dpadv_p:disabled,.tp-txtv_i:disabled{opacity:0.5}.tp-cltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-cltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-cltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-cltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--mo-fg);height:var(--bld-h);width:100%}.tp-cltxtv_w,.tp-pndtxtv{display:flex}.tp-cltxtv_c,.tp-pndtxtv_a{width:100%}.tp-cltxtv_c+.tp-cltxtv_c,.tp-pndtxtv_a+.tp-cltxtv_c,.tp-cltxtv_c+.tp-pndtxtv_a,.tp-pndtxtv_a+.tp-pndtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:var(--elm-br);cursor:pointer;display:block;height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-ckbv.tp-v-disabled .tp-ckbv_w{opacity:0.5}.tp-clpv_h,.tp-clpv_ap{margin-left:6px;margin-right:6px}.tp-clpv_h{margin-top:var(--bld-s)}.tp-clpv_rgb{display:flex;margin-top:var(--bld-s);width:100%}.tp-clpv_a{display:flex;margin-top:var(--cnt-v-p);padding-top:calc(var(--cnt-v-p) + 2px);position:relative}.tp-clpv_a:before{background-color:var(--grv-fg);content:\'\';height:2px;left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:0}.tp-clpv_ap{align-items:center;display:flex;flex:3}.tp-clpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:var(--elm-br);outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:calc(var(--bld-h) * 4);width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:var(--elm-br);box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-clswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:var(--elm-br)}.tp-clswv.tp-v-disabled{opacity:0.5}.tp-clswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--bld-h);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--bld-h)}.tp-clswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:var(--elm-br);bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-clswv .tp-popv{left:calc(-1 * var(--cnt-h-p));right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-clswtxtv{display:flex;position:relative}.tp-clswtxtv_s{flex-grow:0;flex-shrink:0;width:var(--bld-h)}.tp-clswtxtv_t{flex:1;margin-left:4px}.tp-cltxtv{display:flex;width:100%}.tp-cltxtv_m{margin-right:4px}.tp-cltxtv_ms{border-radius:var(--elm-br);color:var(--lbl-fg);cursor:pointer;height:var(--bld-h);line-height:var(--bld-h);padding:0 18px 0 4px}.tp-cltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-cltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-cltxtv_ms:active{background-color:var(--in-bg-a)}.tp-cltxtv_mm{color:var(--lbl-fg)}.tp-cltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-not .tp-fldv_b{display:none}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_b:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_b:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_b:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--bld-h) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv.tp-v-disabled .tp-grlv_g{opacity:0.5}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:var(--cnt-h-p);padding-right:var(--cnt-h-p)}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv.tp-v-disabled .tp-lblv_l{opacity:0.5}.tp-lblv.tp-lblv-nol .tp-lblv_l{display:none}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv.tp-v-disabled .tp-lstv_s{opacity:0.5}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-sglv.tp-v-disabled .tp-sglv_i{opacity:0.5}.tp-mllv_i{display:block;height:calc(var(--bld-h) * 3);line-height:var(--bld-h);padding:0 4px;resize:none;white-space:pre}.tp-mllv.tp-v-disabled .tp-mllv_i{opacity:0.5}.tp-p2dpadv{padding-left:calc(var(--bld-h) + 4px)}.tp-p2dpadv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpadv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpadv_ax{opacity:0.1;stroke:var(--in-fg);stroke-dasharray:1}.tp-p2dpadv_l{opacity:0.5;stroke:var(--in-fg);stroke-dasharray:1}.tp-p2dpadv_m{border:var(--in-fg) solid 1px;border-radius:50%;box-sizing:border-box;height:4px;margin-left:-2px;margin-top:-2px;position:absolute;width:4px}.tp-p2dpadv_p:focus .tp-p2dpadv_m{background-color:var(--in-fg);border-width:0}.tp-p2dpadtxtv{display:flex;position:relative}.tp-p2dpadtxtv_b{height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-p2dpadtxtv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dpadtxtv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dpadtxtv_b svg circle{fill:currentColor}.tp-p2dpadtxtv_t{flex:1;margin-left:4px}.tp-p2dpadtxtv .tp-popv{left:calc(-1 * var(--cnt-h-p));right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-popv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:var(--cnt-v-p) var(--cnt-h-p);position:absolute;visibility:hidden;z-index:1000}.tp-popv.tp-popv-v{display:block;visibility:visible}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--bs-br: var(--tp-base-border-radius-v3, 6px);--cnt-h-p: var(--tp-container-horizontal-padding-v3, 4px);--cnt-v-p: var(--tp-container-vertical-padding-v3, 4px);--elm-br: var(--tp-element-border-radius-v3, 2px);--bld-h: var(--tp-blade-height-v3, 20px);--bld-s: var(--tp-blade-spacing-v3, 4px);--value-width: var(--tp-value-width-v3, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-container-background-color, var(--tp-folder-background-color, rgba(187,188,196,0.1)));--cnt-bg-a: var(--tp-container-background-color-active, var(--tp-folder-background-color-active, rgba(187,188,196,0.25)));--cnt-bg-f: var(--tp-container-background-color-focus, var(--tp-folder-background-color-focus, rgba(187,188,196,0.2)));--cnt-bg-h: var(--tp-container-background-color-hover, var(--tp-folder-background-color-hover, rgba(187,188,196,0.15)));--cnt-fg: var(--tp-container-foreground-color, var(--tp-folder-foreground-color, #bbbcc4));--in-bg: var(--tp-input-background-color, rgba(0,0,0,0.2));--in-bg-a: var(--tp-input-background-color-active, rgba(0,0,0,0.35));--in-bg-f: var(--tp-input-background-color-focus, rgba(0,0,0,0.3));--in-bg-h: var(--tp-input-background-color-hover, rgba(0,0,0,0.25));--in-fg: var(--tp-input-foreground-color, #bbbcc4);--lbl-fg: var(--tp-label-foreground-color, rgba(187,188,196,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(187,188,196,0.7));--grv-fg: var(--tp-groove-foreground-color, var(--tp-separator-color, rgba(0,0,0,0.2)));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--grv-fg);--unit-size: var(--bld-h)}.tp-rotv{background-color:var(--bs-bg);border-radius:var(--bs-br);box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br);border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br);padding-left:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_b{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv.tp-rotv-not .tp-rotv_b{display:none}.tp-rotv_c>.tp-fldv.tp-v-lst>.tp-fldv_c,.tp-rotv_c>.tp-tabv.tp-v-lst>.tp-tabv_c{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-lst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c .tp-fldv.tp-v-vlst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst>.tp-fldv_b{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst>.tp-tabv_i{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled{pointer-events:none}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--grv-fg);border-width:0;display:block;height:2px;margin:0;width:100%}.tp-sldv.tp-v-disabled{opacity:0.5}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--bld-h);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:var(--elm-br);bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-tabv.tp-v-disabled{opacity:0.5}.tp-tabv_i{align-items:flex-end;display:flex;overflow:hidden}.tp-tabv.tp-tabv-nop .tp-tabv_i{height:calc(var(--bld-h) + 4px);position:relative}.tp-tabv.tp-tabv-nop .tp-tabv_i::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:0;position:absolute;right:0}.tp-tabv_c{border-left:var(--cnt-bg) solid 4px;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p)}.tp-tbiv{flex:1;min-width:0;position:relative}.tp-tbiv+.tp-tbiv{margin-left:2px}.tp-tbiv+.tp-tbiv::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:-2px;position:absolute;width:2px}.tp-tbiv_b{background-color:var(--cnt-bg);display:block;padding-left:calc(var(--cnt-h-p) + 4px);padding-right:calc(var(--cnt-h-p) + 4px);width:100%}.tp-tbiv_b:hover{background-color:var(--cnt-bg-h)}.tp-tbiv_b:focus{background-color:var(--cnt-bg-f)}.tp-tbiv_b:active{background-color:var(--cnt-bg-a)}.tp-tbiv_b:disabled{opacity:0.5}.tp-tbiv_t{color:var(--cnt-fg);height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);opacity:0.5;overflow:hidden;text-overflow:ellipsis}.tp-tbiv.tp-tbiv-sel .tp-tbiv_t{opacity:1}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-3px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';height:calc(var(--bld-h) - 4px);left:50%;margin-bottom:auto;margin-left:-1px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:border-radius 0.1s, height 0.1s, transform 0.1s, width 0.1s;width:2px}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:50%;height:4px;transform:translateX(-1px);width:4px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:1}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:var(--elm-br);color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
+        embedStyle(doc, 'default', '.tp-lstv_s,.tp-btnv_b,.tp-p2dv_b,.tp-fldv_b,.tp-rotv_b,.tp-colswv_sw,.tp-p2dpv_p,.tp-txtv_i,.tp-grlv_g,.tp-sglv_i,.tp-mllv_i,.tp-ckbv_i,.tp-coltxtv_ms,.tp-tbiv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;font-family:inherit;font-size:inherit;font-weight:inherit;margin:0;outline:none;padding:0}.tp-fldv_c>.tp-cntv.tp-v-lst,.tp-rotv_c>.tp-cntv.tp-v-lst,.tp-tabv_c .tp-brkv>.tp-cntv.tp-v-lst{margin-bottom:calc(-1 * var(--cnt-v-p))}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_c,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_c{border-bottom-left-radius:0}.tp-fldv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-rotv_c>.tp-fldv.tp-v-lst .tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-v-lst .tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c>*:not(.tp-v-fst),.tp-rotv_c>*:not(.tp-v-fst),.tp-tabv_c .tp-brkv>*:not(.tp-v-fst){margin-top:var(--bld-s)}.tp-fldv_c>.tp-sprv:not(.tp-v-fst),.tp-rotv_c>.tp-sprv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-fst),.tp-fldv_c>.tp-cntv:not(.tp-v-fst),.tp-rotv_c>.tp-cntv:not(.tp-v-fst),.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-fst){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-sprv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-sprv+*:not(.tp-v-hidden),.tp-fldv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-rotv_c>.tp-cntv+*:not(.tp-v-hidden),.tp-tabv_c .tp-brkv>.tp-cntv+*:not(.tp-v-hidden){margin-top:var(--cnt-v-p)}.tp-fldv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-rotv_c>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-tabv_c .tp-brkv>.tp-sprv:not(.tp-v-hidden)+.tp-sprv,.tp-fldv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-rotv_c>.tp-cntv:not(.tp-v-hidden)+.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv:not(.tp-v-hidden)+.tp-cntv{margin-top:0}.tp-fldv_c>.tp-cntv,.tp-tabv_c .tp-brkv>.tp-cntv{margin-left:4px}.tp-fldv_c>.tp-fldv>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv>.tp-fldv_b{border-top-left-radius:var(--elm-br);border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-fldv.tp-fldv-expanded>.tp-fldv_b,.tp-tabv_c .tp-brkv>.tp-fldv.tp-fldv-expanded>.tp-fldv_b{border-bottom-left-radius:0}.tp-fldv_c .tp-fldv>.tp-fldv_c,.tp-tabv_c .tp-brkv .tp-fldv>.tp-fldv_c{border-bottom-left-radius:var(--elm-br)}.tp-fldv_c>.tp-tabv>.tp-tabv_i,.tp-tabv_c .tp-brkv>.tp-tabv>.tp-tabv_i{border-top-left-radius:var(--elm-br)}.tp-fldv_c .tp-tabv>.tp-tabv_c,.tp-tabv_c .tp-brkv .tp-tabv>.tp-tabv_c{border-bottom-left-radius:var(--elm-br)}.tp-lstv_s,.tp-btnv_b,.tp-p2dv_b{background-color:var(--btn-bg);border-radius:var(--elm-br);color:var(--btn-fg);cursor:pointer;display:block;font-weight:bold;height:var(--bld-h);line-height:var(--bld-h);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-lstv_s:hover,.tp-btnv_b:hover,.tp-p2dv_b:hover{background-color:var(--btn-bg-h)}.tp-lstv_s:focus,.tp-btnv_b:focus,.tp-p2dv_b:focus{background-color:var(--btn-bg-f)}.tp-lstv_s:active,.tp-btnv_b:active,.tp-p2dv_b:active{background-color:var(--btn-bg-a)}.tp-lstv_s:disabled,.tp-btnv_b:disabled,.tp-p2dv_b:disabled{opacity:0.5}.tp-fldv_b,.tp-rotv_b{background-color:var(--cnt-bg);color:var(--cnt-fg);cursor:pointer;display:block;height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);overflow:hidden;padding-left:calc(var(--cnt-h-p) + 8px);padding-right:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));position:relative;text-align:left;text-overflow:ellipsis;white-space:nowrap;width:100%;transition:border-radius .2s ease-in-out .2s}.tp-fldv_b:hover,.tp-rotv_b:hover{background-color:var(--cnt-bg-h)}.tp-fldv_b:focus,.tp-rotv_b:focus{background-color:var(--cnt-bg-f)}.tp-fldv_b:active,.tp-rotv_b:active{background-color:var(--cnt-bg-a)}.tp-fldv_b:disabled,.tp-rotv_b:disabled{opacity:0.5}.tp-fldv_m,.tp-rotv_m{background:linear-gradient(to left, var(--cnt-fg), var(--cnt-fg) 2px, transparent 2px, transparent 4px, var(--cnt-fg) 4px);border-radius:2px;bottom:0;content:\'\';display:block;height:6px;right:calc(var(--cnt-h-p) + (var(--bld-h) + 4px - 6px) / 2 - 2px);margin:auto;opacity:0.5;position:absolute;top:0;transform:rotate(90deg);transition:transform .2s ease-in-out;width:6px}.tp-fldv.tp-fldv-expanded>.tp-fldv_b>.tp-fldv_m,.tp-rotv.tp-rotv-expanded .tp-rotv_m{transform:none}.tp-fldv_c,.tp-rotv_c{box-sizing:border-box;height:0;opacity:0;overflow:hidden;padding-bottom:0;padding-top:0;position:relative;transition:height .2s ease-in-out,opacity .2s linear,padding .2s ease-in-out}.tp-fldv.tp-fldv-expanded>.tp-fldv_c,.tp-rotv.tp-rotv-expanded .tp-rotv_c{opacity:1;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p);transform:none;overflow:visible;transition:height .2s ease-in-out,opacity .2s linear .2s,padding .2s ease-in-out}.tp-colswv_sw,.tp-p2dpv_p,.tp-txtv_i{background-color:var(--in-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--in-fg);font-family:inherit;height:var(--bld-h);line-height:var(--bld-h);min-width:0;width:100%}.tp-colswv_sw:hover,.tp-p2dpv_p:hover,.tp-txtv_i:hover{background-color:var(--in-bg-h)}.tp-colswv_sw:focus,.tp-p2dpv_p:focus,.tp-txtv_i:focus{background-color:var(--in-bg-f)}.tp-colswv_sw:active,.tp-p2dpv_p:active,.tp-txtv_i:active{background-color:var(--in-bg-a)}.tp-colswv_sw:disabled,.tp-p2dpv_p:disabled,.tp-txtv_i:disabled{opacity:0.5}.tp-coltxtv_m,.tp-lstv{position:relative}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-coltxtv_mm,.tp-lstv_m{bottom:0;margin:auto;pointer-events:none;position:absolute;right:2px;top:0}.tp-coltxtv_mm svg,.tp-lstv_m svg{bottom:0;height:16px;margin:auto;position:absolute;right:0;top:0;width:16px}.tp-coltxtv_mm svg path,.tp-lstv_m svg path{fill:currentColor}.tp-grlv_g,.tp-sglv_i,.tp-mllv_i{background-color:var(--mo-bg);border-radius:var(--elm-br);box-sizing:border-box;color:var(--mo-fg);height:var(--bld-h);width:100%}.tp-coltxtv_w,.tp-pndtxtv{display:flex}.tp-coltxtv_c,.tp-pndtxtv_a{width:100%}.tp-coltxtv_c+.tp-coltxtv_c,.tp-pndtxtv_a+.tp-coltxtv_c,.tp-coltxtv_c+.tp-pndtxtv_a,.tp-pndtxtv_a+.tp-pndtxtv_a{margin-left:2px}.tp-btnv_b{width:100%}.tp-ckbv_l{display:block;position:relative}.tp-ckbv_i{left:0;opacity:0;position:absolute;top:0}.tp-ckbv_w{background-color:var(--in-bg);border-radius:var(--elm-br);cursor:pointer;display:block;height:var(--bld-h);position:relative;width:var(--bld-h)}.tp-ckbv_w svg{bottom:0;display:block;height:16px;left:0;margin:auto;opacity:0;position:absolute;right:0;top:0;width:16px}.tp-ckbv_w svg path{fill:none;stroke:var(--in-fg);stroke-width:2}.tp-ckbv_i:hover+.tp-ckbv_w{background-color:var(--in-bg-h)}.tp-ckbv_i:focus+.tp-ckbv_w{background-color:var(--in-bg-f)}.tp-ckbv_i:active+.tp-ckbv_w{background-color:var(--in-bg-a)}.tp-ckbv_i:checked+.tp-ckbv_w svg{opacity:1}.tp-ckbv.tp-v-disabled .tp-ckbv_w{opacity:0.5}.tp-colv{position:relative}.tp-colv_h{display:flex}.tp-colv_s{flex-grow:0;flex-shrink:0;width:var(--bld-h)}.tp-colv_t{flex:1;margin-left:4px}.tp-colv_p{height:0;margin-top:0;opacity:0;overflow:hidden;transition:height .2s ease-in-out,opacity .2s linear,margin .2s ease-in-out}.tp-colv.tp-colv-expanded .tp-colv_p{margin-top:var(--bld-s);opacity:1}.tp-colv .tp-popv{left:calc(-1 * var(--cnt-h-p));right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-colpv_h,.tp-colpv_ap{margin-left:6px;margin-right:6px}.tp-colpv_h{margin-top:var(--bld-s)}.tp-colpv_rgb{display:flex;margin-top:var(--bld-s);width:100%}.tp-colpv_a{display:flex;margin-top:var(--cnt-v-p);padding-top:calc(var(--cnt-v-p) + 2px);position:relative}.tp-colpv_a:before{background-color:var(--grv-fg);content:\'\';height:2px;left:calc(-1 * var(--cnt-h-p));position:absolute;right:calc(-1 * var(--cnt-h-p));top:0}.tp-colpv_ap{align-items:center;display:flex;flex:3}.tp-colpv_at{flex:1;margin-left:4px}.tp-svpv{border-radius:var(--elm-br);outline:none;overflow:hidden;position:relative}.tp-svpv_c{cursor:crosshair;display:block;height:calc(var(--bld-h) * 4);width:100%}.tp-svpv_m{border-radius:100%;border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(0,0,0,0.3));height:12px;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;width:12px}.tp-svpv:focus .tp-svpv_m{border-color:#fff}.tp-hplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative}.tp-hplv_c{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAABCAYAAABubagXAAAAQ0lEQVQoU2P8z8Dwn0GCgQEDi2OK/RBgYHjBgIpfovFh8j8YBIgzFGQxuqEgPhaDOT5gOhPkdCxOZeBg+IDFZZiGAgCaSSMYtcRHLgAAAABJRU5ErkJggg==);background-position:left top;background-repeat:no-repeat;background-size:100% 100%;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;position:absolute;top:50%;width:100%}.tp-hplv_m{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-shadow:0 0 2px rgba(0,0,0,0.1);box-sizing:border-box;height:12px;left:50%;margin-left:-6px;margin-top:-6px;pointer-events:none;position:absolute;top:50%;width:12px}.tp-hplv:focus .tp-hplv_m{border-color:#fff}.tp-aplv{cursor:pointer;height:var(--bld-h);outline:none;position:relative;width:100%}.tp-aplv_b{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:4px 4px;background-position:0 0,2px 2px;border-radius:2px;display:block;height:4px;left:0;margin-top:-2px;overflow:hidden;position:absolute;top:50%;width:100%}.tp-aplv_c{bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv_m{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;border-radius:var(--elm-br);box-shadow:0 0 2px rgba(0,0,0,0.1);height:12px;left:50%;margin-left:-6px;margin-top:-6px;overflow:hidden;pointer-events:none;position:absolute;top:50%;width:12px}.tp-aplv_p{border-radius:var(--elm-br);border:rgba(255,255,255,0.75) solid 2px;box-sizing:border-box;bottom:0;left:0;position:absolute;right:0;top:0}.tp-aplv:focus .tp-aplv_p{border-color:#fff}.tp-colswv{background-color:#fff;background-image:linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),linear-gradient(to top right, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);background-size:10px 10px;background-position:0 0,5px 5px;border-radius:var(--elm-br)}.tp-colswv.tp-v-disabled{opacity:0.5}.tp-colswv_b{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:transparent;border-width:0;cursor:pointer;display:block;height:var(--bld-h);left:0;margin:0;outline:none;padding:0;position:absolute;top:0;width:var(--bld-h)}.tp-colswv_b:focus::after{border:rgba(255,255,255,0.75) solid 2px;border-radius:var(--elm-br);bottom:0;content:\'\';display:block;left:0;position:absolute;right:0;top:0}.tp-coltxtv{display:flex;width:100%}.tp-coltxtv_m{margin-right:4px}.tp-coltxtv_ms{border-radius:var(--elm-br);color:var(--lbl-fg);cursor:pointer;height:var(--bld-h);line-height:var(--bld-h);padding:0 18px 0 4px}.tp-coltxtv_ms:hover{background-color:var(--in-bg-h)}.tp-coltxtv_ms:focus{background-color:var(--in-bg-f)}.tp-coltxtv_ms:active{background-color:var(--in-bg-a)}.tp-coltxtv_mm{color:var(--lbl-fg)}.tp-coltxtv_w{flex:1}.tp-dfwv{position:absolute;top:8px;right:8px;width:256px}.tp-fldv.tp-fldv-not .tp-fldv_b{display:none}.tp-fldv_c{border-left:var(--cnt-bg) solid 4px}.tp-fldv_b:hover+.tp-fldv_c{border-left-color:var(--cnt-bg-h)}.tp-fldv_b:focus+.tp-fldv_c{border-left-color:var(--cnt-bg-f)}.tp-fldv_b:active+.tp-fldv_c{border-left-color:var(--cnt-bg-a)}.tp-grlv{position:relative}.tp-grlv_g{display:block;height:calc(var(--bld-h) * 3)}.tp-grlv_g polyline{fill:none;stroke:var(--mo-fg);stroke-linejoin:round}.tp-grlv_t{margin-top:-4px;transition:left 0.05s, top 0.05s;visibility:hidden}.tp-grlv_t.tp-grlv_t-a{visibility:visible}.tp-grlv_t.tp-grlv_t-in{transition:none}.tp-grlv.tp-v-disabled .tp-grlv_g{opacity:0.5}.tp-grlv .tp-ttv{background-color:var(--mo-fg)}.tp-grlv .tp-ttv::before{border-top-color:var(--mo-fg)}.tp-lblv{align-items:center;display:flex;line-height:1.3;padding-left:var(--cnt-h-p);padding-right:var(--cnt-h-p)}.tp-lblv.tp-lblv-nol{display:block}.tp-lblv_l{color:var(--lbl-fg);flex:1;-webkit-hyphens:auto;-ms-hyphens:auto;hyphens:auto;overflow:hidden;padding-left:4px;padding-right:16px}.tp-lblv.tp-v-disabled .tp-lblv_l{opacity:0.5}.tp-lblv.tp-lblv-nol .tp-lblv_l{display:none}.tp-lblv_v{align-self:flex-start;flex-grow:0;flex-shrink:0;width:var(--value-width)}.tp-lblv.tp-lblv-nol .tp-lblv_v{width:100%}.tp-lstv_s{padding:0 20px 0 4px;width:100%}.tp-lstv.tp-v-disabled .tp-lstv_s{opacity:0.5}.tp-lstv_m{color:var(--btn-fg)}.tp-sglv_i{padding:0 4px}.tp-sglv.tp-v-disabled .tp-sglv_i{opacity:0.5}.tp-mllv_i{display:block;height:calc(var(--bld-h) * 3);line-height:var(--bld-h);padding:0 4px;resize:none;white-space:pre}.tp-mllv.tp-v-disabled .tp-mllv_i{opacity:0.5}.tp-p2dv{position:relative}.tp-p2dv_h{display:flex}.tp-p2dv_b{height:var(--bld-h);margin-right:4px;position:relative;width:var(--bld-h)}.tp-p2dv_b svg{display:block;height:16px;left:50%;margin-left:-8px;margin-top:-8px;position:absolute;top:50%;width:16px}.tp-p2dv_b svg path{stroke:currentColor;stroke-width:2}.tp-p2dv_b svg circle{fill:currentColor}.tp-p2dv_t{flex:1}.tp-p2dv_p{height:0;margin-top:0;opacity:0;overflow:hidden;transition:height .2s ease-in-out,opacity .2s linear,margin .2s ease-in-out}.tp-p2dv.tp-p2dv-expanded .tp-p2dv_p{margin-top:var(--bld-s);opacity:1}.tp-p2dv .tp-popv{left:calc(-1 * var(--cnt-h-p));right:calc(-1 * var(--cnt-h-p));top:var(--bld-h)}.tp-p2dpv{padding-left:calc(var(--bld-h) + 4px)}.tp-p2dpv_p{cursor:crosshair;height:0;overflow:hidden;padding-bottom:100%;position:relative}.tp-p2dpv_g{display:block;height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.tp-p2dpv_ax{opacity:0.1;stroke:var(--in-fg);stroke-dasharray:1}.tp-p2dpv_l{opacity:0.5;stroke:var(--in-fg);stroke-dasharray:1}.tp-p2dpv_m{border:var(--in-fg) solid 1px;border-radius:50%;box-sizing:border-box;height:4px;margin-left:-2px;margin-top:-2px;position:absolute;width:4px}.tp-p2dpv_p:focus .tp-p2dpv_m{background-color:var(--in-fg);border-width:0}.tp-popv{background-color:var(--bs-bg);border-radius:6px;box-shadow:0 2px 4px var(--bs-sh);display:none;max-width:168px;padding:var(--cnt-v-p) var(--cnt-h-p);position:absolute;visibility:hidden;z-index:1000}.tp-popv.tp-popv-v{display:block;visibility:visible}.tp-rotv{--font-family: var(--tp-font-family, Roboto Mono,Source Code Pro,Menlo,Courier,monospace);--bs-br: var(--tp-base-border-radius-v3, 6px);--cnt-h-p: var(--tp-container-horizontal-padding-v3, 4px);--cnt-v-p: var(--tp-container-vertical-padding-v3, 4px);--elm-br: var(--tp-element-border-radius-v3, 2px);--bld-h: var(--tp-blade-height-v3, 20px);--bld-s: var(--tp-blade-spacing-v3, 4px);--value-width: var(--tp-value-width-v3, 160px);--bs-bg: var(--tp-base-background-color, #2f3137);--bs-sh: var(--tp-base-shadow-color, rgba(0,0,0,0.2));--btn-bg: var(--tp-button-background-color, #adafb8);--btn-bg-a: var(--tp-button-background-color-active, #d6d7db);--btn-bg-f: var(--tp-button-background-color-focus, #c8cad0);--btn-bg-h: var(--tp-button-background-color-hover, #bbbcc4);--btn-fg: var(--tp-button-foreground-color, #2f3137);--cnt-bg: var(--tp-container-background-color, var(--tp-folder-background-color, rgba(187,188,196,0.1)));--cnt-bg-a: var(--tp-container-background-color-active, var(--tp-folder-background-color-active, rgba(187,188,196,0.25)));--cnt-bg-f: var(--tp-container-background-color-focus, var(--tp-folder-background-color-focus, rgba(187,188,196,0.2)));--cnt-bg-h: var(--tp-container-background-color-hover, var(--tp-folder-background-color-hover, rgba(187,188,196,0.15)));--cnt-fg: var(--tp-container-foreground-color, var(--tp-folder-foreground-color, #bbbcc4));--in-bg: var(--tp-input-background-color, rgba(0,0,0,0.2));--in-bg-a: var(--tp-input-background-color-active, rgba(0,0,0,0.35));--in-bg-f: var(--tp-input-background-color-focus, rgba(0,0,0,0.3));--in-bg-h: var(--tp-input-background-color-hover, rgba(0,0,0,0.25));--in-fg: var(--tp-input-foreground-color, #bbbcc4);--lbl-fg: var(--tp-label-foreground-color, rgba(187,188,196,0.7));--mo-bg: var(--tp-monitor-background-color, rgba(0,0,0,0.2));--mo-fg: var(--tp-monitor-foreground-color, rgba(187,188,196,0.7));--grv-fg: var(--tp-groove-foreground-color, var(--tp-separator-color, rgba(0,0,0,0.2)));--button-background-color: var(--btn-bg);--button-background-color-active: var(--btn-bg-a);--button-background-color-focus: var(--btn-bg-f);--button-background-color-hover: var(--btn-bg-h);--button-foreground-color: var(--btn-fg);--folder-background-color: var(--cnt-bg);--folder-background-color-active: var(--cnt-bg-a);--folder-background-color-focus: var(--cnt-bg-f);--folder-background-color-hover: var(--cnt-bg-h);--folder-foreground-color: var(--cnt-fg);--input-background-color: var(--in-bg);--input-background-color-active: var(--in-bg-a);--input-background-color-focus: var(--in-bg-f);--input-background-color-hover: var(--in-bg-h);--input-foreground-color: var(--in-fg);--label-foregound-color: var(--lbl-fg);--monitor-background-color: var(--mo-bg);--monitor-foreground-color: var(--mo-fg);--separator-color: var(--grv-fg);--unit-size: var(--bld-h)}.tp-rotv{background-color:var(--bs-bg);border-radius:var(--bs-br);box-shadow:0 2px 4px var(--bs-sh);font-family:var(--font-family);font-size:11px;font-weight:500;line-height:1;text-align:left}.tp-rotv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br);border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br);padding-left:calc(2px * 2 + var(--bld-h) + var(--cnt-h-p));text-align:center}.tp-rotv.tp-rotv-expanded .tp-rotv_b{border-bottom-left-radius:0;border-bottom-right-radius:0}.tp-rotv.tp-rotv-not .tp-rotv_b{display:none}.tp-rotv_c>.tp-fldv.tp-v-lst>.tp-fldv_c,.tp-rotv_c>.tp-tabv.tp-v-lst>.tp-tabv_c{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c>.tp-fldv.tp-v-lst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-left-radius:var(--bs-br);border-bottom-right-radius:var(--bs-br)}.tp-rotv_c .tp-fldv.tp-v-vlst:not(.tp-fldv-expanded)>.tp-fldv_b{border-bottom-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-fldv.tp-v-fst>.tp-fldv_b{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst{margin-top:calc(-1 * var(--cnt-v-p))}.tp-rotv.tp-rotv-not .tp-rotv_c>.tp-tabv.tp-v-fst>.tp-tabv_i{border-top-left-radius:var(--bs-br);border-top-right-radius:var(--bs-br)}.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled{pointer-events:none}.tp-rotv.tp-v-hidden,.tp-rotv .tp-v-hidden{display:none}.tp-sprv_r{background-color:var(--grv-fg);border-width:0;display:block;height:2px;margin:0;width:100%}.tp-sldv.tp-v-disabled{opacity:0.5}.tp-sldv_t{box-sizing:border-box;cursor:pointer;height:var(--bld-h);margin:0 6px;outline:none;position:relative}.tp-sldv_t::before{background-color:var(--in-bg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin:auto;position:absolute;right:0;top:0}.tp-sldv_k{height:100%;left:0;position:absolute;top:0}.tp-sldv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';display:block;height:2px;left:0;margin-bottom:auto;margin-top:auto;position:absolute;right:0;top:0}.tp-sldv_k::after{background-color:var(--btn-bg);border-radius:var(--elm-br);bottom:0;content:\'\';display:block;height:12px;margin-bottom:auto;margin-top:auto;position:absolute;right:-6px;top:0;width:12px}.tp-sldv_t:hover .tp-sldv_k::after{background-color:var(--btn-bg-h)}.tp-sldv_t:focus .tp-sldv_k::after{background-color:var(--btn-bg-f)}.tp-sldv_t:active .tp-sldv_k::after{background-color:var(--btn-bg-a)}.tp-sldtxtv{display:flex}.tp-sldtxtv_s{flex:2}.tp-sldtxtv_t{flex:1;margin-left:4px}.tp-tabv.tp-v-disabled{opacity:0.5}.tp-tabv_i{align-items:flex-end;display:flex;overflow:hidden}.tp-tabv.tp-tabv-nop .tp-tabv_i{height:calc(var(--bld-h) + 4px);position:relative}.tp-tabv.tp-tabv-nop .tp-tabv_i::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:0;position:absolute;right:0}.tp-tabv_c{border-left:var(--cnt-bg) solid 4px;padding-bottom:var(--cnt-v-p);padding-top:var(--cnt-v-p)}.tp-tbiv{flex:1;min-width:0;position:relative}.tp-tbiv+.tp-tbiv{margin-left:2px}.tp-tbiv+.tp-tbiv::before{background-color:var(--cnt-bg);bottom:0;content:\'\';height:2px;left:-2px;position:absolute;width:2px}.tp-tbiv_b{background-color:var(--cnt-bg);display:block;padding-left:calc(var(--cnt-h-p) + 4px);padding-right:calc(var(--cnt-h-p) + 4px);width:100%}.tp-tbiv_b:hover{background-color:var(--cnt-bg-h)}.tp-tbiv_b:focus{background-color:var(--cnt-bg-f)}.tp-tbiv_b:active{background-color:var(--cnt-bg-a)}.tp-tbiv_b:disabled{opacity:0.5}.tp-tbiv_t{color:var(--cnt-fg);height:calc(var(--bld-h) + 4px);line-height:calc(var(--bld-h) + 4px);opacity:0.5;overflow:hidden;text-overflow:ellipsis}.tp-tbiv.tp-tbiv-sel .tp-tbiv_t{opacity:1}.tp-txtv{position:relative}.tp-txtv_i{padding:0 4px}.tp-txtv.tp-txtv-fst .tp-txtv_i{border-bottom-right-radius:0;border-top-right-radius:0}.tp-txtv.tp-txtv-mid .tp-txtv_i{border-radius:0}.tp-txtv.tp-txtv-lst .tp-txtv_i{border-bottom-left-radius:0;border-top-left-radius:0}.tp-txtv.tp-txtv-num .tp-txtv_i{text-align:right}.tp-txtv.tp-txtv-drg .tp-txtv_i{opacity:0.3}.tp-txtv_k{cursor:pointer;height:100%;left:-3px;position:absolute;top:0;width:12px}.tp-txtv_k::before{background-color:var(--in-fg);border-radius:1px;bottom:0;content:\'\';height:calc(var(--bld-h) - 4px);left:50%;margin-bottom:auto;margin-left:-1px;margin-top:auto;opacity:0.1;position:absolute;top:0;transition:border-radius 0.1s, height 0.1s, transform 0.1s, width 0.1s;width:2px}.tp-txtv_k:hover::before,.tp-txtv.tp-txtv-drg .tp-txtv_k::before{opacity:1}.tp-txtv.tp-txtv-drg .tp-txtv_k::before{border-radius:50%;height:4px;transform:translateX(-1px);width:4px}.tp-txtv_g{bottom:0;display:block;height:8px;left:50%;margin:auto;overflow:visible;pointer-events:none;position:absolute;top:0;visibility:hidden;width:100%}.tp-txtv.tp-txtv-drg .tp-txtv_g{visibility:visible}.tp-txtv_gb{fill:none;stroke:var(--in-fg);stroke-dasharray:1}.tp-txtv_gh{fill:none;stroke:var(--in-fg)}.tp-txtv .tp-ttv{margin-left:6px;visibility:hidden}.tp-txtv.tp-txtv-drg .tp-ttv{visibility:visible}.tp-ttv{background-color:var(--in-fg);border-radius:var(--elm-br);color:var(--bs-bg);padding:2px 4px;pointer-events:none;position:absolute;transform:translate(-50%, -100%)}.tp-ttv::before{border-color:var(--in-fg) transparent transparent transparent;border-style:solid;border-width:2px;box-sizing:border-box;content:\'\';font-size:0.9em;height:4px;left:50%;margin-left:-2px;position:absolute;top:100%;width:4px}');
         getAllPlugins().forEach(function (plugin) {
             if (plugin.css) {
                 embedStyle(doc, "plugin-" + plugin.id, plugin.css);
@@ -7582,7 +7621,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.4.1');
+        Tweakpane.version = new Semver('2.4.2');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
