@@ -1,4 +1,4 @@
-/*! Tweakpane 2.4.2 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 2.4.3 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -147,30 +147,149 @@
         return Emitter;
     }());
 
-    var Blade = /** @class */ (function () {
-        function Blade() {
+    var BoundValue = /** @class */ (function () {
+        function BoundValue(initialValue, config) {
+            var _a;
+            this.constraint_ = config === null || config === void 0 ? void 0 : config.constraint;
+            this.equals_ = (_a = config === null || config === void 0 ? void 0 : config.equals) !== null && _a !== void 0 ? _a : (function (v1, v2) { return v1 === v2; });
             this.emitter = new Emitter();
-            this.positions_ = [];
+            this.rawValue_ = initialValue;
         }
-        Object.defineProperty(Blade.prototype, "positions", {
+        Object.defineProperty(BoundValue.prototype, "constraint", {
             get: function () {
-                return this.positions_;
+                return this.constraint_;
             },
-            set: function (positions) {
-                if (deepEqualsArray(positions, this.positions_)) {
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(BoundValue.prototype, "rawValue", {
+            get: function () {
+                return this.rawValue_;
+            },
+            set: function (rawValue) {
+                var constrainedValue = this.constraint_
+                    ? this.constraint_.constrain(rawValue)
+                    : rawValue;
+                var changed = !this.equals_(this.rawValue_, constrainedValue);
+                if (!changed) {
                     return;
                 }
-                this.positions_ = positions;
+                this.emitter.emit('beforechange', {
+                    sender: this,
+                });
+                this.rawValue_ = constrainedValue;
                 this.emitter.emit('change', {
-                    propertyName: 'positions',
+                    rawValue: constrainedValue,
                     sender: this,
                 });
             },
             enumerable: false,
             configurable: true
         });
-        return Blade;
+        return BoundValue;
     }());
+
+    var PrimitiveValue = /** @class */ (function () {
+        function PrimitiveValue(initialValue) {
+            this.emitter = new Emitter();
+            this.value_ = initialValue;
+        }
+        Object.defineProperty(PrimitiveValue.prototype, "rawValue", {
+            get: function () {
+                return this.value_;
+            },
+            set: function (value) {
+                if (this.value_ === value) {
+                    return;
+                }
+                this.emitter.emit('beforechange', {
+                    sender: this,
+                });
+                this.value_ = value;
+                this.emitter.emit('change', {
+                    sender: this,
+                    rawValue: this.value_,
+                });
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return PrimitiveValue;
+    }());
+
+    function createValue(initialValue, config) {
+        var constraint = config === null || config === void 0 ? void 0 : config.constraint;
+        var equals = config === null || config === void 0 ? void 0 : config.equals;
+        if (!constraint && !equals) {
+            return new PrimitiveValue(initialValue);
+        }
+        return new BoundValue(initialValue, config);
+    }
+
+    var ValueMap = /** @class */ (function () {
+        function ValueMap(valueMap) {
+            var _this = this;
+            this.emitter = new Emitter();
+            this.valMap_ = valueMap;
+            var _loop_1 = function (key) {
+                var v = this_1.valMap_[key];
+                v.emitter.on('change', function () {
+                    _this.emitter.emit('change', {
+                        key: key,
+                        sender: _this,
+                    });
+                });
+            };
+            var this_1 = this;
+            for (var key in this.valMap_) {
+                _loop_1(key);
+            }
+        }
+        ValueMap.createCore = function (initialValue) {
+            var keys = Object.keys(initialValue);
+            return keys.reduce(function (o, key) {
+                var _a;
+                return Object.assign(o, (_a = {},
+                    _a[key] = createValue(initialValue[key]),
+                    _a));
+            }, {});
+        };
+        ValueMap.fromObject = function (initialValue) {
+            var core = this.createCore(initialValue);
+            return new ValueMap(core);
+        };
+        ValueMap.prototype.get = function (key) {
+            return this.valMap_[key].rawValue;
+        };
+        ValueMap.prototype.set = function (key, value) {
+            this.valMap_[key].rawValue = value;
+        };
+        ValueMap.prototype.value = function (key) {
+            return this.valMap_[key];
+        };
+        // TODO: Remove in the next major version
+        /** @deprecated Use ValueMap.value.emitter instead. */
+        ValueMap.prototype.valueEmitter = function (key) {
+            console.warn("ValueMap.valueEmitter is deprecated. Use ValueMap.value.emitter instead.\nThis polyfill will be removed in the next major version.");
+            return this.valMap_[key].emitter;
+        };
+        return ValueMap;
+    }());
+
+    function createBlade$1() {
+        return new ValueMap({
+            positions: createValue([], {
+                equals: deepEqualsArray,
+            }),
+        });
+    }
+
+    function disposeElement(elem) {
+        if (elem && elem.parentElement) {
+            elem.parentElement.removeChild(elem);
+        }
+        return null;
+    }
 
     var PREFIX = 'tp';
     /**
@@ -198,75 +317,11 @@
         return fn;
     }
 
-    function compose(h1, h2) {
-        return function (input) { return h2(h1(input)); };
-    }
-    function extractValue(ev) {
-        return ev.rawValue;
-    }
-    function applyClass(elem, className, active) {
-        if (active) {
-            elem.classList.add(className);
-        }
-        else {
-            elem.classList.remove(className);
-        }
-    }
-    function valueToClassName(elem, className) {
-        return function (value) {
-            applyClass(elem, className, value);
-        };
-    }
-    var className$q = ClassName('');
-    function valueToModifier(elem, modifier) {
-        return valueToClassName(elem, className$q(undefined, modifier));
-    }
-    function bindValue(value, applyValue) {
-        value.emitter.on('change', compose(extractValue, applyValue));
-        applyValue(value.rawValue);
-    }
-    function bindValueMap(valueMap, key, applyValue) {
-        bindValue(valueMap.value(key), applyValue);
-    }
-    function bindClassModifier(viewProps, elem) {
-        bindValueMap(viewProps, 'disabled', valueToModifier(elem, 'disabled'));
-        bindValueMap(viewProps, 'hidden', valueToModifier(elem, 'hidden'));
-    }
-    function bindDisabled(viewProps, target) {
-        bindValueMap(viewProps, 'disabled', function (disabled) {
-            target.disabled = disabled;
-        });
-    }
-    function bindTabIndex(viewProps, elem) {
-        bindValueMap(viewProps, 'disabled', function (disabled) {
-            elem.tabIndex = disabled ? -1 : 0;
-        });
-    }
-    function bindTextContent(valueMap, key, elem) {
-        bindValueMap(valueMap, key, function (text) {
-            elem.textContent = text !== null && text !== void 0 ? text : '';
-        });
-    }
-    function bindDisposed(viewProps, callback) {
-        viewProps.value('disposed').emitter.on('change', function (disposed) {
-            if (disposed) {
-                callback();
-            }
-        });
-    }
-
-    function disposeElement(elem) {
-        if (elem && elem.parentElement) {
-            elem.parentElement.removeChild(elem);
-        }
-        return null;
-    }
-
     function getAllBladePositions() {
         return ['veryfirst', 'first', 'last', 'verylast'];
     }
 
-    var className$p = ClassName('');
+    var className$q = ClassName('');
     var POS_TO_CLASS_NAME_MAP = {
         veryfirst: 'vfst',
         first: 'fst',
@@ -281,17 +336,15 @@
             this.view = config.view;
             this.viewProps = config.viewProps;
             var elem = this.view.element;
-            this.blade.emitter.on('change', function (ev) {
-                if (ev.propertyName === 'positions') {
-                    getAllBladePositions().forEach(function (pos) {
-                        elem.classList.remove(className$p(undefined, POS_TO_CLASS_NAME_MAP[pos]));
-                    });
-                    _this.blade.positions.forEach(function (pos) {
-                        elem.classList.add(className$p(undefined, POS_TO_CLASS_NAME_MAP[pos]));
-                    });
-                }
+            this.blade.value('positions').emitter.on('change', function () {
+                getAllBladePositions().forEach(function (pos) {
+                    elem.classList.remove(className$q(undefined, POS_TO_CLASS_NAME_MAP[pos]));
+                });
+                _this.blade.get('positions').forEach(function (pos) {
+                    elem.classList.add(className$q(undefined, POS_TO_CLASS_NAME_MAP[pos]));
+                });
             });
-            bindDisposed(this.viewProps, function () {
+            this.viewProps.handleDispose(function () {
                 // TODO: Remove in the next major version
                 if (_this.view.onDispose) {
                     console.warn("View.onDispose is deprecated. Use ViewProps.value('disposed').emitter instead.");
@@ -379,7 +432,21 @@
         return null;
     }
 
-    var className$o = ClassName('lbl');
+    function compose(h1, h2) {
+        return function (input) { return h2(h1(input)); };
+    }
+    function extractValue(ev) {
+        return ev.rawValue;
+    }
+    function bindValue(value, applyValue) {
+        value.emitter.on('change', compose(extractValue, applyValue));
+        applyValue(value.rawValue);
+    }
+    function bindValueMap(valueMap, key, applyValue) {
+        bindValue(valueMap.value(key), applyValue);
+    }
+
+    var className$p = ClassName('lbl');
     function createLabelNode(doc, label) {
         var frag = doc.createDocumentFragment();
         var lineNodes = label.split('\n').map(function (line) {
@@ -400,16 +467,16 @@
         function LabelView(doc, config) {
             var _this = this;
             this.element = doc.createElement('div');
-            this.element.classList.add(className$o());
-            bindClassModifier(config.viewProps, this.element);
+            this.element.classList.add(className$p());
+            config.viewProps.bindClassModifiers(this.element);
             var labelElem = doc.createElement('div');
-            labelElem.classList.add(className$o('l'));
+            labelElem.classList.add(className$p('l'));
             bindValueMap(config.props, 'label', function (value) {
                 if (isEmpty(value)) {
-                    _this.element.classList.add(className$o(undefined, 'nol'));
+                    _this.element.classList.add(className$p(undefined, 'nol'));
                 }
                 else {
-                    _this.element.classList.remove(className$o(undefined, 'nol'));
+                    _this.element.classList.remove(className$p(undefined, 'nol'));
                     removeChildNodes(labelElem);
                     labelElem.appendChild(createLabelNode(doc, value));
                 }
@@ -417,7 +484,7 @@
             this.element.appendChild(labelElem);
             this.labelElement = labelElem;
             var valueElem = doc.createElement('div');
-            valueElem.classList.add(className$o('v'));
+            valueElem.classList.add(className$p('v'));
             this.element.appendChild(valueElem);
             this.valueElement = valueElem;
         }
@@ -437,7 +504,7 @@
             _this.valueController = config.valueController;
             _this.view.valueElement.appendChild(_this.valueController.view.element);
             // TODO: Remove in the next major version
-            bindDisposed(_this.viewProps, function () {
+            _this.viewProps.handleDispose(function () {
                 var vc = _this.valueController;
                 if (vc.onDispose) {
                     console.warn("Controller.onDispose is deprecated. Use ViewProps.value('disposed').emitter instead.");
@@ -499,124 +566,68 @@
         return InputBinding;
     }());
 
-    var BoundValue = /** @class */ (function () {
-        function BoundValue(initialValue, config) {
-            var _a;
-            this.constraint_ = config === null || config === void 0 ? void 0 : config.constraint;
-            this.equals_ = (_a = config === null || config === void 0 ? void 0 : config.equals) !== null && _a !== void 0 ? _a : (function (v1, v2) { return v1 === v2; });
-            this.emitter = new Emitter();
-            this.rawValue_ = initialValue;
+    function applyClass(elem, className, active) {
+        if (active) {
+            elem.classList.add(className);
         }
-        Object.defineProperty(BoundValue.prototype, "constraint", {
-            get: function () {
-                return this.constraint_;
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(BoundValue.prototype, "rawValue", {
-            get: function () {
-                return this.rawValue_;
-            },
-            set: function (rawValue) {
-                var constrainedValue = this.constraint_
-                    ? this.constraint_.constrain(rawValue)
-                    : rawValue;
-                var changed = !this.equals_(this.rawValue_, constrainedValue);
-                if (!changed) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    sender: this,
-                });
-                this.rawValue_ = constrainedValue;
-                this.emitter.emit('change', {
-                    rawValue: constrainedValue,
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return BoundValue;
-    }());
-
-    var PrimitiveValue = /** @class */ (function () {
-        function PrimitiveValue(initialValue) {
-            this.emitter = new Emitter();
-            this.value_ = initialValue;
+        else {
+            elem.classList.remove(className);
         }
-        Object.defineProperty(PrimitiveValue.prototype, "rawValue", {
-            get: function () {
-                return this.value_;
-            },
-            set: function (value) {
-                if (this.value_ === value) {
-                    return;
-                }
-                this.emitter.emit('beforechange', {
-                    sender: this,
-                });
-                this.value_ = value;
-                this.emitter.emit('change', {
-                    sender: this,
-                    rawValue: this.value_,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        return PrimitiveValue;
-    }());
-
-    var ValueMap = /** @class */ (function () {
-        function ValueMap(initialValue) {
-            var _this = this;
-            this.emitter = new Emitter();
-            var keys = Object.keys(initialValue);
-            var props = keys.map(function (key) { return new PrimitiveValue(initialValue[key]); });
-            props.forEach(function (prop, index) {
-                prop.emitter.on('change', function () {
-                    _this.emitter.emit('change', {
-                        key: keys[index],
-                        sender: _this,
-                    });
-                });
-            });
-            this.valMap_ = keys.reduce(function (o, key, index) {
-                var _a;
-                return Object.assign(o, (_a = {},
-                    _a[key] = props[index],
-                    _a));
-            }, {});
-        }
-        ValueMap.prototype.get = function (key) {
-            return this.valMap_[key].rawValue;
+    }
+    function valueToClassName(elem, className) {
+        return function (value) {
+            applyClass(elem, className, value);
         };
-        ValueMap.prototype.set = function (key, value) {
-            this.valMap_[key].rawValue = value;
-        };
-        ValueMap.prototype.value = function (key) {
-            return this.valMap_[key];
-        };
-        // TODO: Remove in the next major version
-        /** @deprecated Use ValueMap.value.emitter instead. */
-        ValueMap.prototype.valueEmitter = function (key) {
-            console.warn("ValueMap.valueEmitter is deprecated. Use ValueMap.value.emitter instead.\nThis polyfill will be removed in the next major version.");
-            return this.valMap_[key].emitter;
-        };
-        return ValueMap;
-    }());
-
-    function createViewProps(opt_initialValue) {
-        var _a, _b;
-        var initialValue = opt_initialValue !== null && opt_initialValue !== void 0 ? opt_initialValue : {};
-        return new ValueMap({
-            disabled: (_a = initialValue.disabled) !== null && _a !== void 0 ? _a : false,
-            disposed: false,
-            hidden: (_b = initialValue.hidden) !== null && _b !== void 0 ? _b : false,
+    }
+    function bindValueToTextContent(value, elem) {
+        bindValue(value, function (text) {
+            elem.textContent = text !== null && text !== void 0 ? text : '';
         });
     }
+
+    var className$o = ClassName('');
+    function valueToModifier(elem, modifier) {
+        return valueToClassName(elem, className$o(undefined, modifier));
+    }
+    var ViewProps = /** @class */ (function (_super) {
+        __extends(ViewProps, _super);
+        function ViewProps(valueMap) {
+            return _super.call(this, valueMap) || this;
+        }
+        ViewProps.create = function (opt_initialValue) {
+            var _a, _b;
+            var initialValue = opt_initialValue !== null && opt_initialValue !== void 0 ? opt_initialValue : {};
+            var coreObj = {
+                disabled: (_a = initialValue.disabled) !== null && _a !== void 0 ? _a : false,
+                disposed: false,
+                hidden: (_b = initialValue.hidden) !== null && _b !== void 0 ? _b : false,
+            };
+            var core = ValueMap.createCore(coreObj);
+            return new ViewProps(core);
+        };
+        ViewProps.prototype.bindClassModifiers = function (elem) {
+            bindValueMap(this, 'disabled', valueToModifier(elem, 'disabled'));
+            bindValueMap(this, 'hidden', valueToModifier(elem, 'hidden'));
+        };
+        ViewProps.prototype.bindDisabled = function (target) {
+            bindValueMap(this, 'disabled', function (disabled) {
+                target.disabled = disabled;
+            });
+        };
+        ViewProps.prototype.bindTabIndex = function (elem) {
+            bindValueMap(this, 'disabled', function (disabled) {
+                elem.tabIndex = disabled ? -1 : 0;
+            });
+        };
+        ViewProps.prototype.handleDispose = function (callback) {
+            this.value('disposed').emitter.on('change', function (disposed) {
+                if (disposed) {
+                    callback();
+                }
+            });
+        };
+        return ViewProps;
+    }(ValueMap));
 
     /**
      * A constraint to combine multiple constraints.
@@ -774,7 +785,7 @@
     // TODO: Remove polyfill in the next major release
     function polyfillViewProps(controller, pluginId) {
         if (!controller.viewProps) {
-            controller.viewProps = createViewProps();
+            controller.viewProps = ViewProps.create();
             console.warn("Missing controller.viewProps (plugin: '" + pluginId + "')\nThis polyfill will be removed in the next major version.");
         }
     }
@@ -793,7 +804,7 @@
         var constraint = plugin.binding.constraint
             ? plugin.binding.constraint(valueArgs)
             : undefined;
-        var value = new BoundValue(reader(initialValue), {
+        var value = createValue(reader(initialValue), {
             constraint: constraint,
             equals: plugin.binding.equals,
         });
@@ -809,16 +820,16 @@
             initialValue: initialValue,
             params: args.params,
             value: binding.value,
-            viewProps: createViewProps({
+            viewProps: ViewProps.create({
                 disabled: args.params.disabled,
+                hidden: args.params.hidden,
             }),
         });
         polyfillViewProps(controller, plugin.id);
-        var blade = new Blade();
         return new InputBindingController(args.document, {
             binding: binding,
-            blade: blade,
-            props: new ValueMap({
+            blade: createBlade$1(),
+            props: ValueMap.fromObject({
                 label: args.params.label || args.target.key,
             }),
             valueController: controller,
@@ -833,8 +844,8 @@
         function MonitorBindingController(doc, config) {
             var _this = _super.call(this, doc, config) || this;
             _this.binding = config.binding;
-            bindDisabled(_this.viewProps, _this.binding.ticker);
-            bindDisposed(_this.viewProps, function () {
+            _this.viewProps.bindDisabled(_this.binding.ticker);
+            _this.viewProps.handleDispose(function () {
                 _this.binding.dispose();
             });
             return _this;
@@ -853,7 +864,7 @@
     function initializeBuffer(bufferSize) {
         var buffer = [];
         fillBuffer(buffer, bufferSize);
-        return new BoundValue(buffer);
+        return createValue(buffer);
     }
     function createTrimmedBuffer(buffer) {
         var index = buffer.indexOf(undefined);
@@ -1036,16 +1047,16 @@
             document: args.document,
             params: args.params,
             value: binding.value,
-            viewProps: createViewProps({
+            viewProps: ViewProps.create({
                 disabled: args.params.disabled,
+                hidden: args.params.hidden,
             }),
         });
         polyfillViewProps(controller, plugin.id);
-        var blade = new Blade();
         return new MonitorBindingController(args.document, {
             binding: binding,
-            blade: blade,
-            props: new ValueMap({
+            blade: createBlade$1(),
+            props: ValueMap.fromObject({
                 label: args.params.label || args.target.key,
             }),
             valueController: controller,
@@ -1331,10 +1342,10 @@
             .value;
         var hidden = ParamsParsers.optional.boolean(args.params['hidden']).value;
         return plugin.controller({
-            blade: new Blade(),
+            blade: createBlade$1(),
             document: args.document,
             params: forceCast(__assign(__assign({}, ac.params), { disabled: disabled, hidden: hidden })),
-            viewProps: createViewProps({
+            viewProps: ViewProps.create({
                 disabled: disabled,
                 hidden: hidden,
             }),
@@ -1697,7 +1708,7 @@
             var className = ClassName(config.viewName);
             this.element = doc.createElement('div');
             this.element.classList.add(className());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
         }
         return PlainView;
     }());
@@ -1753,11 +1764,11 @@
     var BladeRack = /** @class */ (function () {
         function BladeRack(blade) {
             var _a;
-            this.onBladeChange_ = this.onBladeChange_.bind(this);
+            this.onBladePositionsChange_ = this.onBladePositionsChange_.bind(this);
             this.onSetAdd_ = this.onSetAdd_.bind(this);
             this.onSetRemove_ = this.onSetRemove_.bind(this);
             this.onChildDispose_ = this.onChildDispose_.bind(this);
-            this.onChildLayout_ = this.onChildLayout_.bind(this);
+            this.onChildPositionsChange_ = this.onChildPositionsChange_.bind(this);
             this.onChildInputChange_ = this.onChildInputChange_.bind(this);
             this.onChildMonitorUpdate_ = this.onChildMonitorUpdate_.bind(this);
             this.onChildViewPropsChange_ = this.onChildViewPropsChange_.bind(this);
@@ -1766,7 +1777,7 @@
             this.onDescendaantMonitorUpdate_ = this.onDescendaantMonitorUpdate_.bind(this);
             this.emitter = new Emitter();
             this.blade_ = blade !== null && blade !== void 0 ? blade : null;
-            (_a = this.blade_) === null || _a === void 0 ? void 0 : _a.emitter.on('change', this.onBladeChange_);
+            (_a = this.blade_) === null || _a === void 0 ? void 0 : _a.value('positions').emitter.on('change', this.onBladePositionsChange_);
             this.bcSet_ = new NestedOrderedSet(findSubBladeControllerSet);
             this.bcSet_.emitter.on('add', this.onSetAdd_);
             this.bcSet_.emitter.on('remove', this.onSetRemove_);
@@ -1808,8 +1819,10 @@
             }
             var bc = ev.item;
             bc.viewProps.emitter.on('change', this.onChildViewPropsChange_);
-            bc.blade.emitter.on('change', this.onChildLayout_);
-            bindDisposed(bc.viewProps, this.onChildDispose_);
+            bc.blade
+                .value('positions')
+                .emitter.on('change', this.onChildPositionsChange_);
+            bc.viewProps.handleDispose(this.onChildDispose_);
             if (bc instanceof InputBindingController) {
                 bc.binding.emitter.on('change', this.onChildInputChange_);
             }
@@ -1863,26 +1876,25 @@
                 var ps = [];
                 if (bc === firstVisibleItem) {
                     ps.push('first');
-                    if (!_this.blade_ || _this.blade_.positions.includes('veryfirst')) {
+                    if (!_this.blade_ ||
+                        _this.blade_.get('positions').includes('veryfirst')) {
                         ps.push('veryfirst');
                     }
                 }
                 if (bc === lastVisibleItem) {
                     ps.push('last');
-                    if (!_this.blade_ || _this.blade_.positions.includes('verylast')) {
+                    if (!_this.blade_ || _this.blade_.get('positions').includes('verylast')) {
                         ps.push('verylast');
                     }
                 }
-                bc.blade.positions = ps;
+                bc.blade.set('positions', ps);
             });
         };
-        BladeRack.prototype.onChildLayout_ = function (ev) {
-            if (ev.propertyName === 'positions') {
-                this.updatePositions_();
-                this.emitter.emit('layout', {
-                    sender: this,
-                });
-            }
+        BladeRack.prototype.onChildPositionsChange_ = function () {
+            this.updatePositions_();
+            this.emitter.emit('layout', {
+                sender: this,
+            });
         };
         BladeRack.prototype.onChildViewPropsChange_ = function (_ev) {
             this.updatePositions_();
@@ -1939,10 +1951,8 @@
                 sender: this,
             });
         };
-        BladeRack.prototype.onBladeChange_ = function (ev) {
-            if (ev.propertyName === 'positions') {
-                this.updatePositions_();
-            }
+        BladeRack.prototype.onBladePositionsChange_ = function () {
+            this.updatePositions_();
         };
         return BladeRack;
     }());
@@ -1963,7 +1973,7 @@
             rack.emitter.on('add', _this.onRackAdd_);
             rack.emitter.on('remove', _this.onRackRemove_);
             _this.rack = rack;
-            bindDisposed(_this.viewProps, function () {
+            _this.viewProps.handleDispose(function () {
                 for (var i = _this.rack.children.length - 1; i >= 0; i--) {
                     var bc = _this.rack.children[i];
                     bc.viewProps.set('disposed', true);
@@ -2094,7 +2104,7 @@
             this.props_ = config.props;
             this.element = doc.createElement('div');
             this.element.classList.add(className$n());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var selectElem = doc.createElement('select');
             selectElem.classList.add(className$n('s'));
             bindValueMap(this.props_, 'options', function (opts) {
@@ -2107,7 +2117,7 @@
                     selectElem.appendChild(optionElem);
                 });
             });
-            bindDisabled(config.viewProps, selectElem);
+            config.viewProps.bindDisabled(selectElem);
             this.element.appendChild(selectElem);
             this.selectElement = selectElem;
             var markElem = doc.createElement('div');
@@ -2236,15 +2246,15 @@
             },
             controller: function (args) {
                 var ic = new ListController(args.document, {
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         options: normalizeListOptions(args.params.options),
                     }),
-                    value: new PrimitiveValue(args.params.value),
+                    value: createValue(args.params.value),
                     viewProps: args.viewProps,
                 });
                 return new LabelController(args.document, {
                     blade: args.blade,
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         label: args.params.label,
                     }),
                     valueController: ic,
@@ -2299,7 +2309,8 @@
         });
         Object.defineProperty(ButtonApi.prototype, "title", {
             get: function () {
-                return this.controller_.valueController.props.get('title');
+                var _a;
+                return (_a = this.controller_.valueController.props.get('title')) !== null && _a !== void 0 ? _a : '';
             },
             set: function (title) {
                 this.controller_.valueController.props.set('title', title);
@@ -2324,11 +2335,11 @@
         function ButtonView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$m());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$m('b'));
-            bindDisabled(config.viewProps, buttonElem);
-            bindTextContent(config.props, 'title', buttonElem);
+            config.viewProps.bindDisabled(buttonElem);
+            bindValueToTextContent(config.props.value('title'), buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
         }
@@ -2372,11 +2383,11 @@
         controller: function (args) {
             return new LabelController(args.document, {
                 blade: args.blade,
-                props: new ValueMap({
+                props: ValueMap.fromObject({
                     label: args.params.label,
                 }),
                 valueController: new ButtonController(args.document, {
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         title: args.params.title,
                     }),
                     viewProps: args.viewProps,
@@ -2491,7 +2502,7 @@
     }(RackLikeApi));
 
     function createFoldable(expanded) {
-        return new ValueMap({
+        return ValueMap.fromObject({
             expanded: expanded,
             expandedHeight: null,
             shouldFixHeight: false,
@@ -2563,7 +2574,7 @@
             this.className_ = ClassName(config.viewName || 'fld');
             this.element = doc.createElement('div');
             this.element.classList.add(this.className_(), bladeContainerClassName());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             this.foldable_ = config.foldable;
             bindValueMap(this.foldable_, 'expanded', this.onFoldableExpandedChange_);
             var buttonElem = doc.createElement('button');
@@ -2576,12 +2587,12 @@
                     _this.element.classList.remove(_this.className_(undefined, 'not'));
                 }
             });
-            bindDisabled(config.viewProps, buttonElem);
+            config.viewProps.bindDisabled(buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var titleElem = doc.createElement('div');
             titleElem.classList.add(this.className_('t'));
-            bindTextContent(config.props, 'title', titleElem);
+            bindValueToTextContent(config.props.value('title'), titleElem);
             this.buttonElement.appendChild(titleElem);
             this.titleElement = titleElem;
             var markElem = doc.createElement('div');
@@ -2661,7 +2672,7 @@
             return new FolderController(args.document, {
                 blade: args.blade,
                 expanded: args.params.expanded,
-                props: new ValueMap({
+                props: ValueMap.fromObject({
                     title: args.params.title,
                 }),
                 viewProps: args.viewProps,
@@ -2691,7 +2702,7 @@
         function SeparatorView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$l());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var hrElem = doc.createElement('hr');
             hrElem.classList.add(className$l('r'));
             this.element.appendChild(hrElem);
@@ -3469,11 +3480,11 @@
             if (config.arrayPosition) {
                 this.element.classList.add(className$j(undefined, config.arrayPosition));
             }
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$j('i'));
             inputElem.type = 'text';
-            bindDisabled(config.viewProps, inputElem);
+            config.viewProps.bindDisabled(inputElem);
             this.element.appendChild(inputElem);
             this.inputElement = inputElem;
             this.onDraggingChange_ = this.onDraggingChange_.bind(this);
@@ -3545,7 +3556,7 @@
             this.props = config.props;
             this.value = config.value;
             this.viewProps = config.viewProps;
-            this.dragging_ = new BoundValue(null);
+            this.dragging_ = createValue(null);
             this.view = new NumberTextView(doc, {
                 arrayPosition: config.arrayPosition,
                 dragging: this.dragging_,
@@ -3605,10 +3616,10 @@
             this.props_.emitter.on('change', this.onChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$i());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var trackElem = doc.createElement('div');
             trackElem.classList.add(className$i('t'));
-            bindTabIndex(config.viewProps, trackElem);
+            config.viewProps.bindTabIndex(trackElem);
             this.element.appendChild(trackElem);
             this.trackElement = trackElem;
             var knobElem = doc.createElement('div');
@@ -3790,20 +3801,20 @@
             var vc = new SliderTextController(args.document, {
                 baseStep: 1,
                 parser: parseNumber,
-                sliderProps: new ValueMap({
+                sliderProps: ValueMap.fromObject({
                     maxValue: args.params.max,
                     minValue: args.params.min,
                 }),
-                textProps: new ValueMap({
+                textProps: ValueMap.fromObject({
                     draggingScale: getSuitableDraggingScale(undefined, v),
                     formatter: (_b = args.params.format) !== null && _b !== void 0 ? _b : numberToString,
                 }),
-                value: new PrimitiveValue(v),
+                value: createValue(v),
                 viewProps: args.viewProps,
             });
             return new LabelController(args.document, {
                 blade: args.blade,
-                props: new ValueMap({
+                props: ValueMap.fromObject({
                     label: args.params.label,
                 }),
                 valueController: vc,
@@ -3829,7 +3840,7 @@
             var _this = this;
             this.element = doc.createElement('div');
             this.element.classList.add(className$h());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             bindValueMap(config.props, 'selected', function (selected) {
                 if (selected) {
                     _this.element.classList.add(className$h(undefined, 'sel'));
@@ -3840,12 +3851,12 @@
             });
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$h('b'));
-            bindDisabled(config.viewProps, buttonElem);
+            config.viewProps.bindDisabled(buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var titleElem = doc.createElement('div');
             titleElem.classList.add(className$h('t'));
-            bindTextContent(config.props, 'title', titleElem);
+            bindValueToTextContent(config.props.value('title'), titleElem);
             this.buttonElement.appendChild(titleElem);
             this.titleElement = titleElem;
         }
@@ -3881,12 +3892,12 @@
             this.onItemClick_ = this.onItemClick_.bind(this);
             this.ic_ = new TabItemController(doc, {
                 props: config.itemProps,
-                viewProps: createViewProps(),
+                viewProps: ViewProps.create(),
             });
             this.ic_.emitter.on('click', this.onItemClick_);
             this.cc_ = new RackController(doc, {
-                blade: new Blade(),
-                viewProps: createViewProps(),
+                blade: createBlade$1(),
+                viewProps: ViewProps.create(),
             });
             this.props = config.props;
             bindValueMap(this.props, 'selected', function (selected) {
@@ -3921,7 +3932,8 @@
         }
         Object.defineProperty(TabPageApi.prototype, "title", {
             get: function () {
-                return this.controller_.itemController.props.get('title');
+                var _a;
+                return (_a = this.controller_.itemController.props.get('title')) !== null && _a !== void 0 ? _a : '';
             },
             set: function (title) {
                 this.controller_.itemController.props.set('title', title);
@@ -4022,11 +4034,11 @@
         TabApi.prototype.addPage = function (params) {
             var doc = this.controller_.view.element.ownerDocument;
             var pc = new TabPageController(doc, {
-                itemProps: new ValueMap({
+                itemProps: ValueMap.fromObject({
                     selected: false,
                     title: params.title,
                 }),
-                props: new ValueMap({
+                props: ValueMap.fromObject({
                     selected: false,
                 }),
             });
@@ -4078,7 +4090,7 @@
         function TabView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$g(), bladeContainerClassName());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             bindValue(config.empty, valueToClassName(this.element, className$g(undefined, 'nop')));
             var itemsElem = doc.createElement('div');
             itemsElem.classList.add(className$g('i'));
@@ -4100,7 +4112,7 @@
                 blade: config.blade,
                 viewProps: config.viewProps,
             });
-            var empty = new PrimitiveValue(true);
+            var empty = createValue(true);
             _this = _super.call(this, {
                 blade: config.blade,
                 rackController: cr,
@@ -4205,11 +4217,11 @@
             });
             args.params.pages.forEach(function (p) {
                 var pc = new TabPageController(args.document, {
-                    itemProps: new ValueMap({
+                    itemProps: ValueMap.fromObject({
                         selected: false,
                         title: p.title,
                     }),
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         selected: false,
                     }),
                 });
@@ -4234,13 +4246,13 @@
             this.onChange_ = this.onChange_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className$f());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             this.props_ = config.props;
             this.props_.emitter.on('change', this.onChange_);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$f('i'));
             inputElem.type = 'text';
-            bindDisabled(config.viewProps, inputElem);
+            config.viewProps.bindDisabled(inputElem);
             this.element.appendChild(inputElem);
             this.inputElement = inputElem;
             config.value.emitter.on('change', this.onChange_);
@@ -4356,15 +4368,15 @@
                 var _a;
                 var ic = new TextController(args.document, {
                     parser: args.params.parse,
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         formatter: (_a = args.params.format) !== null && _a !== void 0 ? _a : (function (v) { return String(v); }),
                     }),
-                    value: new PrimitiveValue(args.params.value),
+                    value: createValue(args.params.value),
                     viewProps: args.viewProps,
                 });
                 return new LabelController(args.document, {
                     blade: args.blade,
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         label: args.params.label,
                     }),
                     valueController: ic,
@@ -4422,7 +4434,7 @@
             this.onValueChange_ = this.onValueChange_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className$e());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var labelElem = doc.createElement('label');
             labelElem.classList.add(className$e('l'));
             this.element.appendChild(labelElem);
@@ -4431,7 +4443,7 @@
             inputElem.type = 'checkbox';
             labelElem.appendChild(inputElem);
             this.inputElement = inputElem;
-            bindDisabled(config.viewProps, this.inputElement);
+            config.viewProps.bindDisabled(this.inputElement);
             var wrapperElem = doc.createElement('div');
             wrapperElem.classList.add(className$e('w'));
             labelElem.appendChild(wrapperElem);
@@ -4497,7 +4509,7 @@
             var c = args.constraint;
             if (c && findConstraint(c, ListConstraint)) {
                 return new ListController(doc, {
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         options: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
                     }),
                     value: value,
@@ -4519,7 +4531,7 @@
         function PopupView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$d());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             bindValue(config.shows, valueToClassName(this.element, className$d(undefined, 'v')));
         }
         return PopupView;
@@ -4527,7 +4539,7 @@
 
     var PopupController = /** @class */ (function () {
         function PopupController(doc, config) {
-            this.shows = new PrimitiveValue(false);
+            this.shows = createValue(false);
             this.viewProps = config.viewProps;
             this.view = new PopupView(doc, {
                 shows: this.shows,
@@ -4577,40 +4589,6 @@
             secondary.rawValue = forward(primary, secondary);
         });
     }
-
-    var PickedColor = /** @class */ (function () {
-        function PickedColor(value) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
-            this.mode_ = value.rawValue.mode;
-            this.value = value;
-            this.value.emitter.on('change', this.onValueChange_);
-            this.emitter = new Emitter();
-        }
-        Object.defineProperty(PickedColor.prototype, "mode", {
-            get: function () {
-                return this.mode_;
-            },
-            set: function (mode) {
-                if (this.mode_ === mode) {
-                    return;
-                }
-                this.mode_ = mode;
-                this.emitter.emit('change', {
-                    propertyName: 'mode',
-                    sender: this,
-                });
-            },
-            enumerable: false,
-            configurable: true
-        });
-        PickedColor.prototype.onValueChange_ = function () {
-            this.emitter.emit('change', {
-                propertyName: 'value',
-                sender: this,
-            });
-        };
-        return PickedColor;
-    }());
 
     var className$c = ClassName('col');
     /**
@@ -5271,7 +5249,7 @@
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$a());
-            bindTabIndex(config.viewProps, this.element);
+            config.viewProps.bindTabIndex(this.element);
             var barElem = doc.createElement('div');
             barElem.classList.add(className$a('b'));
             this.element.appendChild(barElem);
@@ -5380,7 +5358,7 @@
      */
     var ColorTextView = /** @class */ (function () {
         function ColorTextView(doc, config) {
-            this.onValueChange_ = this.onValueChange_.bind(this);
+            var _this = this;
             this.element = doc.createElement('div');
             this.element.classList.add(className$9());
             var modeElem = doc.createElement('div');
@@ -5399,9 +5377,9 @@
             this.textsElem_ = textsElem;
             this.textViews_ = config.textViews;
             this.applyTextViews_();
-            this.pickedColor = config.pickedColor;
-            this.pickedColor.emitter.on('change', this.onValueChange_);
-            this.update_();
+            bindValue(config.colorMode, function (mode) {
+                _this.modeElem_.value = mode;
+            });
         }
         Object.defineProperty(ColorTextView.prototype, "modeSelectElement", {
             get: function () {
@@ -5421,9 +5399,6 @@
             enumerable: false,
             configurable: true
         });
-        ColorTextView.prototype.update_ = function () {
-            this.modeElem_.value = this.pickedColor.mode;
-        };
         ColorTextView.prototype.applyTextViews_ = function () {
             var _this = this;
             removeChildElements(this.textsElem_);
@@ -5434,9 +5409,6 @@
                 compElem.appendChild(v.element);
                 _this.textsElem_.appendChild(compElem);
             });
-        };
-        ColorTextView.prototype.onValueChange_ = function () {
-            this.update_();
         };
         return ColorTextView;
     }());
@@ -5462,11 +5434,11 @@
             arrayPosition: index === 0 ? 'fst' : index === 3 - 1 ? 'lst' : 'mid',
             baseStep: getBaseStepForColor(false),
             parser: config.parser,
-            props: new ValueMap({
+            props: ValueMap.fromObject({
                 draggingScale: 1,
                 formatter: FORMATTER,
             }),
-            value: new BoundValue(0, {
+            value: createValue(0, {
                 constraint: MODE_TO_CONSTRAINT_MAP[config.colorMode](index),
             }),
             viewProps: config.viewProps,
@@ -5479,26 +5451,20 @@
         function ColorTextController(doc, config) {
             this.onModeSelectChange_ = this.onModeSelectChange_.bind(this);
             this.parser_ = config.parser;
-            this.pickedColor = config.pickedColor;
+            this.value = config.value;
             this.viewProps = config.viewProps;
+            this.colorMode = createValue(this.value.rawValue.mode);
             this.ccs_ = this.createComponentControllers_(doc);
             this.view = new ColorTextView(doc, {
-                pickedColor: this.pickedColor,
+                colorMode: this.colorMode,
                 textViews: [this.ccs_[0].view, this.ccs_[1].view, this.ccs_[2].view],
             });
             this.view.modeSelectElement.addEventListener('change', this.onModeSelectChange_);
         }
-        Object.defineProperty(ColorTextController.prototype, "value", {
-            get: function () {
-                return this.pickedColor.value;
-            },
-            enumerable: false,
-            configurable: true
-        });
         ColorTextController.prototype.createComponentControllers_ = function (doc) {
             var _this = this;
             var cc = {
-                colorMode: this.pickedColor.mode,
+                colorMode: this.colorMode.rawValue,
                 parser: this.parser_,
                 viewProps: this.viewProps,
             };
@@ -5512,10 +5478,10 @@
                     primary: _this.value,
                     secondary: cs.value,
                     forward: function (p) {
-                        return p.rawValue.getComponents(_this.pickedColor.mode)[index];
+                        return p.rawValue.getComponents(_this.colorMode.rawValue)[index];
                     },
                     backward: function (p, s) {
-                        var pickedMode = _this.pickedColor.mode;
+                        var pickedMode = _this.colorMode.rawValue;
                         var comps = p.rawValue.getComponents(pickedMode);
                         comps[index] = s.rawValue;
                         return new Color(appendAlphaComponent(removeAlphaComponent(comps), comps[3]), pickedMode);
@@ -5526,7 +5492,7 @@
         };
         ColorTextController.prototype.onModeSelectChange_ = function (ev) {
             var selectElem = ev.currentTarget;
-            this.pickedColor.mode = selectElem.value;
+            this.colorMode.rawValue = selectElem.value;
             this.ccs_ = this.createComponentControllers_(this.view.element.ownerDocument);
             this.view.textViews = [
                 this.ccs_[0].view,
@@ -5548,7 +5514,7 @@
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$8());
-            bindTabIndex(config.viewProps, this.element);
+            config.viewProps.bindTabIndex(this.element);
             var colorElem = doc.createElement('div');
             colorElem.classList.add(className$8('c'));
             this.element.appendChild(colorElem);
@@ -5631,7 +5597,7 @@
             this.value.emitter.on('change', this.onValueChange_);
             this.element = doc.createElement('div');
             this.element.classList.add(className$7());
-            bindTabIndex(config.viewProps, this.element);
+            config.viewProps.bindTabIndex(this.element);
             var canvasElem = doc.createElement('canvas');
             canvasElem.height = CANVAS_RESOL;
             canvasElem.width = CANVAS_RESOL;
@@ -5739,30 +5705,30 @@
      */
     var ColorPickerController = /** @class */ (function () {
         function ColorPickerController(doc, config) {
-            this.pickedColor = config.pickedColor;
+            this.value = config.value;
             this.viewProps = config.viewProps;
             this.hPaletteC_ = new HPaletteController(doc, {
-                value: this.pickedColor.value,
+                value: this.value,
                 viewProps: this.viewProps,
             });
             this.svPaletteC_ = new SvPaletteController(doc, {
-                value: this.pickedColor.value,
+                value: this.value,
                 viewProps: this.viewProps,
             });
             this.alphaIcs_ = config.supportsAlpha
                 ? {
                     palette: new APaletteController(doc, {
-                        value: this.pickedColor.value,
+                        value: this.value,
                         viewProps: this.viewProps,
                     }),
                     text: new NumberTextController(doc, {
                         parser: parseNumber,
                         baseStep: 0.1,
-                        props: new ValueMap({
+                        props: ValueMap.fromObject({
                             draggingScale: 0.01,
                             formatter: createNumberFormatter(2),
                         }),
-                        value: new BoundValue(0, {
+                        value: createValue(0, {
                             constraint: new RangeConstraint({ min: 0, max: 1 }),
                         }),
                         viewProps: this.viewProps,
@@ -5771,7 +5737,7 @@
                 : null;
             if (this.alphaIcs_) {
                 connectValues({
-                    primary: this.pickedColor.value,
+                    primary: this.value,
                     secondary: this.alphaIcs_.text.value,
                     forward: function (p) {
                         return p.rawValue.getComponents()[3];
@@ -5785,7 +5751,7 @@
             }
             this.textC_ = new ColorTextController(doc, {
                 parser: parseNumber,
-                pickedColor: this.pickedColor,
+                value: this.value,
                 viewProps: this.viewProps,
             });
             this.view = new ColorPickerView(doc, {
@@ -5801,13 +5767,6 @@
                 textView: this.textC_.view,
             });
         }
-        Object.defineProperty(ColorPickerController.prototype, "value", {
-            get: function () {
-                return this.pickedColor.value;
-            },
-            enumerable: false,
-            configurable: true
-        });
         Object.defineProperty(ColorPickerController.prototype, "textController", {
             get: function () {
                 return this.textC_;
@@ -5829,14 +5788,14 @@
             this.value = config.value;
             this.element = doc.createElement('div');
             this.element.classList.add(className$6());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var swatchElem = doc.createElement('div');
             swatchElem.classList.add(className$6('sw'));
             this.element.appendChild(swatchElem);
             this.swatchElem_ = swatchElem;
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$6('b'));
-            bindDisabled(config.viewProps, buttonElem);
+            config.viewProps.bindDisabled(buttonElem);
             this.element.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             this.update_();
@@ -5888,7 +5847,7 @@
             buttonElem.addEventListener('click', this.onButtonClick_);
             this.textC_ = new TextController(doc, {
                 parser: config.parser,
-                props: new ValueMap({
+                props: ValueMap.fromObject({
                     formatter: config.formatter,
                 }),
                 value: this.value,
@@ -5907,8 +5866,8 @@
                     })
                     : null;
             var pickerC = new ColorPickerController(doc, {
-                pickedColor: new PickedColor(this.value),
                 supportsAlpha: config.supportsAlpha,
+                value: this.value,
                 viewProps: this.viewProps,
             });
             pickerC.view.allFocusableElements.forEach(function (elem) {
@@ -5973,11 +5932,15 @@
             this.popC_.shows.rawValue = false;
         };
         ColorController.prototype.onPopupChildKeydown_ = function (ev) {
-            if (!this.popC_) {
-                return;
+            if (this.popC_) {
+                if (ev.key === 'Escape') {
+                    this.popC_.shows.rawValue = false;
+                }
             }
-            if (ev.key === 'Escape') {
-                this.popC_.shows.rawValue = false;
+            else if (this.view.pickerElement) {
+                if (ev.key === 'Escape') {
+                    this.swatchC_.view.buttonElement.focus();
+                }
             }
         };
         return ColorController;
@@ -6280,7 +6243,7 @@
             var c = args.constraint;
             if (c && findConstraint(c, ListConstraint)) {
                 return new ListController(args.document, {
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         options: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
                     }),
                     value: value,
@@ -6293,11 +6256,11 @@
                 return new SliderTextController(args.document, {
                     baseStep: getBaseStep(c),
                     parser: parseNumber,
-                    sliderProps: new ValueMap({
+                    sliderProps: ValueMap.fromObject({
                         maxValue: max,
                         minValue: min,
                     }),
-                    textProps: new ValueMap({
+                    textProps: ValueMap.fromObject({
                         draggingScale: getSuitableDraggingScale(c, value.rawValue),
                         formatter: formatter,
                     }),
@@ -6308,7 +6271,7 @@
             return new NumberTextController(args.document, {
                 baseStep: getBaseStep(c),
                 parser: parseNumber,
-                props: new ValueMap({
+                props: ValueMap.fromObject({
                     draggingScale: getSuitableDraggingScale(c, value.rawValue),
                     formatter: formatter,
                 }),
@@ -6362,7 +6325,7 @@
             baseStep: config.axes[index].baseStep,
             parser: config.parser,
             props: config.axes[index].textProps,
-            value: new BoundValue(0, {
+            value: createValue(0, {
                 constraint: config.axes[index].constraint,
             }),
             viewProps: config.viewProps,
@@ -6445,7 +6408,7 @@
         function Point2dView(doc, config) {
             this.element = doc.createElement('div');
             this.element.classList.add(className$4());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             bindValue(config.expanded, valueToClassName(this.element, className$4(undefined, 'expanded')));
             var headElem = doc.createElement('div');
             headElem.classList.add(className$4('h'));
@@ -6453,7 +6416,7 @@
             var buttonElem = doc.createElement('button');
             buttonElem.classList.add(className$4('b'));
             buttonElem.appendChild(createSvgIconElement(doc, 'p2dpad'));
-            bindDisabled(config.viewProps, buttonElem);
+            config.viewProps.bindDisabled(buttonElem);
             headElem.appendChild(buttonElem);
             this.buttonElement = buttonElem;
             var textElem = doc.createElement('div');
@@ -6490,7 +6453,7 @@
             }
             var padElem = doc.createElement('div');
             padElem.classList.add(className$3('p'));
-            bindTabIndex(config.viewProps, padElem);
+            config.viewProps.bindTabIndex(padElem);
             this.element.appendChild(padElem);
             this.padElement = padElem;
             var svgElem = doc.createElementNS(SVG_NS, 'svg');
@@ -6684,6 +6647,9 @@
         };
         Point2dController.prototype.onPadButtonClick_ = function () {
             this.foldable_.set('expanded', !this.foldable_.get('expanded'));
+            if (this.foldable_.get('expanded')) {
+                this.pickerC_.view.allFocusableElements[0].focus();
+            }
         };
         Point2dController.prototype.onPopupChildBlur_ = function (ev) {
             if (!this.popC_) {
@@ -6704,11 +6670,15 @@
             this.popC_.shows.rawValue = false;
         };
         Point2dController.prototype.onPopupChildKeydown_ = function (ev) {
-            if (!this.popC_) {
-                return;
+            if (this.popC_) {
+                if (ev.key === 'Escape') {
+                    this.popC_.shows.rawValue = false;
+                }
             }
-            if (ev.key === 'Escape') {
-                this.popC_.shows.rawValue = false;
+            else if (this.view.pickerElement) {
+                if (ev.key === 'Escape') {
+                    this.view.buttonElement.focus();
+                }
             }
         };
         return Point2dController;
@@ -6775,7 +6745,7 @@
         return {
             baseStep: getBaseStep(constraint),
             constraint: constraint,
-            textProps: new ValueMap({
+            textProps: ValueMap.fromObject({
                 draggingScale: getSuitableDraggingScale(constraint, initialValue),
                 formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
             }),
@@ -6915,7 +6885,7 @@
         return {
             baseStep: getBaseStep(constraint),
             constraint: constraint,
-            textProps: new ValueMap({
+            textProps: ValueMap.fromObject({
                 draggingScale: getSuitableDraggingScale(constraint, initialValue),
                 formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
             }),
@@ -7047,7 +7017,7 @@
         return {
             baseStep: getBaseStep(constraint),
             constraint: constraint,
-            textProps: new ValueMap({
+            textProps: ValueMap.fromObject({
                 draggingScale: getSuitableDraggingScale(constraint, initialValue),
                 formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
             }),
@@ -7122,7 +7092,7 @@
             var c = args.constraint;
             if (c && findConstraint(c, ListConstraint)) {
                 return new ListController(doc, {
-                    props: new ValueMap({
+                    props: ValueMap.fromObject({
                         options: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
                     }),
                     value: value,
@@ -7131,7 +7101,7 @@
             }
             return new TextController(doc, {
                 parser: function (v) { return v; },
-                props: new ValueMap({
+                props: ValueMap.fromObject({
                     formatter: formatString,
                 }),
                 value: value,
@@ -7169,12 +7139,12 @@
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
             this.element.classList.add(className$2());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var textareaElem = doc.createElement('textarea');
             textareaElem.classList.add(className$2('i'));
             textareaElem.style.height = "calc(var(--bld-h) * " + config.lineCount + ")";
             textareaElem.readOnly = true;
-            bindDisabled(config.viewProps, textareaElem);
+            config.viewProps.bindDisabled(textareaElem);
             this.element.appendChild(textareaElem);
             this.textareaElem_ = textareaElem;
             config.value.emitter.on('change', this.onValueUpdate_);
@@ -7229,12 +7199,12 @@
             this.formatter_ = config.formatter;
             this.element = doc.createElement('div');
             this.element.classList.add(className$1());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             var inputElem = doc.createElement('input');
             inputElem.classList.add(className$1('i'));
             inputElem.readOnly = true;
             inputElem.type = 'text';
-            bindDisabled(config.viewProps, inputElem);
+            config.viewProps.bindDisabled(inputElem);
             this.element.appendChild(inputElem);
             this.inputElem_ = inputElem;
             config.value.emitter.on('change', this.onValueUpdate_);
@@ -7334,7 +7304,7 @@
             this.onValueUpdate_ = this.onValueUpdate_.bind(this);
             this.element = doc.createElement('div');
             this.element.classList.add(className());
-            bindClassModifier(config.viewProps, this.element);
+            config.viewProps.bindClassModifiers(this.element);
             this.formatter_ = config.formatter;
             this.minValue_ = config.minValue;
             this.maxValue_ = config.maxValue;
@@ -7582,11 +7552,11 @@
             var doc = (_a = config.document) !== null && _a !== void 0 ? _a : getWindowDocument();
             var rootController = new RootController(doc, {
                 expanded: config.expanded,
-                blade: new Blade(),
-                props: new ValueMap({
+                blade: createBlade$1(),
+                props: ValueMap.fromObject({
                     title: config.title,
                 }),
-                viewProps: createViewProps(),
+                viewProps: ViewProps.create(),
             });
             _this = _super.call(this, rootController) || this;
             _this.containerElem_ = config.container || createDefaultWrapperElement(doc);
@@ -7621,7 +7591,7 @@
             this.doc_ = null;
             _super.prototype.dispose.call(this);
         };
-        Tweakpane.version = new Semver('2.4.2');
+        Tweakpane.version = new Semver('2.4.3');
         return Tweakpane;
     }(RootApi));
     function registerDefaultPlugins() {
