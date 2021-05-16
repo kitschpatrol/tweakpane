@@ -44,6 +44,7 @@
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
+			<div class="logo_version">3.0.0</div>
 		</a>
 	</div>
 	<ul class="menu_list">
@@ -54,43 +55,43 @@
 			<a class="menuItem_anchor" href="quick-tour.html">Quick tour</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="input.html">Inputs</a>
+			<a class="menuItem_anchor" href="input-bindings.html">Input bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#number">Number</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#number">Number</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#string">String</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#string">String</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#boolean">Boolean</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#boolean">Boolean</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#color">Color</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#color">Color</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#point">Point</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#point">Point</a>
 				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="monitor.html">Monitors</a>
+			<a class="menuItem_anchor" href="monitor-bindings.html">Monitor bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#multiline">Multiline</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#multiline">Multiline</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#buffersize">Buffer size</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#buffersize">Buffer size</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#interval">Interval</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#interval">Interval</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#graph2d">Graph</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#graph2d">Graph</a>
 				</li>
 			</ul>
 		</li>
@@ -110,6 +111,22 @@
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="ui-components.html#separator">Separator</a>
+				</li>
+			</ul>
+		</li>
+		<li class="menuItem">
+			<a class="menuItem_anchor" href="blades.html">Blades</a>
+		</li>
+		<li class="menuItem">
+			<ul class="submenu">
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#text">Text</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#list">List</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#slider">Slider</a>
 				</li>
 			</ul>
 		</li>
@@ -143,7 +160,7 @@
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="api/classes/index.default.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
 		</li>
 		<li class="menuItem">
 			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></a>
@@ -168,7 +185,7 @@
 				</div>
 				<div class="main_innerLayout">
 					
-<h2 id="interval"><a href="https://github.com/cocopon/tweakpane-plugin-interval">Interval</a></h2>
+<h2 id="interval"><a href="https://github.com/tweakpane/plugin-interval">Interval</a></h2>
 <p>Range slider control for interval object value <code>{min, max}</code>.</p>
 <div class="main_mediaLayout">
 	<div class="demo">
@@ -187,8 +204,7 @@ pane.addInput(PARAMS, 'size2', {
   min: 0,
   max: 100,
   step: 1,
-});
-				</code></pre>
+});</code></pre>
 			</div>
 		</div>
 		<div class="demo_resultLayout">
@@ -199,7 +215,7 @@ pane.addInput(PARAMS, 'size2', {
 </div>
 
 
-<h2 id="camerakit"><a href="https://github.com/cocopon/tweakpane-plugin-camerakit">Camerakit</a></h2>
+<h2 id="camerakit"><a href="https://github.com/tweakpane/plugin-camerakit">Camerakit</a></h2>
 <p>Enjoyable camera flavored controls.</p>
 <div class="main_mediaLayout">
 	<div class="demo">
@@ -215,8 +231,7 @@ pane.addInput(PARAMS, 'size2', {
 
 pane.addInput(PARAMS, 'fnum', {
   // Use a ring view of Camerakit
-  plugin: 'camerakit',
-  view: 'ring',
+  view: 'cameraring',
   // Appearance of the ring
   series: 1,
   // Configuration of the scale unit
@@ -228,12 +243,37 @@ pane.addInput(PARAMS, 'fnum', {
   step: 0.02,
 });
 
-// ...
-				</code></pre>
+// ...</code></pre>
 			</div>
 		</div>
 		<div class="demo_resultLayout">
 			<div class="paneContainer" data-pane-camerakit></div>
+		</div>
+	</div>
+</div>
+
+
+<h2 id="cubicbezier"><a href="https://github.com/tweakpane/plugin-cubic-bezier">Cubic bezier</a></h2>
+<div class="main_mediaLayout">
+	<div class="demo">
+		<div class="demo_codeLayout">
+			<div class="codeBlock">
+				<pre><code class="js">const b = pane.addBlade({
+  view: 'cubicbezier',
+  // Control points [x1, y1, x2, y2]
+  value: [0.25, 0.1, 0.25, 1],
+  label: 'bezier',
+  picker: 'inline',
+  expanded: true,
+});
+
+// Calculate y from x (x, y: [0, 1])
+const bezier = b.value;
+console.log(bezier.y(0.5));</code></pre>
+			</div>
+		</div>
+		<div class="demo_resultLayout">
+			<div class="paneContainer" data-pane-cubicbezier></div>
 		</div>
 	</div>
 </div>
@@ -244,12 +284,11 @@ pane.addInput(PARAMS, 'fnum', {
 
 
 <h2 id="create">Create your own plugin</h2>
-<p>From version 2.0.0, you can provide custom input/monitor components for various user inputs with the plugin system.</p>
+<p>From version 2.0.0, you can provide custom components with the plugin system.</p>
 
 <div class="main_mediaLayout">
 	<div class="codeBlock">
-		<pre><code class="js">Tweakpane.registerPlugin({
-  type: 'input',
+		<pre><code class="js">pane.registerPlugin({
   plugin: {
     ...
   },
@@ -260,7 +299,7 @@ pane.addInput(PARAMS, 'fnum', {
 	</div>
 </div>
 
-<p>See the <a href="https://github.com/cocopon/tweakpane-plugin-template">template repository</a> for details.</p>
+<p>See the <a href="https://github.com/tweakpane/plugin-template">template repository</a> for details.</p>
 
 				</div>
 				<div class="main_globalFooterLayout">
@@ -280,8 +319,9 @@ pane.addInput(PARAMS, 'fnum', {
 	<script async defer src="https://buttons.github.io/buttons.js"></script>
 	<script src="assets/tweakpane.js"></script>
 	
-<script src="https://cdn.jsdelivr.net/npm/tweakpane-plugin-interval@0.2.4/dist/tweakpane-plugin-interval.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tweakpane-plugin-camerakit@0.1.4/dist/tweakpane-plugin-camerakit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tweakpane/plugin-interval@0.3.0-beta.0/dist/tweakpane-plugin-interval.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tweakpane/plugin-camerakit@0.2.0-beta.0/dist/tweakpane-plugin-camerakit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tweakpane/plugin-cubic-bezier@0.1.0-beta.0/dist/tweakpane-plugin-cubic-bezier.min.js"></script>
 
 	<script src="assets/bundle.js"></script>
 </body>

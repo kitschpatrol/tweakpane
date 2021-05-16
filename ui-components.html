@@ -44,6 +44,7 @@
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
+			<div class="logo_version">3.0.0</div>
 		</a>
 	</div>
 	<ul class="menu_list">
@@ -54,43 +55,43 @@
 			<a class="menuItem_anchor" href="quick-tour.html">Quick tour</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="input.html">Inputs</a>
+			<a class="menuItem_anchor" href="input-bindings.html">Input bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#number">Number</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#number">Number</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#string">String</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#string">String</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#boolean">Boolean</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#boolean">Boolean</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#color">Color</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#color">Color</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#point">Point</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#point">Point</a>
 				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="monitor.html">Monitors</a>
+			<a class="menuItem_anchor" href="monitor-bindings.html">Monitor bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#multiline">Multiline</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#multiline">Multiline</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#buffersize">Buffer size</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#buffersize">Buffer size</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#interval">Interval</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#interval">Interval</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#graph2d">Graph</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#graph2d">Graph</a>
 				</li>
 			</ul>
 		</li>
@@ -110,6 +111,22 @@
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="ui-components.html#separator">Separator</a>
+				</li>
+			</ul>
+		</li>
+		<li class="menuItem">
+			<a class="menuItem_anchor" href="blades.html">Blades</a>
+		</li>
+		<li class="menuItem">
+			<ul class="submenu">
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#text">Text</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#list">List</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#slider">Slider</a>
 				</li>
 			</ul>
 		</li>
@@ -143,7 +160,7 @@
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="api/classes/index.default.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
 		</li>
 		<li class="menuItem">
 			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></a>
@@ -176,7 +193,7 @@
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 
 const f1 = pane.<strong>addFolder</strong>({
   title: 'Basic',
@@ -202,7 +219,7 @@ f2.addInput(PARAMS, 'randomness');</code></pre></div>
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane({
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane({
   <strong>title</strong>: 'Parameters',
 });
 
@@ -222,7 +239,7 @@ f2.addInput(PARAMS, 'randomness');</code></pre></div>
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 
 const btn = pane.<strong>addButton</strong>({
   title: 'Increment',
@@ -250,7 +267,7 @@ btn.<strong>on</strong>('click', () =&gt; {
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 
 const tab = pane.<strong>addTab</strong>({
   pages: [
@@ -275,7 +292,7 @@ tab.<strong>pages[0]</strong>.addInput(...);
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 pane.addButton({title: 'Previous'});
 pane.addButton({title: 'Next'});
 pane<strong>.addSeparator</strong>();

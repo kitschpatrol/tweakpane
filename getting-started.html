@@ -44,6 +44,7 @@
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
+			<div class="logo_version">3.0.0</div>
 		</a>
 	</div>
 	<ul class="menu_list">
@@ -54,43 +55,43 @@
 			<a class="menuItem_anchor" href="quick-tour.html">Quick tour</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="input.html">Inputs</a>
+			<a class="menuItem_anchor" href="input-bindings.html">Input bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#number">Number</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#number">Number</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#string">String</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#string">String</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#boolean">Boolean</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#boolean">Boolean</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#color">Color</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#color">Color</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#point">Point</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#point">Point</a>
 				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="monitor.html">Monitors</a>
+			<a class="menuItem_anchor" href="monitor-bindings.html">Monitor bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#multiline">Multiline</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#multiline">Multiline</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#buffersize">Buffer size</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#buffersize">Buffer size</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#interval">Interval</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#interval">Interval</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#graph2d">Graph</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#graph2d">Graph</a>
 				</li>
 			</ul>
 		</li>
@@ -110,6 +111,22 @@
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="ui-components.html#separator">Separator</a>
+				</li>
+			</ul>
+		</li>
+		<li class="menuItem">
+			<a class="menuItem_anchor" href="blades.html">Blades</a>
+		</li>
+		<li class="menuItem">
+			<ul class="submenu">
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#text">Text</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#list">List</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#slider">Slider</a>
 				</li>
 			</ul>
 		</li>
@@ -143,7 +160,7 @@
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="api/classes/index.default.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
 		</li>
 		<li class="menuItem">
 			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></a>
@@ -173,7 +190,7 @@
 
 <div class="main_mediaLayout">
 	<div class="codeBlock">
-		<pre><code class="html">&lt;script src=&quot;<strong>https://cdn.jsdelivr.net/npm/tweakpane@2.4.3/dist/tweakpane.min.js</strong>&quot;&gt;&lt;/script&gt;</code></pre>
+		<pre><code class="html">&lt;script src=&quot;<strong>https://cdn.jsdelivr.net/npm/tweakpane@3.0.0/dist/tweakpane.min.js</strong>&quot;&gt;&lt;/script&gt;</code></pre>
 		<div class="codeBlock_title">
 			.html
 		</div>
@@ -184,14 +201,14 @@
 
 <div class="main_mediaLayout">
 	<div class="codeBlock">
-		<pre><code class="html">&lt;script src=&quot;path/to/tweakpane-2.4.3.min.js&quot;&gt;&lt;/script&gt;</code></pre>
+		<pre><code class="html">&lt;script src=&quot;path/to/tweakpane-3.0.0.min.js&quot;&gt;&lt;/script&gt;</code></pre>
 		<div class="codeBlock_title">
 			.html
 		</div>
 	</div>
 </div>
 
-<p>You can also install, require/import it as <a href="https://www.npmjs.com/package/tweakpane" target="_blank">npm package</a>:</p>
+<p>You can also install, import it as <a href="https://www.npmjs.com/package/tweakpane" target="_blank">npm package</a>:</p>
 
 <div class="main_mediaLayout">
 	<div class="codeBlock">
@@ -201,7 +218,7 @@
 
 <div class="main_mediaLayout">
 	<div class="codeBlock">
-		<pre><code class="js">const Tweakpane = require('tweakpane');</code></pre>
+		<pre><code class="js">import {Pane} from 'tweakpane';</code></pre>
 		<div class="codeBlock_title">
 			.js
 		</div>
@@ -210,13 +227,17 @@
 
 
 <h2>2. Create a pane</h2>
-<p>Create an instance of Tweakpane by <code>new Tweakpane()</code>.</p>
+<p>Create an instance of a pane by <code>new</code>.</p>
 
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
 			<div class="codeBlock">
-				<pre><code class="js">const pane = new Tweakpane();</code></pre>
+				<pre><code class="js">// CDN
+const pane = new Tweakpane.Pane();
+
+// npm
+const pane = new Pane();</code></pre>
 			</div>
 		</div>
 		<div class="demo_resultLayout">
@@ -225,7 +246,7 @@
 	</div>
 </div>
 
-<p>All set! Now you can add various components to the pane. <a href="input.html">Inputs</a> for fine-tuning parameters, <a href="monitor.html">Monitors</a> for checking values, and <a href="ui-components.html">more</a>.</p>
+<p>All set! Take a <a href="quick-tour.html">quick tour</a> to see what you can do with the pane.</p>
 
 <h2>What's next</h2>
 <div class="rel">
@@ -241,7 +262,7 @@
 		</a>
 	</div>
 	<div class="relItem relItem-oneline">
-		<a class="relItem_anchor" href="api/classes/index.default.html" target="_blank">
+		<a class="relItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">
 			<div class="relItem_title">
 				API reference<span class="fas fa-external-link-square-alt"></span>
 			</div>

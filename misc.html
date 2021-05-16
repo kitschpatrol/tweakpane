@@ -44,6 +44,7 @@
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
+			<div class="logo_version">3.0.0</div>
 		</a>
 	</div>
 	<ul class="menu_list">
@@ -54,43 +55,43 @@
 			<a class="menuItem_anchor" href="quick-tour.html">Quick tour</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="input.html">Inputs</a>
+			<a class="menuItem_anchor" href="input-bindings.html">Input bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#number">Number</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#number">Number</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#string">String</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#string">String</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#boolean">Boolean</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#boolean">Boolean</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#color">Color</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#color">Color</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="input.html#point">Point</a>
+					<a class="submenuItem_anchor" href="input-bindings.html#point">Point</a>
 				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="monitor.html">Monitors</a>
+			<a class="menuItem_anchor" href="monitor-bindings.html">Monitor bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#multiline">Multiline</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#multiline">Multiline</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#buffersize">Buffer size</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#buffersize">Buffer size</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#interval">Interval</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#interval">Interval</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor.html#graph2d">Graph</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#graph2d">Graph</a>
 				</li>
 			</ul>
 		</li>
@@ -110,6 +111,22 @@
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="ui-components.html#separator">Separator</a>
+				</li>
+			</ul>
+		</li>
+		<li class="menuItem">
+			<a class="menuItem_anchor" href="blades.html">Blades</a>
+		</li>
+		<li class="menuItem">
+			<ul class="submenu">
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#text">Text</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#list">List</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="blades.html#slider">Slider</a>
 				</li>
 			</ul>
 		</li>
@@ -143,7 +160,7 @@
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="api/classes/index.default.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
 		</li>
 		<li class="menuItem">
 			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></a>
@@ -168,12 +185,12 @@
 				<div class="main_innerLayout">
 					
 <h2 id="events">Events</h2>
-<p>Use <code>on()</code> of specific components to listen its changes. Input components will emit <code>change</code> events. The first argument of the event handler is the <a href="./api/classes/api_tp_event.tpchangeevent.html">event object</a> that contains a value.</p>
+<p>Use <code>on()</code> of specific components to listen its changes. Input components will emit <code>change</code> events. The first argument of the event handler is the <a href="./api/classes/index.tpchangeevent.html">event object</a> that contains a value.</p>
 
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 pane.addInput(PARAMS, 'value')
   .<strong>on</strong>('change', (ev) =&gt; {
     console.log(ev.value.toFixed(2));
@@ -191,7 +208,7 @@ pane.addInput(PARAMS, 'value')
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 pane.addInput(PARAMS, 'boolean');
 pane.addInput(PARAMS, 'color');
 pane.addInput(PARAMS, 'number');
@@ -216,7 +233,7 @@ pane.<strong>on</strong>('change', (ev) =&gt; {
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 // pane.addInput(PARAMS, ...);
 // pane.addInput(PARAMS, ...);
 
@@ -236,7 +253,7 @@ console.log(preset);
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 // pane.addInput(PARAMS, ...);
 // pane.addInput(PARAMS, ...);
 
@@ -255,7 +272,7 @@ pane.<strong>importPreset</strong>(preset);
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 pane.addInput(PARAMS1, 'speed');
 pane.addInput(PARAMS2, 'speed', {
   <strong>presetKey</strong>: 'speed2',
@@ -279,7 +296,7 @@ pane.addInput(PARAMS2, 'speed', {
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane({
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane({
   <strong>container</strong>: document.getElementById('someContainer'),
 });
 </code></pre></div>
@@ -294,7 +311,7 @@ pane.addInput(PARAMS2, 'speed', {
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 pane.addInput(PARAMS, 'initSpd', {
   <strong>label</strong>: 'Initial speed',
 });
@@ -316,7 +333,7 @@ pane.addInput(PARAMS, 'size', {
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 // pane.addInput(PARAMS, ...);
 // pane.addInput(PARAMS, ...);
 
@@ -333,7 +350,7 @@ pane.<strong>refresh</strong>();
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 const f = pane.addFolder({
   title: 'Advanced',
 });
@@ -358,7 +375,7 @@ btn.on('click', () => {
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 const i = pane.addInput(PARAMS, 'param', {
   <strong>disabled</strong>: true,
   title: 'Advanced',
@@ -384,7 +401,7 @@ btn.on('click', () => {
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 const i = pane.addInput(PARAMS, 'count');
 
 // ...
@@ -406,7 +423,7 @@ pane.<strong>dispose</strong>();
 <div class="main_mediaLayout">
 	<div class="demo">
 		<div class="demo_codeLayout">
-			<div class="codeBlock"><pre><code class="js">const pane = new Tweakpane();
+			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 pane.addButton({title: 'Run'});
 pane.addButton({title: 'Stop'});
 pane.addButton({
