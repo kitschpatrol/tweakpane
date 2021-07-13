@@ -1,4 +1,4 @@
-/*! Tweakpane 3.0.2 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.0.3 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -53,10 +53,11 @@
         }
     }
     class TpChangeEvent extends TpEvent {
-        constructor(target, value, presetKey) {
+        constructor(target, value, presetKey, last) {
             super(target);
             this.value = value;
             this.presetKey = presetKey;
+            this.last = last !== null && last !== void 0 ? last : true;
         }
     }
     class TpUpdateEvent extends TpEvent {
@@ -327,11 +328,21 @@
             return this.rawValue_;
         }
         set rawValue(rawValue) {
+            this.setRawValue(rawValue, {
+                forceEmit: false,
+                last: true,
+            });
+        }
+        setRawValue(rawValue, options) {
+            const opts = options !== null && options !== void 0 ? options : {
+                forceEmit: false,
+                last: true,
+            };
             const constrainedValue = this.constraint_
                 ? this.constraint_.constrain(rawValue)
                 : rawValue;
             const changed = !this.equals_(this.rawValue_, constrainedValue);
-            if (!changed) {
+            if (!changed && !opts.forceEmit) {
                 return;
             }
             this.emitter.emit('beforechange', {
@@ -339,6 +350,7 @@
             });
             this.rawValue_ = constrainedValue;
             this.emitter.emit('change', {
+                options: opts,
                 rawValue: constrainedValue,
                 sender: this,
             });
@@ -354,7 +366,17 @@
             return this.value_;
         }
         set rawValue(value) {
-            if (this.value_ === value) {
+            this.setRawValue(value, {
+                forceEmit: false,
+                last: true,
+            });
+        }
+        setRawValue(value, options) {
+            const opts = options !== null && options !== void 0 ? options : {
+                forceEmit: false,
+                last: true,
+            };
+            if (this.value_ === value && !opts.forceEmit) {
                 return;
             }
             this.emitter.emit('beforechange', {
@@ -362,8 +384,9 @@
             });
             this.value_ = value;
             this.emitter.emit('change', {
-                sender: this,
+                options: opts,
                 rawValue: this.value_,
+                sender: this,
             });
         }
     }
@@ -928,7 +951,7 @@
         onBindingChange_(ev) {
             const value = ev.sender.target.read();
             this.emitter_.emit('change', {
-                event: new TpChangeEvent(this, forceCast(value), this.controller_.binding.target.presetKey),
+                event: new TpChangeEvent(this, forceCast(value), this.controller_.binding.target.presetKey, ev.options.last),
             });
         }
     }
@@ -1098,13 +1121,13 @@
                 const api = getApiByController(this.apiSet_, bc);
                 const binding = bc.binding;
                 this.emitter_.emit('change', {
-                    event: new TpChangeEvent(api, forceCast(binding.target.read()), binding.target.presetKey),
+                    event: new TpChangeEvent(api, forceCast(binding.target.read()), binding.target.presetKey, ev.options.last),
                 });
             }
             else if (bc instanceof ValueBladeController) {
                 const api = getApiByController(this.apiSet_, bc);
                 this.emitter_.emit('change', {
-                    event: new TpChangeEvent(api, bc.value.rawValue, undefined),
+                    event: new TpChangeEvent(api, bc.value.rawValue, undefined, ev.options.last),
                 });
             }
         }
@@ -1412,6 +1435,7 @@
             }
             this.emitter.emit('inputchange', {
                 bladeController: bc,
+                options: ev.options,
                 sender: this,
             });
         }
@@ -1432,6 +1456,7 @@
             }
             this.emitter.emit('inputchange', {
                 bladeController: bc,
+                options: ev.options,
                 sender: this,
             });
         }
@@ -1444,6 +1469,7 @@
         onDescendantInputChange_(ev) {
             this.emitter.emit('inputchange', {
                 bladeController: ev.bladeController,
+                options: ev.options,
                 sender: this,
             });
         }
@@ -2786,21 +2812,24 @@
             callback();
             changing = false;
         }
-        primary.emitter.on('change', () => {
+        primary.emitter.on('change', (ev) => {
             preventFeedback(() => {
-                secondary.rawValue = forward(primary, secondary);
+                secondary.setRawValue(forward(primary, secondary), ev.options);
             });
         });
-        secondary.emitter.on('change', () => {
+        secondary.emitter.on('change', (ev) => {
             preventFeedback(() => {
-                primary.rawValue = backward(primary, secondary);
+                primary.setRawValue(backward(primary, secondary), ev.options);
             });
             preventFeedback(() => {
-                secondary.rawValue = forward(primary, secondary);
+                secondary.setRawValue(forward(primary, secondary), ev.options);
             });
         });
         preventFeedback(() => {
-            secondary.rawValue = forward(primary, secondary);
+            secondary.setRawValue(forward(primary, secondary), {
+                forceEmit: false,
+                last: true,
+            });
         });
     }
 
@@ -3089,16 +3118,33 @@
             this.originRawValue_ = this.value.rawValue;
             this.dragging_.rawValue = 0;
         }
+        computeDraggingValue_(data) {
+            if (!data.point) {
+                return null;
+            }
+            const dx = data.point.x - data.bounds.width / 2;
+            return this.originRawValue_ + dx * this.props.get('draggingScale');
+        }
         onPointerMove_(ev) {
-            if (!ev.data.point) {
+            const v = this.computeDraggingValue_(ev.data);
+            if (v === null) {
                 return;
             }
-            const dx = ev.data.point.x - ev.data.bounds.width / 2;
-            this.value.rawValue =
-                this.originRawValue_ + dx * this.props.get('draggingScale');
+            this.value.setRawValue(v, {
+                forceEmit: false,
+                last: false,
+            });
             this.dragging_.rawValue = this.value.rawValue - this.originRawValue_;
         }
-        onPointerUp_() {
+        onPointerUp_(ev) {
+            const v = this.computeDraggingValue_(ev.data);
+            if (v === null) {
+                return;
+            }
+            this.value.setRawValue(v, {
+                forceEmit: true,
+                last: true,
+            });
             this.dragging_.rawValue = null;
         }
     }
@@ -3137,7 +3183,8 @@
     class SliderController {
         constructor(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
-            this.onPoint_ = this.onPoint_.bind(this);
+            this.onPointerDownOrMove_ = this.onPointerDownOrMove_.bind(this);
+            this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.baseStep_ = config.baseStep;
             this.value = config.value;
             this.viewProps = config.viewProps;
@@ -3148,19 +3195,28 @@
                 viewProps: this.viewProps,
             });
             this.ptHandler_ = new PointerHandler(this.view.trackElement);
-            this.ptHandler_.emitter.on('down', this.onPoint_);
-            this.ptHandler_.emitter.on('move', this.onPoint_);
-            this.ptHandler_.emitter.on('up', this.onPoint_);
+            this.ptHandler_.emitter.on('down', this.onPointerDownOrMove_);
+            this.ptHandler_.emitter.on('move', this.onPointerDownOrMove_);
+            this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.trackElement.addEventListener('keydown', this.onKeyDown_);
         }
-        handlePointerEvent_(d) {
+        handlePointerEvent_(d, opts) {
             if (!d.point) {
                 return;
             }
-            this.value.rawValue = mapRange(constrainRange(d.point.x, 0, d.bounds.width), 0, d.bounds.width, this.props.get('minValue'), this.props.get('maxValue'));
+            this.value.setRawValue(mapRange(constrainRange(d.point.x, 0, d.bounds.width), 0, d.bounds.width, this.props.get('minValue'), this.props.get('maxValue')), opts);
         }
-        onPoint_(ev) {
-            this.handlePointerEvent_(ev.data);
+        onPointerDownOrMove_(ev) {
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
+        }
+        onPointerUp_(ev) {
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: true,
+                last: true,
+            });
         }
         onKeyDown_(ev) {
             this.value.rawValue += getStepForKey(this.baseStep_, getHorizontalStepKeys(ev));
@@ -4015,23 +4071,32 @@
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
-        handlePointerEvent_(d) {
+        handlePointerEvent_(d, opts) {
             if (!d.point) {
                 return;
             }
             const alpha = d.point.x / d.bounds.width;
             const c = this.value.rawValue;
             const [h, s, v] = c.getComponents('hsv');
-            this.value.rawValue = new Color([h, s, v, alpha], 'hsv');
+            this.value.setRawValue(new Color([h, s, v, alpha], 'hsv'), opts);
         }
         onPointerDown_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerMove_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerUp_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: true,
+                last: true,
+            });
         }
         onKeyDown_(ev) {
             const step = getStepForKey(getBaseStepForColor(true), getHorizontalStepKeys(ev));
@@ -4237,23 +4302,32 @@
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
-        handlePointerEvent_(d) {
+        handlePointerEvent_(d, opts) {
             if (!d.point) {
                 return;
             }
             const hue = mapRange(d.point.x, 0, d.bounds.width, 0, 360);
             const c = this.value.rawValue;
             const [, s, v, a] = c.getComponents('hsv');
-            this.value.rawValue = new Color([hue, s, v, a], 'hsv');
+            this.value.setRawValue(new Color([hue, s, v, a], 'hsv'), opts);
         }
         onPointerDown_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerMove_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerUp_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: true,
+                last: true,
+            });
         }
         onKeyDown_(ev) {
             const step = getStepForKey(getBaseStepForColor(false), getHorizontalStepKeys(ev));
@@ -4337,23 +4411,32 @@
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
         }
-        handlePointerEvent_(d) {
+        handlePointerEvent_(d, opts) {
             if (!d.point) {
                 return;
             }
             const saturation = mapRange(d.point.x, 0, d.bounds.width, 0, 100);
             const value = mapRange(d.point.y, 0, d.bounds.height, 100, 0);
             const [h, , , a] = this.value.rawValue.getComponents('hsv');
-            this.value.rawValue = new Color([h, saturation, value, a], 'hsv');
+            this.value.setRawValue(new Color([h, saturation, value, a], 'hsv'), opts);
         }
         onPointerDown_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerMove_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerUp_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: true,
+                last: true,
+            });
         }
         onKeyDown_(ev) {
             if (isArrowKey(ev.key)) {
@@ -5148,23 +5231,32 @@
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.padElement.addEventListener('keydown', this.onPadKeyDown_);
         }
-        handlePointerEvent_(d) {
+        handlePointerEvent_(d, opts) {
             if (!d.point) {
                 return;
             }
             const max = this.maxValue_;
             const px = mapRange(d.point.x, 0, d.bounds.width, -max, +max);
             const py = mapRange(this.invertsY_ ? d.bounds.height - d.point.y : d.point.y, 0, d.bounds.height, -max, +max);
-            this.value.rawValue = new Point2d(px, py);
+            this.value.setRawValue(new Point2d(px, py), opts);
         }
         onPointerDown_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerMove_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: false,
+                last: false,
+            });
         }
         onPointerUp_(ev) {
-            this.handlePointerEvent_(ev.data);
+            this.handlePointerEvent_(ev.data, {
+                forceEmit: true,
+                last: true,
+            });
         }
         onPadKeyDown_(ev) {
             if (isArrowKey(ev.key)) {
@@ -5810,7 +5902,7 @@
             inputElem.type = 'text';
             config.viewProps.bindDisabled(inputElem);
             this.element.appendChild(inputElem);
-            this.inputElem_ = inputElem;
+            this.inputElement = inputElem;
             config.value.emitter.on('change', this.onValueUpdate_);
             this.value = config.value;
             this.update_();
@@ -5818,7 +5910,7 @@
         update_() {
             const values = this.value.rawValue;
             const lastValue = values[values.length - 1];
-            this.inputElem_.value =
+            this.inputElement.value =
                 lastValue !== undefined ? this.formatter_(lastValue) : '';
         }
         onValueUpdate_() {
@@ -6156,6 +6248,7 @@
         onValueChange_(ev) {
             this.write_(ev.rawValue);
             this.emitter.emit('change', {
+                options: ev.options,
                 rawValue: ev.rawValue,
                 sender: this,
             });
@@ -6863,7 +6956,7 @@
         }
     }
 
-    const VERSION = new Semver('3.0.2');
+    const VERSION = new Semver('3.0.3');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
