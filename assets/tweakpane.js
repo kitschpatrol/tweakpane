@@ -1,4 +1,4 @@
-/*! Tweakpane 3.0.3 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.0.4 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -2876,6 +2876,7 @@
     }
     class PointerHandler {
         constructor(element) {
+            this.lastTouch_ = null;
             this.onDocumentMouseMove_ = this.onDocumentMouseMove_.bind(this);
             this.onDocumentMouseUp_ = this.onDocumentMouseUp_.bind(this);
             this.onMouseDown_ = this.onMouseDown_.bind(this);
@@ -2952,6 +2953,7 @@
                 sender: this,
                 shiftKey: ev.shiftKey,
             });
+            this.lastTouch_ = touch;
         }
         onTouchMove_(ev) {
             const touch = ev.targetTouches.item(0);
@@ -2967,9 +2969,11 @@
                 sender: this,
                 shiftKey: ev.shiftKey,
             });
+            this.lastTouch_ = touch;
         }
         onTouchEnd_(ev) {
-            const touch = ev.targetTouches.item(0);
+            var _a;
+            const touch = (_a = ev.targetTouches.item(0)) !== null && _a !== void 0 ? _a : this.lastTouch_;
             const rect = this.elem_.getBoundingClientRect();
             this.emitter.emit('up', {
                 altKey: ev.altKey,
@@ -3879,37 +3883,41 @@
             return new Color(comps, 'hsl');
         },
         'hex.rgb': (text) => {
-            const mRrggbb = text.match(/^#([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
-            if (mRrggbb) {
+            const mRgb = text.match(/^#([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
+            if (mRgb) {
                 return new Color([
-                    parseInt(mRrggbb[1] + mRrggbb[1], 16),
-                    parseInt(mRrggbb[2] + mRrggbb[2], 16),
-                    parseInt(mRrggbb[3] + mRrggbb[3], 16),
+                    parseInt(mRgb[1] + mRgb[1], 16),
+                    parseInt(mRgb[2] + mRgb[2], 16),
+                    parseInt(mRgb[3] + mRgb[3], 16),
                 ], 'rgb');
             }
-            const mRgb = text.match(/^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
-            if (mRgb) {
-                return new Color([parseInt(mRgb[1], 16), parseInt(mRgb[2], 16), parseInt(mRgb[3], 16)], 'rgb');
+            const mRrggbb = text.match(/^(?:#|0x)([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
+            if (mRrggbb) {
+                return new Color([
+                    parseInt(mRrggbb[1], 16),
+                    parseInt(mRrggbb[2], 16),
+                    parseInt(mRrggbb[3], 16),
+                ], 'rgb');
             }
             return null;
         },
         'hex.rgba': (text) => {
-            const mRrggbb = text.match(/^#?([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
-            if (mRrggbb) {
-                return new Color([
-                    parseInt(mRrggbb[1] + mRrggbb[1], 16),
-                    parseInt(mRrggbb[2] + mRrggbb[2], 16),
-                    parseInt(mRrggbb[3] + mRrggbb[3], 16),
-                    mapRange(parseInt(mRrggbb[4] + mRrggbb[4], 16), 0, 255, 0, 1),
-                ], 'rgb');
-            }
-            const mRgb = text.match(/^#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
+            const mRgb = text.match(/^#?([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/);
             if (mRgb) {
                 return new Color([
-                    parseInt(mRgb[1], 16),
-                    parseInt(mRgb[2], 16),
-                    parseInt(mRgb[3], 16),
-                    mapRange(parseInt(mRgb[4], 16), 0, 255, 0, 1),
+                    parseInt(mRgb[1] + mRgb[1], 16),
+                    parseInt(mRgb[2] + mRgb[2], 16),
+                    parseInt(mRgb[3] + mRgb[3], 16),
+                    mapRange(parseInt(mRgb[4] + mRgb[4], 16), 0, 255, 0, 1),
+                ], 'rgb');
+            }
+            const mRrggbb = text.match(/^(?:#|0x)?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/);
+            if (mRrggbb) {
+                return new Color([
+                    parseInt(mRrggbb[1], 16),
+                    parseInt(mRrggbb[2], 16),
+                    parseInt(mRrggbb[3], 16),
+                    mapRange(parseInt(mRrggbb[4], 16), 0, 255, 0, 1),
                 ], 'rgb');
             }
             return null;
@@ -3947,18 +3955,18 @@
         const hex = constrainRange(Math.floor(comp), 0, 255).toString(16);
         return hex.length === 1 ? `0${hex}` : hex;
     }
-    function colorToHexRgbString(value) {
+    function colorToHexRgbString(value, prefix = '#') {
         const hexes = removeAlphaComponent(value.getComponents('rgb'))
             .map(zerofill)
             .join('');
-        return `#${hexes}`;
+        return `${prefix}${hexes}`;
     }
-    function colorToHexRgbaString(value) {
+    function colorToHexRgbaString(value, prefix = '#') {
         const rgbaComps = value.getComponents('rgb');
         const hexes = [rgbaComps[0], rgbaComps[1], rgbaComps[2], rgbaComps[3] * 255]
             .map(zerofill)
             .join('');
-        return `#${hexes}`;
+        return `${prefix}${hexes}`;
     }
     function colorToFunctionalRgbString(value) {
         const formatter = createNumberFormatter(0);
@@ -4745,6 +4753,11 @@
     function shouldSupportAlpha$1(inputParams) {
         return 'alpha' in inputParams && inputParams.alpha === true;
     }
+    function createFormatter$1(supportsAlpha) {
+        return supportsAlpha
+            ? (v) => colorToHexRgbaString(v, '0x')
+            : (v) => colorToHexRgbString(v, '0x');
+    }
     const NumberColorInputPlugin = {
         id: 'input-color-number',
         type: 'input',
@@ -4781,12 +4794,9 @@
             const supportsAlpha = shouldSupportAlpha$1(args.params);
             const expanded = 'expanded' in args.params ? args.params.expanded : undefined;
             const picker = 'picker' in args.params ? args.params.picker : undefined;
-            const formatter = supportsAlpha
-                ? colorToHexRgbaString
-                : colorToHexRgbString;
             return new ColorController(args.document, {
                 expanded: expanded !== null && expanded !== void 0 ? expanded : false,
-                formatter: formatter,
+                formatter: createFormatter$1(supportsAlpha),
                 parser: CompositeColorParser,
                 pickerLayout: picker !== null && picker !== void 0 ? picker : 'popup',
                 supportsAlpha: supportsAlpha,
@@ -6956,7 +6966,7 @@
         }
     }
 
-    const VERSION = new Semver('3.0.3');
+    const VERSION = new Semver('3.0.4');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
