@@ -1,4 +1,4 @@
-/*! Tweakpane 3.0.4 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.0.5 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -2866,7 +2866,7 @@
         return isVerticalArrowKey(key) || key === 'ArrowLeft' || key === 'ArrowRight';
     }
 
-    function computeOffset(ev, elem) {
+    function computeOffset$1(ev, elem) {
         const win = elem.ownerDocument.defaultView;
         const rect = elem.getBoundingClientRect();
         return {
@@ -2914,7 +2914,7 @@
             doc.addEventListener('mouseup', this.onDocumentMouseUp_);
             this.emitter.emit('down', {
                 altKey: ev.altKey,
-                data: this.computePosition_(computeOffset(ev, this.elem_)),
+                data: this.computePosition_(computeOffset$1(ev, this.elem_)),
                 sender: this,
                 shiftKey: ev.shiftKey,
             });
@@ -2922,7 +2922,7 @@
         onDocumentMouseMove_(ev) {
             this.emitter.emit('move', {
                 altKey: ev.altKey,
-                data: this.computePosition_(computeOffset(ev, this.elem_)),
+                data: this.computePosition_(computeOffset$1(ev, this.elem_)),
                 sender: this,
                 shiftKey: ev.shiftKey,
             });
@@ -2933,7 +2933,7 @@
             doc.removeEventListener('mouseup', this.onDocumentMouseUp_);
             this.emitter.emit('up', {
                 altKey: ev.altKey,
-                data: this.computePosition_(computeOffset(ev, this.elem_)),
+                data: this.computePosition_(computeOffset$1(ev, this.elem_)),
                 sender: this,
                 shiftKey: ev.shiftKey,
             });
@@ -3080,6 +3080,7 @@
             this.originRawValue_ = 0;
             this.onInputChange_ = this.onInputChange_.bind(this);
             this.onInputKeyDown_ = this.onInputKeyDown_.bind(this);
+            this.onInputKeyUp_ = this.onInputKeyUp_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
@@ -3098,6 +3099,7 @@
             });
             this.view.inputElement.addEventListener('change', this.onInputChange_);
             this.view.inputElement.addEventListener('keydown', this.onInputKeyDown_);
+            this.view.inputElement.addEventListener('keyup', this.onInputKeyUp_);
             const ph = new PointerHandler(this.view.knobElement);
             ph.emitter.on('down', this.onPointerDown_);
             ph.emitter.on('move', this.onPointerMove_);
@@ -3112,11 +3114,25 @@
             }
             this.view.refresh();
         }
-        onInputKeyDown_(e) {
-            const step = getStepForKey(this.baseStep_, getVerticalStepKeys(e));
-            if (step !== 0) {
-                this.value.rawValue += step;
+        onInputKeyDown_(ev) {
+            const step = getStepForKey(this.baseStep_, getVerticalStepKeys(ev));
+            if (step === 0) {
+                return;
             }
+            this.value.setRawValue(this.value.rawValue + step, {
+                forceEmit: false,
+                last: false,
+            });
+        }
+        onInputKeyUp_(ev) {
+            const step = getStepForKey(this.baseStep_, getVerticalStepKeys(ev));
+            if (step === 0) {
+                return;
+            }
+            this.value.setRawValue(this.value.rawValue, {
+                forceEmit: true,
+                last: true,
+            });
         }
         onPointerDown_() {
             this.originRawValue_ = this.value.rawValue;
@@ -3187,6 +3203,7 @@
     class SliderController {
         constructor(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
+            this.onKeyUp_ = this.onKeyUp_.bind(this);
             this.onPointerDownOrMove_ = this.onPointerDownOrMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
             this.baseStep_ = config.baseStep;
@@ -3203,6 +3220,7 @@
             this.ptHandler_.emitter.on('move', this.onPointerDownOrMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.trackElement.addEventListener('keydown', this.onKeyDown_);
+            this.view.trackElement.addEventListener('keyup', this.onKeyUp_);
         }
         handlePointerEvent_(d, opts) {
             if (!d.point) {
@@ -3223,7 +3241,24 @@
             });
         }
         onKeyDown_(ev) {
-            this.value.rawValue += getStepForKey(this.baseStep_, getHorizontalStepKeys(ev));
+            const step = getStepForKey(this.baseStep_, getHorizontalStepKeys(ev));
+            if (step === 0) {
+                return;
+            }
+            this.value.setRawValue(this.value.rawValue + step, {
+                forceEmit: false,
+                last: false,
+            });
+        }
+        onKeyUp_(ev) {
+            const step = getStepForKey(this.baseStep_, getHorizontalStepKeys(ev));
+            if (step === 0) {
+                return;
+            }
+            this.value.setRawValue(this.value.rawValue, {
+                forceEmit: true,
+                last: true,
+            });
         }
     }
 
@@ -4064,6 +4099,7 @@
     class APaletteController {
         constructor(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
+            this.onKeyUp_ = this.onKeyUp_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
@@ -4078,6 +4114,7 @@
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
+            this.view.element.addEventListener('keyup', this.onKeyUp_);
         }
         handlePointerEvent_(d, opts) {
             if (!d.point) {
@@ -4108,9 +4145,25 @@
         }
         onKeyDown_(ev) {
             const step = getStepForKey(getBaseStepForColor(true), getHorizontalStepKeys(ev));
+            if (step === 0) {
+                return;
+            }
             const c = this.value.rawValue;
             const [h, s, v, a] = c.getComponents('hsv');
-            this.value.rawValue = new Color([h, s, v, a + step], 'hsv');
+            this.value.setRawValue(new Color([h, s, v, a + step], 'hsv'), {
+                forceEmit: false,
+                last: false,
+            });
+        }
+        onKeyUp_(ev) {
+            const step = getStepForKey(getBaseStepForColor(true), getHorizontalStepKeys(ev));
+            if (step === 0) {
+                return;
+            }
+            this.value.setRawValue(this.value.rawValue, {
+                forceEmit: true,
+                last: true,
+            });
         }
     }
 
@@ -4295,6 +4348,7 @@
     class HPaletteController {
         constructor(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
+            this.onKeyUp_ = this.onKeyUp_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
@@ -4309,6 +4363,7 @@
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
+            this.view.element.addEventListener('keyup', this.onKeyUp_);
         }
         handlePointerEvent_(d, opts) {
             if (!d.point) {
@@ -4339,9 +4394,25 @@
         }
         onKeyDown_(ev) {
             const step = getStepForKey(getBaseStepForColor(false), getHorizontalStepKeys(ev));
+            if (step === 0) {
+                return;
+            }
             const c = this.value.rawValue;
             const [h, s, v, a] = c.getComponents('hsv');
-            this.value.rawValue = new Color([h + step, s, v, a], 'hsv');
+            this.value.setRawValue(new Color([h + step, s, v, a], 'hsv'), {
+                forceEmit: false,
+                last: false,
+            });
+        }
+        onKeyUp_(ev) {
+            const step = getStepForKey(getBaseStepForColor(false), getHorizontalStepKeys(ev));
+            if (step === 0) {
+                return;
+            }
+            this.value.setRawValue(this.value.rawValue, {
+                forceEmit: true,
+                last: true,
+            });
         }
     }
 
@@ -4404,6 +4475,7 @@
     class SvPaletteController {
         constructor(doc, config) {
             this.onKeyDown_ = this.onKeyDown_.bind(this);
+            this.onKeyUp_ = this.onKeyUp_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
@@ -4418,6 +4490,7 @@
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.element.addEventListener('keydown', this.onKeyDown_);
+            this.view.element.addEventListener('keyup', this.onKeyUp_);
         }
         handlePointerEvent_(d, opts) {
             if (!d.point) {
@@ -4452,12 +4525,27 @@
             }
             const [h, s, v, a] = this.value.rawValue.getComponents('hsv');
             const baseStep = getBaseStepForColor(false);
-            this.value.rawValue = new Color([
-                h,
-                s + getStepForKey(baseStep, getHorizontalStepKeys(ev)),
-                v + getStepForKey(baseStep, getVerticalStepKeys(ev)),
-                a,
-            ], 'hsv');
+            const ds = getStepForKey(baseStep, getHorizontalStepKeys(ev));
+            const dv = getStepForKey(baseStep, getVerticalStepKeys(ev));
+            if (ds === 0 && dv === 0) {
+                return;
+            }
+            this.value.setRawValue(new Color([h, s + ds, v + dv, a], 'hsv'), {
+                forceEmit: false,
+                last: false,
+            });
+        }
+        onKeyUp_(ev) {
+            const baseStep = getBaseStepForColor(false);
+            const ds = getStepForKey(baseStep, getHorizontalStepKeys(ev));
+            const dv = getStepForKey(baseStep, getVerticalStepKeys(ev));
+            if (ds === 0 && dv === 0) {
+                return;
+            }
+            this.value.setRawValue(this.value.rawValue, {
+                forceEmit: true,
+                last: true,
+            });
         }
     }
 
@@ -5217,9 +5305,16 @@
         }
     }
 
+    function computeOffset(ev, baseSteps, invertsY) {
+        return [
+            getStepForKey(baseSteps[0], getHorizontalStepKeys(ev)),
+            getStepForKey(baseSteps[1], getVerticalStepKeys(ev)) * (invertsY ? 1 : -1),
+        ];
+    }
     class Point2dPickerController {
         constructor(doc, config) {
             this.onPadKeyDown_ = this.onPadKeyDown_.bind(this);
+            this.onPadKeyUp_ = this.onPadKeyUp_.bind(this);
             this.onPointerDown_ = this.onPointerDown_.bind(this);
             this.onPointerMove_ = this.onPointerMove_.bind(this);
             this.onPointerUp_ = this.onPointerUp_.bind(this);
@@ -5240,6 +5335,7 @@
             this.ptHandler_.emitter.on('move', this.onPointerMove_);
             this.ptHandler_.emitter.on('up', this.onPointerUp_);
             this.view.padElement.addEventListener('keydown', this.onPadKeyDown_);
+            this.view.padElement.addEventListener('keyup', this.onPadKeyUp_);
         }
         handlePointerEvent_(d, opts) {
             if (!d.point) {
@@ -5272,10 +5368,24 @@
             if (isArrowKey(ev.key)) {
                 ev.preventDefault();
             }
-            this.value.rawValue = new Point2d(this.value.rawValue.x +
-                getStepForKey(this.baseSteps_[0], getHorizontalStepKeys(ev)), this.value.rawValue.y +
-                getStepForKey(this.baseSteps_[1], getVerticalStepKeys(ev)) *
-                    (this.invertsY_ ? 1 : -1));
+            const [dx, dy] = computeOffset(ev, this.baseSteps_, this.invertsY_);
+            if (dx === 0 && dy === 0) {
+                return;
+            }
+            this.value.setRawValue(new Point2d(this.value.rawValue.x + dx, this.value.rawValue.y + dy), {
+                forceEmit: false,
+                last: false,
+            });
+        }
+        onPadKeyUp_(ev) {
+            const [dx, dy] = computeOffset(ev, this.baseSteps_, this.invertsY_);
+            if (dx === 0 && dy === 0) {
+                return;
+            }
+            this.value.setRawValue(this.value.rawValue, {
+                forceEmit: true,
+                last: true,
+            });
         }
     }
 
@@ -6966,7 +7076,7 @@
         }
     }
 
-    const VERSION = new Semver('3.0.4');
+    const VERSION = new Semver('3.0.5');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
