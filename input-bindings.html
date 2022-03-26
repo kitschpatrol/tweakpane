@@ -7,12 +7,12 @@
 	
 	<meta name="viewport" content="initial-scale=1,minimum-scale=1,maximum-scale=1">
 	<meta name="og:description" content="A compact pane for fine-tuning parameters and monitoring value changes">
-	<meta property="og:image" content="https://cocopon.github.io/tweakpane/assets/og.jpg">
+	<meta property="og:image" content="https://cocopon.github.io/tweakpane/assets/og.png">
 	<meta name="og:title" content="Tweakpane">
 	<meta property="og:type" content="website">
 	<meta name="twitter:card" content="summary_large_image">
 	<meta name="twitter:description" content="A compact pane for fine-tuning parameters and monitoring value changes">
-	<meta name="twitter:image" content="https://cocopon.github.io/tweakpane/assets/og.jpg">
+	<meta name="twitter:image" content="https://cocopon.github.io/tweakpane/assets/og.png">
 	<meta name="twitter:title" content="Tweakpane">
 	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 	<link rel="stylesheet" href="assets/bundle.css">
@@ -91,7 +91,7 @@
 					<a class="submenuItem_anchor" href="monitor-bindings.html#interval">Interval</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="monitor-bindings.html#graph2d">Graph</a>
+					<a class="submenuItem_anchor" href="monitor-bindings.html#graph">Graph</a>
 				</li>
 			</ul>
 		</li>
@@ -381,8 +381,8 @@ pane.addInput(PARAMS, 'hidden');</code></pre></div>
 	<div class="demo">
 		<div class="demo_codeLayout">
 			<div class="codeBlock"><pre><code class="js">const PARAMS = {
-  background: {r: 255, g: 127, b: 0},
-  tint: {r: 255, g: 255, b: 0, a: 0.5},
+  background: {r: 255, g: 0, b: 55},
+  tint: {r: 0, g: 255, b: 215, a: 0.5},
 };
 
 const pane = new Pane();
@@ -401,8 +401,8 @@ pane.addInput(PARAMS, 'tint');</code></pre></div>
 	<div class="demo">
 		<div class="demo_codeLayout">
 			<div class="codeBlock"><pre><code class="js">const PARAMS = {
-  primary: '#8df',
-  secondary: 'rgb(255, 136, 221)',
+  primary: '#f05',
+  secondary: 'rgb(0, 255, 214)',
 };
 
 const pane = new Pane();
@@ -421,8 +421,8 @@ pane.addInput(PARAMS, 'secondary');</code></pre></div>
 	<div class="demo">
 		<div class="demo_codeLayout">
 			<div class="codeBlock"><pre><code class="js">const PARAMS = {
-  background: 0x0088ff,
-  tint: 0x00ff0044,
+  background: 0xff0055,
+  tint: 0x00ffd644,
 };
 
 const pane = new Pane();
@@ -466,7 +466,7 @@ pane.addInput(PARAMS, 'hex', {
 	<div class="demo">
 		<div class="demo_codeLayout">
 			<div class="codeBlock"><pre><code class="js">const PARAMS = {
-  key: '#22aaeeff',
+  key: '#ff0055ff',
 };
 
 const pane = new Pane();
