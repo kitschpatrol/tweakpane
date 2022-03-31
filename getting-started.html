@@ -14,8 +14,8 @@
 	<meta name="twitter:description" content="A compact pane for fine-tuning parameters and monitoring value changes">
 	<meta name="twitter:image" content="https://cocopon.github.io/tweakpane/assets/og.png">
 	<meta name="twitter:title" content="Tweakpane">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 	<link rel="stylesheet" href="assets/bundle.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
 	<div class="main main-gettingStarted">
@@ -30,7 +30,7 @@
 		</div>
 		<div class="globalHeader_spMenuButtonLayout">
 			<button id="spMenuButton" class="spMenuButton">
-				<span class="fa fa-bars"></span>
+				<span class="material-icons">menu</span>
 			</button>
 		</div>
 	</div>
@@ -44,7 +44,7 @@
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
-			<div class="logo_version">3.0.7</div>
+			<div class="logo_version">3.0.8</div>
 		</a>
 	</div>
 	<ul class="menu_list">
@@ -160,10 +160,16 @@
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">
+				API reference
+				<span class="material-icons">open_in_new</span>
+			</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">
+				GitHub
+				<span class="material-icons">open_in_new</span>
+			</a>
 		</li>
 	</ul>
 </div>
@@ -190,7 +196,7 @@
 
 <div class="main_mediaLayout">
 	<div class="codeBlock">
-		<pre><code class="html">&lt;script src=&quot;<strong>https://cdn.jsdelivr.net/npm/tweakpane@3.0.7/dist/tweakpane.min.js</strong>&quot;&gt;&lt;/script&gt;</code></pre>
+		<pre><code class="html">&lt;script src=&quot;<strong>https://cdn.jsdelivr.net/npm/tweakpane@3.0.8/dist/tweakpane.min.js</strong>&quot;&gt;&lt;/script&gt;</code></pre>
 		<div class="codeBlock_title">
 			.html
 		</div>
@@ -201,7 +207,7 @@
 
 <div class="main_mediaLayout">
 	<div class="codeBlock">
-		<pre><code class="html">&lt;script src=&quot;path/to/tweakpane-3.0.7.min.js&quot;&gt;&lt;/script&gt;</code></pre>
+		<pre><code class="html">&lt;script src=&quot;path/to/tweakpane-3.0.8.min.js&quot;&gt;&lt;/script&gt;</code></pre>
 		<div class="codeBlock_title">
 			.html
 		</div>
@@ -255,19 +261,28 @@ const pane = new Pane();</code></pre>
 <div class="rel">
 	<div class="relItem">
 		<a class="relItem_anchor" href="quick-tour.html">
-			<div class="relItem_title">
-				<span class="fa fa-arrow-right"></span>
-				Quick tour
+			<div class="relItem_text">
+				<div class="relItem_title">
+					Quick tour
+				</div>
+				<div class="relItem_detail">
+					learn the basics of Tweakpane
+				</div>
 			</div>
-			<div class="relItem_detail">
-				learn the basics of Tweakpane
+			<div class="relItem_icon relItem_icon-circle">
+				<span class="material-icons">arrow_forward</span>
 			</div>
 		</a>
 	</div>
 	<div class="relItem relItem-oneline">
 		<a class="relItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">
-			<div class="relItem_title">
-				API reference<span class="fas fa-external-link-square-alt"></span>
+			<div class="relItem_text">
+				<div class="relItem_title">
+					API reference
+				</div>
+			</div>
+			<div class="relItem_icon">
+				<span class="material-icons">open_in_new</span>
 			</div>
 		</a>
 	</div>
@@ -288,9 +303,8 @@ const pane = new Pane();</code></pre>
 		</div>
 	</div>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/highlight.min.js"></script>
-	<script async defer src="https://buttons.github.io/buttons.js"></script>
-	<script src="assets/tweakpane.js"></script>
+	<script src="assets/tweakpane.js" defer></script>
 	
-	<script src="assets/bundle.js"></script>
+	<script src="assets/bundle.js" defer></script>
 </body>
 </html>

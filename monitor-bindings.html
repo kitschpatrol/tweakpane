@@ -14,8 +14,8 @@
 	<meta name="twitter:description" content="A compact pane for fine-tuning parameters and monitoring value changes">
 	<meta name="twitter:image" content="https://cocopon.github.io/tweakpane/assets/og.png">
 	<meta name="twitter:title" content="Tweakpane">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 	<link rel="stylesheet" href="assets/bundle.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
 	<div class="main main-monitor">
@@ -30,7 +30,7 @@
 		</div>
 		<div class="globalHeader_spMenuButtonLayout">
 			<button id="spMenuButton" class="spMenuButton">
-				<span class="fa fa-bars"></span>
+				<span class="material-icons">menu</span>
 			</button>
 		</div>
 	</div>
@@ -44,7 +44,7 @@
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
-			<div class="logo_version">3.0.7</div>
+			<div class="logo_version">3.0.8</div>
 		</a>
 	</div>
 	<ul class="menu_list">
@@ -160,10 +160,16 @@
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">API reference<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="api/classes/pane_pane.pane.html" target="_blank">
+				API reference
+				<span class="material-icons">open_in_new</span>
+			</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">GitHub<span class="fas fa-external-link-square-alt"></a>
+			<a class="menuItem_anchor" href="https://github.com/cocopon/tweakpane" target="_blank">
+				GitHub
+				<span class="material-icons">open_in_new</span>
+			</a>
 		</li>
 	</ul>
 </div>
@@ -276,9 +282,8 @@ pane.addMonitor(PARAMS, 'wave', {
 		</div>
 	</div>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/highlight.min.js"></script>
-	<script async defer src="https://buttons.github.io/buttons.js"></script>
-	<script src="assets/tweakpane.js"></script>
+	<script src="assets/tweakpane.js" defer></script>
 	
-	<script src="assets/bundle.js"></script>
+	<script src="assets/bundle.js" defer></script>
 </body>
 </html>
