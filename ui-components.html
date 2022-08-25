@@ -19,16 +19,16 @@
 </head>
 <body>
 	<div class="main main-uicomponents">
-		<div class="main_globalHeaderLayout">
+		<div class="main_globalHeader">
 			<div class="globalHeader">
-	<div class="globalHeader_innerLayout">
-		<div class="globalHeader_logoLayout">
+	<div class="globalHeader_inner">
+		<div class="globalHeader_logo">
 			<a class="logo" href="./">
 				<div class="logo_symbol"></div>
 				Tweakpane
 			</a>
 		</div>
-		<div class="globalHeader_spMenuButtonLayout">
+		<div class="globalHeader_spMenuButton">
 			<button id="spMenuButton" class="spMenuButton">
 				<span class="material-icons">menu</span>
 			</button>
@@ -37,10 +37,10 @@
 </div>
 
 		</div>
-		<div class="main_wrapLayout">
-			<div class="main_menuLayout">
+		<div class="main_wrap">
+			<div class="main_menu">
 				<div class="menu">
-	<div class="menu_logoLayout">
+	<div class="menu_logo">
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
@@ -185,30 +185,30 @@
 </div>
 
 			</div>
-			<div class="main_mainLayout">
-				<div class="main_pageHeaderLayout">
+			<div class="main_main">
+				<div class="main_pageHeader">
 					
 <div class="pageHeader">
-	<div class="pageHeader_innerLayout">
-		<div class="pageHeader_titleLayout">
+	<div class="pageHeader_inner">
+		<div class="pageHeader_text">
 			<h1 class="pageHeader_title">UI components</h1>
 			<p>Tweakpane has useful components to organize the pane: folders, buttons, etc.</p>
 		</div>
-		<div class="pageHeader_paneLayout">
+		<div class="pageHeader_pane">
 			<div class="paneContainer" data-pane-header></div>
 		</div>
 	</div>
 </div>
 
 				</div>
-				<div class="main_innerLayout">
+				<div class="main_inner">
 					
 <h2 id="folder">Folder</h2>
 <p>Use <code>addFolder()</code> to add folders. You can add all types of components to the returned folder just like adding them to the pane.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 
 const f1 = pane.<strong>addFolder</strong>({
@@ -223,7 +223,7 @@ const f2 = pane.<strong>addFolder</strong>({
 f2.addInput(PARAMS, 'acceleration');
 f2.addInput(PARAMS, 'randomness');</code></pre></div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-folder></div>
 		</div>
 	</div>
@@ -232,9 +232,9 @@ f2.addInput(PARAMS, 'randomness');</code></pre></div>
 <h3 id="pane_title">Pane title</h3>
 <p><code>title</code> option of the pane creates a root title. It can expand/collapse the whole pane.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock"><pre><code class="js">const pane = new Pane({
   <strong>title</strong>: 'Parameters',
 });
@@ -242,7 +242,7 @@ f2.addInput(PARAMS, 'randomness');</code></pre></div>
 // ...
 </code></pre></div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-panetitle></div>
 		</div>
 	</div>
@@ -252,9 +252,9 @@ f2.addInput(PARAMS, 'randomness');</code></pre></div>
 <h2 id="button">Button</h2>
 <p><code>addButton()</code> adds a button component. Use <code>on()</code> to handle click events.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 
 const btn = pane.<strong>addButton</strong>({
@@ -269,7 +269,7 @@ btn.<strong>on</strong>('click', () =&gt; {
 });
 </code></pre></div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-button></div>
 			<div class="paneContainer paneContainer-console" data-pane-buttonconsole></div>
 		</div>
@@ -280,9 +280,9 @@ btn.<strong>on</strong>('click', () =&gt; {
 <h2 id="tab">Tab</h2>
 <p><code>addTab()</code> adds a tab component. You can access an each page by <code>pages[]</code> and add components into it.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 
 const tab = pane.<strong>addTab</strong>({
@@ -295,7 +295,7 @@ const tab = pane.<strong>addTab</strong>({
 tab.<strong>pages[0]</strong>.addInput(...);
 </code></pre></div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-tab></div>
 		</div>
 	</div>
@@ -305,26 +305,26 @@ tab.<strong>pages[0]</strong>.addInput(...);
 <h2 id="separator">Separator</h2>
 <p><code>addSeparator()</code> is for adding a separator between components.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock"><pre><code class="js">const pane = new Pane();
 pane.addButton({title: 'Previous'});
 pane.addButton({title: 'Next'});
 pane<strong>.addSeparator</strong>();
 pane.addButton({title: 'Reset'});</code></pre></div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-separator></div>
 		</div>
 	</div>
 </div>
 
 				</div>
-				<div class="main_globalFooterLayout">
+				<div class="main_globalFooter">
 					<div class="globalFooter">
-	<div class="globalFooter_innerLayout">
-		<div class="globalFooter_copyLayout">
+	<div class="globalFooter_inner">
+		<div class="globalFooter_copy">
 			&copy; 2018 <a href="https://github.com/cocopon">cocopon</a>.
 		</div>
 	</div>

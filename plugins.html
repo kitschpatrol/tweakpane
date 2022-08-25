@@ -19,16 +19,16 @@
 </head>
 <body>
 	<div class="main main-plugin">
-		<div class="main_globalHeaderLayout">
+		<div class="main_globalHeader">
 			<div class="globalHeader">
-	<div class="globalHeader_innerLayout">
-		<div class="globalHeader_logoLayout">
+	<div class="globalHeader_inner">
+		<div class="globalHeader_logo">
 			<a class="logo" href="./">
 				<div class="logo_symbol"></div>
 				Tweakpane
 			</a>
 		</div>
-		<div class="globalHeader_spMenuButtonLayout">
+		<div class="globalHeader_spMenuButton">
 			<button id="spMenuButton" class="spMenuButton">
 				<span class="material-icons">menu</span>
 			</button>
@@ -37,10 +37,10 @@
 </div>
 
 		</div>
-		<div class="main_wrapLayout">
-			<div class="main_menuLayout">
+		<div class="main_wrap">
+			<div class="main_menu">
 				<div class="menu">
-	<div class="menu_logoLayout">
+	<div class="menu_logo">
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
@@ -185,13 +185,13 @@
 </div>
 
 			</div>
-			<div class="main_mainLayout">
-				<div class="main_pageHeaderLayout">
+			<div class="main_main">
+				<div class="main_pageHeader">
 					
 <div class="pageHeader">
 	<div class="pageHeader_sketchContainer"></div>
-	<div class="pageHeader_innerLayout">
-		<div class="pageHeader_titleLayout">
+	<div class="pageHeader_inner">
+		<div class="pageHeader_text">
 			<h1 class="pageHeader_title">Plugins</h1>
 			<p>Expand Tweakpane world.</p>
 		</div>
@@ -199,13 +199,13 @@
 </div>
 
 				</div>
-				<div class="main_innerLayout">
+				<div class="main_inner">
 					
 <h2 id="essentials"><a href="https://github.com/tweakpane/plugin-essentials">Essentials</a></h2>
 <p>Essential components.</p>
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">const PARAMS = {
   interval: {min: 16, max: 48},
@@ -237,7 +237,7 @@ function render() {
 // ...</code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-essentials></div>
 		</div>
 	</div>
@@ -246,9 +246,9 @@ function render() {
 
 <h2 id="camerakit"><a href="https://github.com/tweakpane/plugin-camerakit">Camerakit</a></h2>
 <p>Enjoyable camera flavored controls.</p>
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">const PARAMS = {
   flen: 55,
@@ -275,7 +275,7 @@ pane.addInput(PARAMS, 'fnum', {
 // ...</code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-camerakit></div>
 		</div>
 	</div>
@@ -289,26 +289,28 @@ pane.addInput(PARAMS, 'fnum', {
 <h2 id="create">Create your own plugin</h2>
 <p>From version 2.0.0, you can provide custom components with the plugin system.</p>
 
-<div class="main_mediaLayout">
-	<div class="codeBlock">
-		<pre><code class="js">pane.registerPlugin({
+<div class="main_media">
+	<div class="demo">
+		<div class="demo_code">
+			<div class="codeBlock">
+				<pre><code class="js">pane.registerPlugin({
   plugin: {
     ...
   },
 });</code></pre>
-		<div class="codeBlock_title">
-			.js
+			</div>
 		</div>
+		<div class="demo_chip">.js</div>
 	</div>
 </div>
 
 <p>See the <a href="https://github.com/tweakpane/plugin-template">template repository</a> for details.</p>
 
 				</div>
-				<div class="main_globalFooterLayout">
+				<div class="main_globalFooter">
 					<div class="globalFooter">
-	<div class="globalFooter_innerLayout">
-		<div class="globalFooter_copyLayout">
+	<div class="globalFooter_inner">
+		<div class="globalFooter_copy">
 			&copy; 2018 <a href="https://github.com/cocopon">cocopon</a>.
 		</div>
 	</div>

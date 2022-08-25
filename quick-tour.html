@@ -19,16 +19,16 @@
 </head>
 <body>
 	<div class="main main-quickTour">
-		<div class="main_globalHeaderLayout">
+		<div class="main_globalHeader">
 			<div class="globalHeader">
-	<div class="globalHeader_innerLayout">
-		<div class="globalHeader_logoLayout">
+	<div class="globalHeader_inner">
+		<div class="globalHeader_logo">
 			<a class="logo" href="./">
 				<div class="logo_symbol"></div>
 				Tweakpane
 			</a>
 		</div>
-		<div class="globalHeader_spMenuButtonLayout">
+		<div class="globalHeader_spMenuButton">
 			<button id="spMenuButton" class="spMenuButton">
 				<span class="material-icons">menu</span>
 			</button>
@@ -37,10 +37,10 @@
 </div>
 
 		</div>
-		<div class="main_wrapLayout">
-			<div class="main_menuLayout">
+		<div class="main_wrap">
+			<div class="main_menu">
 				<div class="menu">
-	<div class="menu_logoLayout">
+	<div class="menu_logo">
 		<a class="logo" href="./">
 			<div class="logo_symbol"></div>
 			Tweakpane
@@ -185,13 +185,13 @@
 </div>
 
 			</div>
-			<div class="main_mainLayout">
-				<div class="main_pageHeaderLayout">
+			<div class="main_main">
+				<div class="main_pageHeader">
 					
 <div class="pageHeader">
 	<div class="pageHeader_sketchContainer"></div>
-	<div class="pageHeader_innerLayout">
-		<div class="pageHeader_titleLayout">
+	<div class="pageHeader_inner">
+		<div class="pageHeader_text">
 			<h1 class="pageHeader_title">Quick tour</h1>
 			<p>Take a look at the basics of Tweakpane in minutes.</p>
 		</div>
@@ -199,14 +199,14 @@
 </div>
 
 				</div>
-				<div class="main_innerLayout">
+				<div class="main_inner">
 					
 <h2 id="blades">Blades</h2>
 <p>You can add controls as rows to the pane. Tweakpane calls each row a &ldquo;<strong>blade</strong>&rdquo;.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-blades></div>
 		</div>
 	</div>
@@ -218,9 +218,9 @@
 <h2 id="inputs">Input bindings</h2>
 <p>Use <code>addInput()</code> to modify parameter values.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">const PARAMS = {
   factor: 123,
@@ -236,7 +236,7 @@ pane.<strong>addInput</strong>(PARAMS, 'color');
 </code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-inputs></div>
 		</div>
 	</div>
@@ -244,9 +244,9 @@ pane.<strong>addInput</strong>(PARAMS, 'color');
 
 <p>Some kinds of input types accept additional parameters:</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">const PARAMS = {
   percentage: 50,
@@ -267,7 +267,7 @@ pane.addInput(
 </code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-inputparams></div>
 		</div>
 	</div>
@@ -278,9 +278,9 @@ pane.addInput(
 <h2 id="folders">Folders</h2>
 <p>Use <code>addFolder()</code> to organize blades.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">const f = pane.<strong>addFolder</strong>({
   title: 'Title',
@@ -292,7 +292,7 @@ f.addInput(PARAMS, 'size');
 </code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-folders></div>
 		</div>
 	</div>
@@ -300,9 +300,9 @@ f.addInput(PARAMS, 'size');
 
 <p>If you want to expand/collapse the whole pane, specify <code>title</code> option of the pane:</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">const pane = new Pane({
   <strong>title</strong>: 'Parameters',
@@ -311,7 +311,7 @@ f.addInput(PARAMS, 'size');
 </code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-title></div>
 		</div>
 	</div>
@@ -322,9 +322,9 @@ f.addInput(PARAMS, 'size');
 <h2 id="events">Events</h2>
 <p>Use <code>on()</code> of the input to handle change events.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">const input = pane.addInput(
   PARAMS, 'size',
@@ -337,7 +337,7 @@ input.<strong>on</strong>('change', function(ev) {
 </code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-events></div>
 			<div class="paneContainer paneContainer-console" data-pane-eventsconsole></div>
 		</div>
@@ -349,9 +349,9 @@ input.<strong>on</strong>('change', function(ev) {
 <h2 id="presets">Presets</h2>
 <p>Use <code>exportPreset()</code> to export the current bound values in JSON format.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">btn.on('click', function() {
   const preset = pane.<strong>exportPreset</strong>();
@@ -360,7 +360,7 @@ input.<strong>on</strong>('change', function(ev) {
 </code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-preset></div>
 			<div class="paneContainer paneContainer-console" data-pane-presetconsole></div>
 		</div>
@@ -372,9 +372,9 @@ input.<strong>on</strong>('change', function(ev) {
 <h2 id="monitors">Monitor bindings</h2>
 <p>Use <code>addMonitor()</code> to monitor value changes.</p>
 
-<div class="main_mediaLayout">
+<div class="main_media">
 	<div class="demo">
-		<div class="demo_codeLayout">
+		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">pane.<strong>addMonitor</strong>(sketch, 'signal', {
   view: 'graph',
@@ -384,7 +384,7 @@ input.<strong>on</strong>('change', function(ev) {
 });</code></pre>
 			</div>
 		</div>
-		<div class="demo_resultLayout">
+		<div class="demo_result">
 			<div class="paneContainer" data-pane-monitors></div>
 		</div>
 	</div>
@@ -427,10 +427,10 @@ input.<strong>on</strong>('change', function(ev) {
 </div>
 
 				</div>
-				<div class="main_globalFooterLayout">
+				<div class="main_globalFooter">
 					<div class="globalFooter">
-	<div class="globalFooter_innerLayout">
-		<div class="globalFooter_copyLayout">
+	<div class="globalFooter_inner">
+		<div class="globalFooter_copy">
 			&copy; 2018 <a href="https://github.com/cocopon">cocopon</a>.
 		</div>
 	</div>
