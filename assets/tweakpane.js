@@ -1,4 +1,4 @@
-/*! Tweakpane 3.1.0 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.1.1 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -592,7 +592,7 @@
         return doc.ontouchstart !== undefined;
     }
     function getGlobalObject() {
-        return new Function('return this')();
+        return globalThis;
     }
     function getWindowDocument() {
         const globalObj = forceCast(getGlobalObject());
@@ -604,7 +604,11 @@
             return null;
         }
         const isBrowser = 'document' in win;
-        return isBrowser ? canvasElement.getContext('2d') : null;
+        return isBrowser
+            ? canvasElement.getContext('2d', {
+                willReadFrequently: true,
+            })
+            : null;
     }
     const ICON_ID_TO_INNER_HTML_MAP = {
         check: '<path d="M2 8l4 4l8 -8"/>',
@@ -7441,7 +7445,7 @@
         }
     }
 
-    const VERSION = new Semver('3.1.0');
+    const VERSION = new Semver('3.1.1');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
