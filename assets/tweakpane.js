@@ -1,4 +1,4 @@
-/*! Tweakpane 3.1.1 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.1.2 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -111,14 +111,6 @@
         shouldneverhappen: () => 'This error should never happen',
     };
     class TpError {
-        constructor(config) {
-            var _a;
-            this.message =
-                (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
-            this.name = this.constructor.name;
-            this.stack = new Error(this.message).stack;
-            this.type = config.type;
-        }
         static alreadyDisposed() {
             return new TpError({ type: 'alreadydisposed' });
         }
@@ -137,6 +129,14 @@
         }
         static shouldNeverHappen() {
             return new TpError({ type: 'shouldneverhappen' });
+        }
+        constructor(config) {
+            var _a;
+            this.message =
+                (_a = CREATE_MESSAGE_MAP[config.type](forceCast(config.context))) !== null && _a !== void 0 ? _a : 'Unexpected error';
+            this.name = this.constructor.name;
+            this.stack = new Error(this.message).stack;
+            this.type = config.type;
         }
     }
 
@@ -2237,12 +2237,31 @@
         return null;
     }
 
-    class ListConstraint {
-        constructor(options) {
-            this.options = options;
+    class DefiniteRangeConstraint {
+        constructor(config) {
+            this.values = ValueMap.fromObject({
+                max: config.max,
+                min: config.min,
+            });
         }
         constrain(value) {
-            const opts = this.options;
+            const max = this.values.get('max');
+            const min = this.values.get('min');
+            return Math.min(Math.max(value, min), max);
+        }
+    }
+
+    class ListConstraint {
+        constructor(options) {
+            this.values = ValueMap.fromObject({
+                options: options,
+            });
+        }
+        get options() {
+            return this.values.get('options');
+        }
+        constrain(value) {
+            const opts = this.values.get('options');
             if (opts.length === 0) {
                 return value;
             }
@@ -2255,16 +2274,26 @@
 
     class RangeConstraint {
         constructor(config) {
-            this.maxValue = config.max;
-            this.minValue = config.min;
+            this.values = ValueMap.fromObject({
+                max: config.max,
+                min: config.min,
+            });
+        }
+        get maxValue() {
+            return this.values.get('max');
+        }
+        get minValue() {
+            return this.values.get('min');
         }
         constrain(value) {
+            const max = this.values.get('max');
+            const min = this.values.get('min');
             let result = value;
-            if (!isEmpty(this.minValue)) {
-                result = Math.max(result, this.minValue);
+            if (!isEmpty(min)) {
+                result = Math.max(result, min);
             }
-            if (!isEmpty(this.maxValue)) {
-                result = Math.min(result, this.maxValue);
+            if (!isEmpty(max)) {
+                result = Math.min(result, max);
             }
             return result;
         }
@@ -3434,15 +3463,6 @@
             ? new ListConstraint(normalizeListOptions(forceCast(options)))
             : null;
     }
-    function findListItems(constraint) {
-        const c = constraint
-            ? findConstraint(constraint, ListConstraint)
-            : null;
-        if (!c) {
-            return null;
-        }
-        return c.options;
-    }
     function findStep(constraint) {
         const c = constraint ? findConstraint(constraint, StepConstraint) : null;
         if (!c) {
@@ -3550,14 +3570,14 @@
             writer: (_args) => writePrimitive,
         },
         controller: (args) => {
-            var _a;
             const doc = args.document;
             const value = args.value;
             const c = args.constraint;
-            if (c && findConstraint(c, ListConstraint)) {
+            const lc = c && findConstraint(c, ListConstraint);
+            if (lc) {
                 return new ListController(doc, {
-                    props: ValueMap.fromObject({
-                        options: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                    props: new ValueMap({
+                        options: lc.values.value('options'),
                     }),
                     value: value,
                     viewProps: args.viewProps,
@@ -3747,13 +3767,16 @@
             type === 'float' ? 1 : mode === 'rgb' ? 255 : 100,
         ];
     }
+    function loopHueRange(hue, max) {
+        return hue === max ? max : loopRange(hue, max);
+    }
     function constrainColorComponents(components, mode, type) {
         var _a;
         const ms = getColorMaxComponents(mode, type);
         return [
             mode === 'rgb'
                 ? constrainRange(components[0], 0, ms[0])
-                : loopRange(components[0], ms[0]),
+                : loopHueRange(components[0], ms[0]),
             constrainRange(components[1], 0, ms[1]),
             constrainRange(components[2], 0, ms[2]),
             constrainRange((_a = components[3]) !== null && _a !== void 0 ? _a : 1, 0, 1),
@@ -3777,11 +3800,6 @@
         return key in obj && typeof obj[key] === 'number';
     }
     class Color {
-        constructor(comps, mode, type = 'int') {
-            this.mode = mode;
-            this.type = type;
-            this.comps_ = constrainColorComponents(comps, mode, type);
-        }
         static black(type = 'int') {
             return new Color([0, 0, 0], 'rgb', type);
         }
@@ -3815,6 +3833,11 @@
                 }
             }
             return true;
+        }
+        constructor(comps, mode, type = 'int') {
+            this.mode = mode;
+            this.type = type;
+            this.comps_ = constrainColorComponents(comps, mode, type);
         }
         getComponents(opt_mode, type = 'int') {
             return appendAlphaComponent(convertColor(removeAlphaComponent(this.comps_), { mode: this.mode, type: this.type }, { mode: opt_mode !== null && opt_mode !== void 0 ? opt_mode : this.mode, type }), this.comps_[3]);
@@ -4615,7 +4638,7 @@
     }
     function createConstraint$5(mode, type, index) {
         const max = getColorMaxComponents(mode, type)[index];
-        return new RangeConstraint({
+        return new DefiniteRangeConstraint({
             min: 0,
             max: max,
         });
@@ -4745,7 +4768,7 @@
             if (!d.point) {
                 return;
             }
-            const hue = mapRange(constrainRange(d.point.x, 0, d.bounds.width), 0, d.bounds.width, 0, 359);
+            const hue = mapRange(constrainRange(d.point.x, 0, d.bounds.width), 0, d.bounds.width, 0, 360);
             const c = this.value.rawValue;
             const [, s, v, a] = c.getComponents('hsv');
             this.value.setRawValue(new Color([hue, s, v, a], 'hsv'), opts);
@@ -4951,7 +4974,7 @@
                             formatter: createNumberFormatter(2),
                         }),
                         value: createValue(0, {
-                            constraint: new RangeConstraint({ min: 0, max: 1 }),
+                            constraint: new DefiniteRangeConstraint({ min: 0, max: 1 }),
                         }),
                         viewProps: this.viewProps,
                     }),
@@ -5484,14 +5507,30 @@
         return null;
     }
     function createRangeConstraint(params) {
-        if (('max' in params && !isEmpty(params.max)) ||
-            ('min' in params && !isEmpty(params.min))) {
+        if (!isEmpty(params.max) && !isEmpty(params.min)) {
+            return new DefiniteRangeConstraint({
+                max: params.max,
+                min: params.min,
+            });
+        }
+        if (!isEmpty(params.max) || !isEmpty(params.min)) {
             return new RangeConstraint({
                 max: params.max,
                 min: params.min,
             });
         }
         return null;
+    }
+    function findNumberRange(c) {
+        const drc = findConstraint(c, DefiniteRangeConstraint);
+        if (drc) {
+            return [drc.values.get('min'), drc.values.get('max')];
+        }
+        const rc = findConstraint(c, RangeConstraint);
+        if (rc) {
+            return [rc.minValue, rc.maxValue];
+        }
+        return [undefined, undefined];
     }
     function createConstraint$4(params,
     initialValue) {
@@ -5509,17 +5548,6 @@
             constraints.push(lc);
         }
         return new CompositeConstraint(constraints);
-    }
-    function findRange(constraint) {
-        const c = constraint ? findConstraint(constraint, RangeConstraint) : null;
-        if (!c) {
-            return [undefined, undefined];
-        }
-        return [c.minValue, c.maxValue];
-    }
-    function estimateSuitableRange(constraint) {
-        const [min, max] = findRange(constraint);
-        return [min !== null && min !== void 0 ? min : 0, max !== null && max !== void 0 ? max : 100];
     }
     const NumberInputPlugin = {
         id: 'input-number',
@@ -5549,27 +5577,28 @@
             writer: (_args) => writePrimitive,
         },
         controller: (args) => {
-            var _a, _b;
+            var _a;
             const value = args.value;
             const c = args.constraint;
-            if (c && findConstraint(c, ListConstraint)) {
+            const lc = c && findConstraint(c, ListConstraint);
+            if (lc) {
                 return new ListController(args.document, {
-                    props: ValueMap.fromObject({
-                        options: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                    props: new ValueMap({
+                        options: lc.values.value('options'),
                     }),
                     value: value,
                     viewProps: args.viewProps,
                 });
             }
-            const formatter = (_b = ('format' in args.params ? args.params.format : undefined)) !== null && _b !== void 0 ? _b : createNumberFormatter(getSuitableDecimalDigits(c, value.rawValue));
-            if (c && findConstraint(c, RangeConstraint)) {
-                const [min, max] = estimateSuitableRange(c);
+            const formatter = (_a = ('format' in args.params ? args.params.format : undefined)) !== null && _a !== void 0 ? _a : createNumberFormatter(getSuitableDecimalDigits(c, value.rawValue));
+            const drc = c && findConstraint(c, DefiniteRangeConstraint);
+            if (drc) {
                 return new SliderTextController(args.document, {
                     baseStep: getBaseStep(c),
                     parser: parseNumber,
-                    sliderProps: ValueMap.fromObject({
-                        maxValue: max,
-                        minValue: min,
+                    sliderProps: new ValueMap({
+                        maxValue: drc.values.value('max'),
+                        minValue: drc.values.value('min'),
                     }),
                     textProps: ValueMap.fromObject({
                         draggingScale: getSuitableDraggingScale(c, value.rawValue),
@@ -5918,137 +5947,6 @@
         }
     }
 
-    function point2dFromUnknown(value) {
-        return Point2d.isObject(value)
-            ? new Point2d(value.x, value.y)
-            : new Point2d();
-    }
-    function writePoint2d(target, value) {
-        target.writeProperty('x', value.x);
-        target.writeProperty('y', value.y);
-    }
-
-    function createDimensionConstraint(params, initialValue) {
-        if (!params) {
-            return undefined;
-        }
-        const constraints = [];
-        const cs = createStepConstraint(params, initialValue);
-        if (cs) {
-            constraints.push(cs);
-        }
-        const rs = createRangeConstraint(params);
-        if (rs) {
-            constraints.push(rs);
-        }
-        return new CompositeConstraint(constraints);
-    }
-    function createConstraint$3(params, initialValue) {
-        return new PointNdConstraint({
-            assembly: Point2dAssembly,
-            components: [
-                createDimensionConstraint('x' in params ? params.x : undefined, initialValue.x),
-                createDimensionConstraint('y' in params ? params.y : undefined, initialValue.y),
-            ],
-        });
-    }
-    function getSuitableMaxDimensionValue(constraint, rawValue) {
-        var _a, _b;
-        const rc = constraint && findConstraint(constraint, RangeConstraint);
-        if (rc) {
-            return Math.max(Math.abs((_a = rc.minValue) !== null && _a !== void 0 ? _a : 0), Math.abs((_b = rc.maxValue) !== null && _b !== void 0 ? _b : 0));
-        }
-        const step = getBaseStep(constraint);
-        return Math.max(Math.abs(step) * 10, Math.abs(rawValue) * 10);
-    }
-    function getSuitableMaxValue(initialValue, constraint) {
-        const xc = constraint instanceof PointNdConstraint
-            ? constraint.components[0]
-            : undefined;
-        const yc = constraint instanceof PointNdConstraint
-            ? constraint.components[1]
-            : undefined;
-        const xr = getSuitableMaxDimensionValue(xc, initialValue.x);
-        const yr = getSuitableMaxDimensionValue(yc, initialValue.y);
-        return Math.max(xr, yr);
-    }
-    function createAxis$2(initialValue, constraint) {
-        return {
-            baseStep: getBaseStep(constraint),
-            constraint: constraint,
-            textProps: ValueMap.fromObject({
-                draggingScale: getSuitableDraggingScale(constraint, initialValue),
-                formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
-            }),
-        };
-    }
-    function shouldInvertY(params) {
-        if (!('y' in params)) {
-            return false;
-        }
-        const yParams = params.y;
-        if (!yParams) {
-            return false;
-        }
-        return 'inverted' in yParams ? !!yParams.inverted : false;
-    }
-    const Point2dInputPlugin = {
-        id: 'input-point2d',
-        type: 'input',
-        accept: (value, params) => {
-            if (!Point2d.isObject(value)) {
-                return null;
-            }
-            const p = ParamsParsers;
-            const result = parseParams(params, {
-                expanded: p.optional.boolean,
-                picker: p.optional.custom(parsePickerLayout),
-                x: p.optional.custom(parsePointDimensionParams),
-                y: p.optional.object({
-                    inverted: p.optional.boolean,
-                    max: p.optional.number,
-                    min: p.optional.number,
-                    step: p.optional.number,
-                }),
-            });
-            return result
-                ? {
-                    initialValue: value,
-                    params: result,
-                }
-                : null;
-        },
-        binding: {
-            reader: (_args) => point2dFromUnknown,
-            constraint: (args) => createConstraint$3(args.params, args.initialValue),
-            equals: Point2d.equals,
-            writer: (_args) => writePoint2d,
-        },
-        controller: (args) => {
-            const doc = args.document;
-            const value = args.value;
-            const c = args.constraint;
-            if (!(c instanceof PointNdConstraint)) {
-                throw TpError.shouldNeverHappen();
-            }
-            const expanded = 'expanded' in args.params ? args.params.expanded : undefined;
-            const picker = 'picker' in args.params ? args.params.picker : undefined;
-            return new Point2dController(doc, {
-                axes: [
-                    createAxis$2(value.rawValue.x, c.components[0]),
-                    createAxis$2(value.rawValue.y, c.components[1]),
-                ],
-                expanded: expanded !== null && expanded !== void 0 ? expanded : false,
-                invertsY: shouldInvertY(args.params),
-                maxValue: getSuitableMaxValue(value.rawValue, c),
-                parser: parseNumber,
-                pickerLayout: picker !== null && picker !== void 0 ? picker : 'popup',
-                value: value,
-                viewProps: args.viewProps,
-            });
-        },
-    };
-
     class Point3d {
         constructor(x = 0, y = 0, z = 0) {
             this.x = x;
@@ -6099,7 +5997,7 @@
         target.writeProperty('z', value.z);
     }
 
-    function createConstraint$2(params, initialValue) {
+    function createConstraint$3(params, initialValue) {
         return new PointNdConstraint({
             assembly: Point3dAssembly,
             components: [
@@ -6109,7 +6007,7 @@
             ],
         });
     }
-    function createAxis$1(initialValue, constraint) {
+    function createAxis$2(initialValue, constraint) {
         return {
             baseStep: getBaseStep(constraint),
             constraint: constraint,
@@ -6141,7 +6039,7 @@
         },
         binding: {
             reader: (_args) => point3dFromUnknown,
-            constraint: (args) => createConstraint$2(args.params, args.initialValue),
+            constraint: (args) => createConstraint$3(args.params, args.initialValue),
             equals: Point3d.equals,
             writer: (_args) => writePoint3d,
         },
@@ -6154,9 +6052,9 @@
             return new PointNdTextController(args.document, {
                 assembly: Point3dAssembly,
                 axes: [
-                    createAxis$1(value.rawValue.x, c.components[0]),
-                    createAxis$1(value.rawValue.y, c.components[1]),
-                    createAxis$1(value.rawValue.z, c.components[2]),
+                    createAxis$2(value.rawValue.x, c.components[0]),
+                    createAxis$2(value.rawValue.y, c.components[1]),
+                    createAxis$2(value.rawValue.z, c.components[2]),
                 ],
                 parser: parseNumber,
                 value: value,
@@ -6220,7 +6118,7 @@
         target.writeProperty('w', value.w);
     }
 
-    function createConstraint$1(params, initialValue) {
+    function createConstraint$2(params, initialValue) {
         return new PointNdConstraint({
             assembly: Point4dAssembly,
             components: [
@@ -6231,7 +6129,7 @@
             ],
         });
     }
-    function createAxis(initialValue, constraint) {
+    function createAxis$1(initialValue, constraint) {
         return {
             baseStep: getBaseStep(constraint),
             constraint: constraint,
@@ -6264,7 +6162,7 @@
         },
         binding: {
             reader: (_args) => point4dFromUnknown,
-            constraint: (args) => createConstraint$1(args.params, args.initialValue),
+            constraint: (args) => createConstraint$2(args.params, args.initialValue),
             equals: Point4d.equals,
             writer: (_args) => writePoint4d,
         },
@@ -6278,7 +6176,7 @@
                 assembly: Point4dAssembly,
                 axes: value.rawValue
                     .getComponents()
-                    .map((comp, index) => createAxis(comp, c.components[index])),
+                    .map((comp, index) => createAxis$1(comp, c.components[index])),
                 parser: parseNumber,
                 value: value,
                 viewProps: args.viewProps,
@@ -6286,7 +6184,7 @@
         },
     };
 
-    function createConstraint(params) {
+    function createConstraint$1(params) {
         const constraints = [];
         const lc = createListConstraint(params.options);
         if (lc) {
@@ -6314,18 +6212,18 @@
         },
         binding: {
             reader: (_args) => stringFromUnknown,
-            constraint: (args) => createConstraint(args.params),
+            constraint: (args) => createConstraint$1(args.params),
             writer: (_args) => writePrimitive,
         },
         controller: (args) => {
-            var _a;
             const doc = args.document;
             const value = args.value;
             const c = args.constraint;
-            if (c && findConstraint(c, ListConstraint)) {
+            const lc = c && findConstraint(c, ListConstraint);
+            if (lc) {
                 return new ListController(doc, {
-                    props: ValueMap.fromObject({
-                        options: (_a = findListItems(c)) !== null && _a !== void 0 ? _a : [],
+                    props: new ValueMap({
+                        options: lc.values.value('options'),
                     }),
                     value: value,
                     viewProps: args.viewProps,
@@ -7006,6 +6904,136 @@
         return pool;
     }
 
+    function point2dFromUnknown(value) {
+        return Point2d.isObject(value)
+            ? new Point2d(value.x, value.y)
+            : new Point2d();
+    }
+    function writePoint2d(target, value) {
+        target.writeProperty('x', value.x);
+        target.writeProperty('y', value.y);
+    }
+
+    function createDimensionConstraint(params, initialValue) {
+        if (!params) {
+            return undefined;
+        }
+        const constraints = [];
+        const cs = createStepConstraint(params, initialValue);
+        if (cs) {
+            constraints.push(cs);
+        }
+        const rs = createRangeConstraint(params);
+        if (rs) {
+            constraints.push(rs);
+        }
+        return new CompositeConstraint(constraints);
+    }
+    function createConstraint(params, initialValue) {
+        return new PointNdConstraint({
+            assembly: Point2dAssembly,
+            components: [
+                createDimensionConstraint('x' in params ? params.x : undefined, initialValue.x),
+                createDimensionConstraint('y' in params ? params.y : undefined, initialValue.y),
+            ],
+        });
+    }
+    function getSuitableMaxDimensionValue(constraint, rawValue) {
+        const [min, max] = constraint ? findNumberRange(constraint) : [];
+        if (!isEmpty(min) || !isEmpty(max)) {
+            return Math.max(Math.abs(min !== null && min !== void 0 ? min : 0), Math.abs(max !== null && max !== void 0 ? max : 0));
+        }
+        const step = getBaseStep(constraint);
+        return Math.max(Math.abs(step) * 10, Math.abs(rawValue) * 10);
+    }
+    function getSuitableMaxValue(initialValue, constraint) {
+        const xc = constraint instanceof PointNdConstraint
+            ? constraint.components[0]
+            : undefined;
+        const yc = constraint instanceof PointNdConstraint
+            ? constraint.components[1]
+            : undefined;
+        const xr = getSuitableMaxDimensionValue(xc, initialValue.x);
+        const yr = getSuitableMaxDimensionValue(yc, initialValue.y);
+        return Math.max(xr, yr);
+    }
+    function createAxis(initialValue, constraint) {
+        return {
+            baseStep: getBaseStep(constraint),
+            constraint: constraint,
+            textProps: ValueMap.fromObject({
+                draggingScale: getSuitableDraggingScale(constraint, initialValue),
+                formatter: createNumberFormatter(getSuitableDecimalDigits(constraint, initialValue)),
+            }),
+        };
+    }
+    function shouldInvertY(params) {
+        if (!('y' in params)) {
+            return false;
+        }
+        const yParams = params.y;
+        if (!yParams) {
+            return false;
+        }
+        return 'inverted' in yParams ? !!yParams.inverted : false;
+    }
+    const Point2dInputPlugin = {
+        id: 'input-point2d',
+        type: 'input',
+        accept: (value, params) => {
+            if (!Point2d.isObject(value)) {
+                return null;
+            }
+            const p = ParamsParsers;
+            const result = parseParams(params, {
+                expanded: p.optional.boolean,
+                picker: p.optional.custom(parsePickerLayout),
+                x: p.optional.custom(parsePointDimensionParams),
+                y: p.optional.object({
+                    inverted: p.optional.boolean,
+                    max: p.optional.number,
+                    min: p.optional.number,
+                    step: p.optional.number,
+                }),
+            });
+            return result
+                ? {
+                    initialValue: value,
+                    params: result,
+                }
+                : null;
+        },
+        binding: {
+            reader: (_args) => point2dFromUnknown,
+            constraint: (args) => createConstraint(args.params, args.initialValue),
+            equals: Point2d.equals,
+            writer: (_args) => writePoint2d,
+        },
+        controller: (args) => {
+            const doc = args.document;
+            const value = args.value;
+            const c = args.constraint;
+            if (!(c instanceof PointNdConstraint)) {
+                throw TpError.shouldNeverHappen();
+            }
+            const expanded = 'expanded' in args.params ? args.params.expanded : undefined;
+            const picker = 'picker' in args.params ? args.params.picker : undefined;
+            return new Point2dController(doc, {
+                axes: [
+                    createAxis(value.rawValue.x, c.components[0]),
+                    createAxis(value.rawValue.y, c.components[1]),
+                ],
+                expanded: expanded !== null && expanded !== void 0 ? expanded : false,
+                invertsY: shouldInvertY(args.params),
+                maxValue: getSuitableMaxValue(value.rawValue, c),
+                parser: parseNumber,
+                pickerLayout: picker !== null && picker !== void 0 ? picker : 'popup',
+                value: value,
+                viewProps: args.viewProps,
+            });
+        },
+    };
+
     class ListApi extends BladeApi {
         constructor(controller) {
             super(controller);
@@ -7138,11 +7166,15 @@
                 return result ? { params: result } : null;
             },
             controller(args) {
+                const lc = new ListConstraint(normalizeListOptions(args.params.options));
+                const value = createValue(args.params.value, {
+                    constraint: lc,
+                });
                 const ic = new ListController(args.document, {
-                    props: ValueMap.fromObject({
-                        options: normalizeListOptions(args.params.options),
+                    props: new ValueMap({
+                        options: lc.values.value('options'),
                     }),
-                    value: createValue(args.params.value),
+                    value: value,
                     viewProps: args.viewProps,
                 });
                 return new LabeledValueController(args.document, {
@@ -7270,19 +7302,25 @@
         },
         controller(args) {
             var _a, _b;
-            const v = (_a = args.params.value) !== null && _a !== void 0 ? _a : 0;
+            const initialValue = (_a = args.params.value) !== null && _a !== void 0 ? _a : 0;
+            const drc = new DefiniteRangeConstraint({
+                max: args.params.max,
+                min: args.params.min,
+            });
             const vc = new SliderTextController(args.document, {
                 baseStep: 1,
                 parser: parseNumber,
-                sliderProps: ValueMap.fromObject({
-                    maxValue: args.params.max,
-                    minValue: args.params.min,
+                sliderProps: new ValueMap({
+                    maxValue: drc.values.value('max'),
+                    minValue: drc.values.value('min'),
                 }),
                 textProps: ValueMap.fromObject({
-                    draggingScale: getSuitableDraggingScale(undefined, v),
+                    draggingScale: getSuitableDraggingScale(undefined, initialValue),
                     formatter: (_b = args.params.format) !== null && _b !== void 0 ? _b : numberToString,
                 }),
-                value: createValue(v),
+                value: createValue(initialValue, {
+                    constraint: drc,
+                }),
                 viewProps: args.viewProps,
             });
             return new LabeledValueController(args.document, {
@@ -7445,7 +7483,7 @@
         }
     }
 
-    const VERSION = new Semver('3.1.1');
+    const VERSION = new Semver('3.1.2');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
