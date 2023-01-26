@@ -1,4 +1,4 @@
-/*! Tweakpane 3.1.3 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.1.4 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -616,17 +616,17 @@
             return this.globalDisabled_;
         }
         bindClassModifiers(elem) {
-            this.globalDisabled_.emitter.on('change', (ev) => valueToModifier(elem, 'disabled')(ev.rawValue));
+            bindValue(this.globalDisabled_, valueToModifier(elem, 'disabled'));
             bindValueMap(this, 'hidden', valueToModifier(elem, 'hidden'));
         }
         bindDisabled(target) {
-            this.globalDisabled_.emitter.on('change', (ev) => {
-                target.disabled = ev.rawValue;
+            bindValue(this.globalDisabled_, (disabled) => {
+                target.disabled = disabled;
             });
         }
         bindTabIndex(elem) {
-            this.globalDisabled_.emitter.on('change', (ev) => {
-                elem.tabIndex = ev.rawValue ? -1 : 0;
+            bindValue(this.globalDisabled_, (disabled) => {
+                elem.tabIndex = disabled ? -1 : 0;
             });
         }
         handleDispose(callback) {
@@ -7609,7 +7609,7 @@
         }
     }
 
-    const VERSION = new Semver('3.1.3');
+    const VERSION = new Semver('3.1.4');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
