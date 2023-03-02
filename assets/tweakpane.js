@@ -1,4 +1,4 @@
-/*! Tweakpane 3.1.5 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.1.6 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -7343,7 +7343,7 @@
         bindings.forEach((binding) => {
             const value = preset[binding.target.presetKey];
             if (value !== undefined) {
-                binding.writer(binding.target, value);
+                binding.writer(binding.target, binding.reader(value));
             }
         });
     }
@@ -7612,7 +7612,7 @@
         }
     }
 
-    const VERSION = new Semver('3.1.5');
+    const VERSION = new Semver('3.1.6');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
