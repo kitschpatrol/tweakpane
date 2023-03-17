@@ -1,4 +1,4 @@
-/*! Tweakpane 3.1.6 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.1.7 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -6808,6 +6808,7 @@
     };
 
     function createInputBindingController(plugin, args) {
+        var _a;
         const result = plugin.accept(args.target.read(), args.params);
         if (isEmpty(result)) {
             return null;
@@ -6845,12 +6846,13 @@
                 hidden: hidden,
             }),
         });
-        const label = p.optional.string(args.params.label).value;
         return new InputBindingController(args.document, {
             binding: binding,
             blade: createBlade(),
             props: ValueMap.fromObject({
-                label: label !== null && label !== void 0 ? label : args.target.key,
+                label: 'label' in args.params
+                    ? (_a = p.optional.string(args.params.label).value) !== null && _a !== void 0 ? _a : null
+                    : args.target.key,
             }),
             valueController: controller,
         });
@@ -6863,7 +6865,7 @@
     }
     function createMonitorBindingController(plugin, args) {
         var _a, _b, _c;
-        const P = ParamsParsers;
+        const p = ParamsParsers;
         const result = plugin.accept(args.target.read(), args.params);
         if (isEmpty(result)) {
             return null;
@@ -6874,17 +6876,17 @@
             params: result.params,
         };
         const reader = plugin.binding.reader(bindingArgs);
-        const bufferSize = (_b = (_a = P.optional.number(args.params.bufferSize).value) !== null && _a !== void 0 ? _a : (plugin.binding.defaultBufferSize &&
+        const bufferSize = (_b = (_a = p.optional.number(args.params.bufferSize).value) !== null && _a !== void 0 ? _a : (plugin.binding.defaultBufferSize &&
             plugin.binding.defaultBufferSize(result.params))) !== null && _b !== void 0 ? _b : 1;
-        const interval = P.optional.number(args.params.interval).value;
+        const interval = p.optional.number(args.params.interval).value;
         const binding = new MonitorBinding({
             reader: reader,
             target: args.target,
             ticker: createTicker(args.document, interval),
             value: initializeBuffer(bufferSize),
         });
-        const disabled = P.optional.boolean(args.params.disabled).value;
-        const hidden = P.optional.boolean(args.params.hidden).value;
+        const disabled = p.optional.boolean(args.params.disabled).value;
+        const hidden = p.optional.boolean(args.params.hidden).value;
         const controller = plugin.controller({
             document: args.document,
             params: result.params,
@@ -6894,12 +6896,13 @@
                 hidden: hidden,
             }),
         });
-        const label = (_c = P.optional.string(args.params.label).value) !== null && _c !== void 0 ? _c : args.target.key;
         return new MonitorBindingController(args.document, {
             binding: binding,
             blade: createBlade(),
             props: ValueMap.fromObject({
-                label: label,
+                label: 'label' in args.params
+                    ? (_c = p.optional.string(args.params.label).value) !== null && _c !== void 0 ? _c : null
+                    : args.target.key,
             }),
             valueController: controller,
         });
@@ -7612,7 +7615,7 @@
         }
     }
 
-    const VERSION = new Semver('3.1.6');
+    const VERSION = new Semver('3.1.7');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
