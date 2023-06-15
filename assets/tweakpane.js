@@ -1,4 +1,4 @@
-/*! Tweakpane 3.1.9 (c) 2016 cocopon, licensed under the MIT license. */
+/*! Tweakpane 3.1.10 (c) 2016 cocopon, licensed under the MIT license. */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -2528,16 +2528,6 @@
             config.viewProps.bindClassModifiers(this.element);
             const selectElem = doc.createElement('select');
             selectElem.classList.add(className$j('s'));
-            bindValueMap(this.props_, 'options', (opts) => {
-                removeChildElements(selectElem);
-                opts.forEach((item, index) => {
-                    const optionElem = doc.createElement('option');
-                    optionElem.dataset.index = String(index);
-                    optionElem.textContent = item.text;
-                    optionElem.value = String(item.value);
-                    selectElem.appendChild(optionElem);
-                });
-            });
             config.viewProps.bindDisabled(selectElem);
             this.element.appendChild(selectElem);
             this.selectElement = selectElem;
@@ -2547,10 +2537,19 @@
             this.element.appendChild(markElem);
             config.value.emitter.on('change', this.onValueChange_);
             this.value_ = config.value;
-            this.update_();
+            bindValueMap(this.props_, 'options', (opts) => {
+                removeChildElements(this.selectElement);
+                opts.forEach((item) => {
+                    const optionElem = doc.createElement('option');
+                    optionElem.textContent = item.text;
+                    this.selectElement.appendChild(optionElem);
+                });
+                this.update_();
+            });
         }
         update_() {
-            this.selectElement.value = String(this.value_.rawValue);
+            const values = this.props_.get('options').map((o) => o.value);
+            this.selectElement.selectedIndex = values.indexOf(this.value_.rawValue);
         }
         onValueChange_() {
             this.update_();
@@ -2572,12 +2571,8 @@
         }
         onSelectChange_(e) {
             const selectElem = forceCast(e.currentTarget);
-            const optElem = selectElem.selectedOptions.item(0);
-            if (!optElem) {
-                return;
-            }
-            const itemIndex = Number(optElem.dataset.index);
-            this.value.rawValue = this.props.get('options')[itemIndex].value;
+            this.value.rawValue =
+                this.props.get('options')[selectElem.selectedIndex].value;
         }
     }
 
@@ -7615,7 +7610,7 @@
         }
     }
 
-    const VERSION = new Semver('3.1.9');
+    const VERSION = new Semver('3.1.10');
 
     exports.BladeApi = BladeApi;
     exports.ButtonApi = ButtonApi;
