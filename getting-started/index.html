@@ -23,10 +23,12 @@
 			<div class="globalHeader">
 	<div class="globalHeader_inner">
 		<div class="globalHeader_logo">
-			<a class="logo" href="../">
-				<div class="logo_symbol"></div>
-				Tweakpane
-			</a>
+			<div class="logo">
+				<a class="logo_main" href="../">
+					<div class="logo_symbol"></div>
+					<div class="logo_text">Tweakpane</div>
+				</a>
+			</div>
 		</div>
 		<div class="globalHeader_spMenuButton">
 			<button id="spMenuButton" class="spMenuButton">
@@ -41,11 +43,21 @@
 			<div class="main_menu">
 				<div class="menu">
 	<div class="menu_logo">
-		<a class="logo" href="../">
-			<div class="logo_symbol"></div>
-			Tweakpane
-			<div class="logo_version">3.1.10</div>
-		</a>
+		<div class="logo">
+			<a class="logo_main" href="../">
+				<div class="logo_symbol"></div>
+				<div class="logo_text">Tweakpane</div>
+			</a>
+			<div class="logo_version">
+				<div class="logoSwitcher">
+					<select class="logoSwitcher_select">
+						<option value="">4.0.0</option>
+						<option value="../../v3/">3.x</option>
+					</select>
+					<div class="logoSwitcher_arrow"></div>
+				</div>
+			</div>
+		</div>
 	</div>
 	<ul class="menu_list">
 		<li class="menuItem">
@@ -55,7 +67,7 @@
 			<a class="menuItem_anchor" href="../quick-tour/">Quick tour</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="../input-bindings/">Input bindings</a>
+			<a class="menuItem_anchor" href="../input-bindings/">Bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
@@ -109,9 +121,6 @@
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../ui-components/#tab">Tab</a>
 				</li>
-				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../ui-components/#separator">Separator</a>
-				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
@@ -127,6 +136,9 @@
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../blades/#slider">Slider</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../blades/#separator">Separator</a>
 				</li>
 			</ul>
 		</li>
@@ -144,6 +156,13 @@
 			<a class="menuItem_anchor" href="../plugins/">Plugins</a>
 		</li>
 		<li class="menuItem">
+			<ul class="submenu">
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../plugins/dev/">Plugin development</a>
+				</li>
+			</ul>
+		</li>
+		<li class="menuItem">
 			<a class="menuItem_anchor" href="../misc/">Misc</a>
 		</li>
 		<li class="menuItem">
@@ -152,7 +171,7 @@
 					<a class="submenuItem_anchor" href="../misc/#events">Events</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../misc/#imex">Import/Export</a>
+					<a class="submenuItem_anchor" href="../misc/#state">Import/Export</a>
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../misc/#tips">Tips</a>
@@ -165,12 +184,15 @@
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../migration/#datgui">dat.GUI</a>
+					<a class="submenuItem_anchor" href="../migration/v4/">Version 4.x</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../migration/datgui/">dat.GUI</a>
 				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="../api/classes/tweakpane.Pane.html" target="_blank">
+			<a class="menuItem_anchor" href="../api/classes/Pane.html" target="_blank">
 				API reference
 				<span class="material-icons">open_in_new</span>
 			</a>
@@ -208,7 +230,10 @@
 	<div class="demo">
 		<div class="demo_code">
 			<div class="codeBlock">
-				<pre><code class="html">&lt;script src=&quot;<strong>https://cdn.jsdelivr.net/npm/tweakpane@3.1.10/dist/tweakpane.min.js</strong>&quot;&gt;&lt;/script&gt;</code></pre>
+				<pre><code class="html">&lt;script type=&quot;<strong>module</strong>&quot;&gt;
+  import {Pane} from '<strong>https://cdn.jsdelivr.net/npm/tweakpane@4.0.0/dist/tweakpane.min.js</strong>';
+  // ...
+&lt;/script&gt;</code></pre>
 			</div>
 		</div>
 		<div class="demo_chip">.html</div>
@@ -221,7 +246,10 @@
 	<div class="demo">
 		<div class="demo_code">
 			<div class="codeBlock">
-				<pre><code class="html">&lt;script src=&quot;path/to/tweakpane-3.1.10.min.js&quot;&gt;&lt;/script&gt;</code></pre>
+				<pre><code class="html">&lt;script type=&quot;<strong>module</strong>&quot;&gt;
+  import {Pane} from './path/to/tweakpane-4.0.0.min.js';
+  // ...
+&lt;/script&gt;</code></pre>
 			</div>
 		</div>
 		<div class="demo_chip">.html</div>
@@ -247,7 +275,8 @@ $ npm install --save-dev @tweakpane/core</code></pre>
 	<div class="demo">
 		<div class="demo_code">
 			<div class="codeBlock">
-				<pre><code class="js">import {Pane} from 'tweakpane';</code></pre>
+				<pre><code class="js">import {Pane} from 'tweakpane';
+// ...</code></pre>
 			</div>
 		</div>
 		<div class="demo_chip">.js</div>
@@ -256,17 +285,13 @@ $ npm install --save-dev @tweakpane/core</code></pre>
 
 
 <h2>2. Create a pane</h2>
-<p>Create an instance of a pane by <code>new</code>.</p>
+<p>Create an instance of a pane by <code>new Pane()</code>.</p>
 
 <div class="main_media">
 	<div class="demo">
 		<div class="demo_code">
 			<div class="codeBlock">
-				<pre><code class="js">// CDN
-const pane = new Tweakpane.Pane();
-
-// npm
-const pane = new Pane();</code></pre>
+				<pre><code class="js">const pane = new Pane();</code></pre>
 			</div>
 		</div>
 		<div class="demo_result">
@@ -295,7 +320,7 @@ const pane = new Pane();</code></pre>
 		</a>
 	</div>
 	<div class="relItem relItem-oneline">
-		<a class="relItem_anchor" href="../api/classes/tweakpane.Pane.html" target="_blank">
+		<a class="relItem_anchor" href="../api/classes/Pane.html" target="_blank">
 			<div class="relItem_text">
 				<div class="relItem_title">
 					API reference
@@ -322,9 +347,25 @@ const pane = new Pane();</code></pre>
 			</div>
 		</div>
 	</div>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/highlight.min.js"></script>
-	<script src="../assets/tweakpane.js" defer></script>
+	<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@10/build/highlight.min.js" defer></script>
+	<script src="../assets/tweakpane.js" type="module" defer></script>
+	<script type="module">
+		window.DocModules = [
+			async () => {
+				const m = await import('../assets/tweakpane.js');
+				window.Tweakpane = m;
+			},
+		];
+	</script>
 	
-	<script src="../assets/bundle.js" defer></script>
+	<script type="module">
+		// Load Tweakpane module and make it global variable
+		await Promise.all(window.DocModules.map((f) => f()));
+
+		// Load document script	
+		const scriptElem = document.createElement('script');
+		scriptElem.src = '../assets/bundle.js';
+		document.body.appendChild(scriptElem);
+	</script>
 </body>
 </html>

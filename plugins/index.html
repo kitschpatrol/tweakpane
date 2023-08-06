@@ -23,10 +23,12 @@
 			<div class="globalHeader">
 	<div class="globalHeader_inner">
 		<div class="globalHeader_logo">
-			<a class="logo" href="../">
-				<div class="logo_symbol"></div>
-				Tweakpane
-			</a>
+			<div class="logo">
+				<a class="logo_main" href="../">
+					<div class="logo_symbol"></div>
+					<div class="logo_text">Tweakpane</div>
+				</a>
+			</div>
 		</div>
 		<div class="globalHeader_spMenuButton">
 			<button id="spMenuButton" class="spMenuButton">
@@ -41,11 +43,21 @@
 			<div class="main_menu">
 				<div class="menu">
 	<div class="menu_logo">
-		<a class="logo" href="../">
-			<div class="logo_symbol"></div>
-			Tweakpane
-			<div class="logo_version">3.1.10</div>
-		</a>
+		<div class="logo">
+			<a class="logo_main" href="../">
+				<div class="logo_symbol"></div>
+				<div class="logo_text">Tweakpane</div>
+			</a>
+			<div class="logo_version">
+				<div class="logoSwitcher">
+					<select class="logoSwitcher_select">
+						<option value="">4.0.0</option>
+						<option value="../../v3/">3.x</option>
+					</select>
+					<div class="logoSwitcher_arrow"></div>
+				</div>
+			</div>
+		</div>
 	</div>
 	<ul class="menu_list">
 		<li class="menuItem">
@@ -55,7 +67,7 @@
 			<a class="menuItem_anchor" href="../quick-tour/">Quick tour</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="../input-bindings/">Input bindings</a>
+			<a class="menuItem_anchor" href="../input-bindings/">Bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
@@ -109,9 +121,6 @@
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../ui-components/#tab">Tab</a>
 				</li>
-				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../ui-components/#separator">Separator</a>
-				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
@@ -127,6 +136,9 @@
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../blades/#slider">Slider</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../blades/#separator">Separator</a>
 				</li>
 			</ul>
 		</li>
@@ -144,6 +156,13 @@
 			<a class="menuItem_anchor" href="../plugins/">Plugins</a>
 		</li>
 		<li class="menuItem">
+			<ul class="submenu">
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../plugins/dev/">Plugin development</a>
+				</li>
+			</ul>
+		</li>
+		<li class="menuItem">
 			<a class="menuItem_anchor" href="../misc/">Misc</a>
 		</li>
 		<li class="menuItem">
@@ -152,7 +171,7 @@
 					<a class="submenuItem_anchor" href="../misc/#events">Events</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../misc/#imex">Import/Export</a>
+					<a class="submenuItem_anchor" href="../misc/#state">Import/Export</a>
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../misc/#tips">Tips</a>
@@ -165,12 +184,15 @@
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../migration/#datgui">dat.GUI</a>
+					<a class="submenuItem_anchor" href="../migration/v4/">Version 4.x</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../migration/datgui/">dat.GUI</a>
 				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="../api/classes/tweakpane.Pane.html" target="_blank">
+			<a class="menuItem_anchor" href="../api/classes/Pane.html" target="_blank">
 				API reference
 				<span class="material-icons">open_in_new</span>
 			</a>
@@ -193,7 +215,7 @@
 	<div class="pageHeader_inner">
 		<div class="pageHeader_text">
 			<h1 class="pageHeader_title">Plugins</h1>
-			<p>Expand Tweakpane world.</p>
+			<p>Expand the Tweakpane world.</p>
 		</div>
 	</div>
 </div>
@@ -201,7 +223,10 @@
 				</div>
 				<div class="main_inner">
 					
-<h2 id="essentials"><a href="https://github.com/tweakpane/plugin-essentials">Essentials</a></h2>
+<h2 id="essentials">
+	<a href="#essentials">Essentials</a>
+	<a href="https://github.com/tweakpane/plugin-essentials" target="_blank"><span class="material-icons">open_in_new</span></a>
+</h2>
 <p>Essential components.</p>
 <div class="main_media">
 	<div class="demo">
@@ -212,7 +237,7 @@
 };
 
 // Interval
-pane.addInput(PARAMS, 'interval', {
+pane.addBinding(PARAMS, 'interval', {
   min: 0,
   max: 100,
   step: 1,
@@ -244,7 +269,10 @@ function render() {
 </div>
 
 
-<h2 id="camerakit"><a href="https://github.com/tweakpane/plugin-camerakit">Camerakit</a></h2>
+<h2 id="camerakit">
+	<a href="#camerakit">Camerakit</a>
+	<a href="https://github.com/tweakpane/plugin-camerakit" target="_blank"><span class="material-icons">open_in_new</span></a>
+</h2>
 <p>Enjoyable camera flavored controls.</p>
 <div class="main_media">
 	<div class="demo">
@@ -258,7 +286,7 @@ function render() {
 
 // ...
 
-pane.addInput(PARAMS, 'fnum', {
+pane.addBinding(PARAMS, 'fnum', {
   // Use a ring view of Camerakit
   view: 'cameraring',
   // Appearance of the ring
@@ -283,28 +311,27 @@ pane.addInput(PARAMS, 'fnum', {
 
 
 <h2 id="3rdparty">Find 3rd party plugins</h2>
-<p><a href="https://github.com/topics/tweakpane">#tweakpane</a> topic on GitHub may be useful to search 3rd party plugins.</p>
+<p><a href="https://github.com/topics/tweakpane" target="_blank">#tweakpane</a> topic on GitHub may be useful to search 3rd party plugins.</p>
 
 
-<h2 id="create">Create your own plugin</h2>
-<p>From version 2.0.0, you can provide custom components with the plugin system.</p>
-
-<div class="main_media">
-	<div class="demo">
-		<div class="demo_code">
-			<div class="codeBlock">
-				<pre><code class="js">pane.registerPlugin({
-  plugin: {
-    ...
-  },
-});</code></pre>
+<h2>What's next</h2>
+<div class="rel">
+	<div class="relItem">
+		<a class="relItem_anchor" href="../plugins/dev/">
+			<div class="relItem_text">
+				<div class="relItem_title">
+					Plugin development
+				</div>
+				<div class="relItem_detail">
+					create your own plugin
+				</div>
 			</div>
-		</div>
-		<div class="demo_chip">.js</div>
+			<div class="relItem_icon relItem_icon-circle">
+				<span class="material-icons">arrow_forward</span>
+			</div>
+		</a>
 	</div>
 </div>
-
-<p>See the <a href="https://github.com/tweakpane/plugin-template">template repository</a> for details.</p>
 
 				</div>
 				<div class="main_globalFooter">
@@ -320,12 +347,38 @@ pane.addInput(PARAMS, 'fnum', {
 			</div>
 		</div>
 	</div>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/highlight.min.js"></script>
-	<script src="../assets/tweakpane.js" defer></script>
+	<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@10/build/highlight.min.js" defer></script>
+	<script src="../assets/tweakpane.js" type="module" defer></script>
+	<script type="module">
+		window.DocModules = [
+			async () => {
+				const m = await import('../assets/tweakpane.js');
+				window.Tweakpane = m;
+			},
+		];
+	</script>
 	
-<script src="https://cdn.jsdelivr.net/npm/@tweakpane/plugin-essentials@0.1.0/dist/tweakpane-plugin-essentials.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tweakpane/plugin-camerakit@0.2.0/dist/tweakpane-plugin-camerakit.min.js"></script>
+<script type="module">
+	window.DocModules.push(
+		async () => {
+			const m = await import('https://esm.run/@tweakpane/plugin-essentials@0.2.0-beta.0');
+			window.TweakpaneEssentialsPlugin = m;
+		},
+		async () => {
+			const m = await import('https://esm.run/@tweakpane/plugin-camerakit@0.3.0-beta.0');
+			window.TweakpaneCamerakitPlugin = m;
+		},
+	);
+</script>
 
-	<script src="../assets/bundle.js" defer></script>
+	<script type="module">
+		// Load Tweakpane module and make it global variable
+		await Promise.all(window.DocModules.map((f) => f()));
+
+		// Load document script	
+		const scriptElem = document.createElement('script');
+		scriptElem.src = '../assets/bundle.js';
+		document.body.appendChild(scriptElem);
+	</script>
 </body>
 </html>

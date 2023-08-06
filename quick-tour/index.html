@@ -23,10 +23,12 @@
 			<div class="globalHeader">
 	<div class="globalHeader_inner">
 		<div class="globalHeader_logo">
-			<a class="logo" href="../">
-				<div class="logo_symbol"></div>
-				Tweakpane
-			</a>
+			<div class="logo">
+				<a class="logo_main" href="../">
+					<div class="logo_symbol"></div>
+					<div class="logo_text">Tweakpane</div>
+				</a>
+			</div>
 		</div>
 		<div class="globalHeader_spMenuButton">
 			<button id="spMenuButton" class="spMenuButton">
@@ -41,11 +43,21 @@
 			<div class="main_menu">
 				<div class="menu">
 	<div class="menu_logo">
-		<a class="logo" href="../">
-			<div class="logo_symbol"></div>
-			Tweakpane
-			<div class="logo_version">3.1.10</div>
-		</a>
+		<div class="logo">
+			<a class="logo_main" href="../">
+				<div class="logo_symbol"></div>
+				<div class="logo_text">Tweakpane</div>
+			</a>
+			<div class="logo_version">
+				<div class="logoSwitcher">
+					<select class="logoSwitcher_select">
+						<option value="">4.0.0</option>
+						<option value="../../v3/">3.x</option>
+					</select>
+					<div class="logoSwitcher_arrow"></div>
+				</div>
+			</div>
+		</div>
 	</div>
 	<ul class="menu_list">
 		<li class="menuItem">
@@ -55,7 +67,7 @@
 			<a class="menuItem_anchor" href="../quick-tour/">Quick tour</a>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="../input-bindings/">Input bindings</a>
+			<a class="menuItem_anchor" href="../input-bindings/">Bindings</a>
 		</li>
 		<li class="menuItem">
 			<ul class="submenu">
@@ -109,9 +121,6 @@
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../ui-components/#tab">Tab</a>
 				</li>
-				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../ui-components/#separator">Separator</a>
-				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
@@ -127,6 +136,9 @@
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../blades/#slider">Slider</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../blades/#separator">Separator</a>
 				</li>
 			</ul>
 		</li>
@@ -144,6 +156,13 @@
 			<a class="menuItem_anchor" href="../plugins/">Plugins</a>
 		</li>
 		<li class="menuItem">
+			<ul class="submenu">
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../plugins/dev/">Plugin development</a>
+				</li>
+			</ul>
+		</li>
+		<li class="menuItem">
 			<a class="menuItem_anchor" href="../misc/">Misc</a>
 		</li>
 		<li class="menuItem">
@@ -152,7 +171,7 @@
 					<a class="submenuItem_anchor" href="../misc/#events">Events</a>
 				</li>
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../misc/#imex">Import/Export</a>
+					<a class="submenuItem_anchor" href="../misc/#state">Import/Export</a>
 				</li>
 				<li class="submenuItem">
 					<a class="submenuItem_anchor" href="../misc/#tips">Tips</a>
@@ -165,12 +184,15 @@
 		<li class="menuItem">
 			<ul class="submenu">
 				<li class="submenuItem">
-					<a class="submenuItem_anchor" href="../migration/#datgui">dat.GUI</a>
+					<a class="submenuItem_anchor" href="../migration/v4/">Version 4.x</a>
+				</li>
+				<li class="submenuItem">
+					<a class="submenuItem_anchor" href="../migration/datgui/">dat.GUI</a>
 				</li>
 			</ul>
 		</li>
 		<li class="menuItem">
-			<a class="menuItem_anchor" href="../api/classes/tweakpane.Pane.html" target="_blank">
+			<a class="menuItem_anchor" href="../api/classes/Pane.html" target="_blank">
 				API reference
 				<span class="material-icons">open_in_new</span>
 			</a>
@@ -201,7 +223,7 @@
 				</div>
 				<div class="main_inner">
 					
-<h2 id="blades">Blades</h2>
+<h2 id="blades"><a href="#blades">Blades</a></h2>
 <p>You can add controls as rows to the pane. Tweakpane calls each row a &ldquo;<strong>blade</strong>&rdquo;.</p>
 
 <div class="main_media">
@@ -212,11 +234,11 @@
 	</div>
 </div>
 
-<p>There are various types of blades: <a href="#inputs">input bindings</a>, <a href="#folders">folders</a>, <a href="../ui-components/">etc</a>. It can also be extended with the <a href="../plugins/">plugin system</a>.</p>
+<p>There are various types of blades: <a href="#inputs">bindings</a>, <a href="#folders">folders</a>, <a href="../ui-components/">etc</a>. It can also be extended with the <a href="../plugins/">plugin system</a>.</p>
 
 
-<h2 id="inputs">Input bindings</h2>
-<p>Use <code>addInput()</code> to modify parameter values.</p>
+<h2 id="inputs"><a href="#inputs">Bindings</a></h2>
+<p>Use <code>addBinding()</code> to modify parameter values.</p>
 
 <div class="main_media">
 	<div class="demo">
@@ -230,14 +252,15 @@
 
 const pane = new Pane();
 
-pane.<strong>addInput</strong>(PARAMS, 'factor');
-pane.<strong>addInput</strong>(PARAMS, 'title');
-pane.<strong>addInput</strong>(PARAMS, 'color');
+pane.<strong>addBinding</strong>(PARAMS, 'factor');
+pane.<strong>addBinding</strong>(PARAMS, 'title');
+pane.<strong>addBinding</strong>(PARAMS, 'color');
 </code></pre>
 			</div>
 		</div>
 		<div class="demo_result">
 			<div class="paneContainer" data-pane-inputs></div>
+			<div class="paneContainer paneContainer-console" data-pane-inputsconsole></div>
 		</div>
 	</div>
 </div>
@@ -254,13 +277,13 @@ pane.<strong>addInput</strong>(PARAMS, 'color');
 };
 
 // `min` and `max`: slider
-pane.addInput(
+pane.addBinding(
   PARAMS, 'percentage',
   <strong>{min: 0, max: 100, step: 10}</strong>
 );
 
 // `options`: list
-pane.addInput(
+pane.addBinding(
   PARAMS, 'theme',
   <strong>{options: {Dark: 'dark', Light: 'light'}}</strong>
 );
@@ -273,9 +296,9 @@ pane.addInput(
 	</div>
 </div>
 
-<p>See <a href="../input-bindings/">Input bindings</a> section or <a href="../api/classes/tweakpane.Pane.html#addInput">API reference</a> for details.</p>
+<p>See <a href="../input-bindings/">Bindings</a> section or <a href="../api/classes/Pane.html#addBinding">API reference</a> for details.</p>
 
-<h2 id="folders">Folders</h2>
+<h2 id="folders"><a href="#folders">Folders</a></h2>
 <p>Use <code>addFolder()</code> to organize blades.</p>
 
 <div class="main_media">
@@ -287,8 +310,8 @@ pane.addInput(
   expanded: true,
 });
 
-f.addInput(PARAMS, 'text');
-f.addInput(PARAMS, 'size');
+f.addBinding(PARAMS, 'text');
+f.addBinding(PARAMS, 'size');
 </code></pre>
 			</div>
 		</div>
@@ -319,19 +342,19 @@ f.addInput(PARAMS, 'size');
 
 <p>See <a href="../ui-components/">UI components</a> section for additional useful components.</p>
 
-<h2 id="events">Events</h2>
-<p>Use <code>on()</code> of the input to handle change events.</p>
+<h2 id="events"><a href="#events">Events</a></h2>
+<p>Use <code>on()</code> of the binding to handle change events.</p>
 
 <div class="main_media">
 	<div class="demo">
 		<div class="demo_code">
 			<div class="codeBlock">
-				<pre><code class="js">const input = pane.addInput(
+				<pre><code class="js">const b = pane.addBinding(
   PARAMS, 'size',
   {min: 8, max: 100, step: 1}
 );
 
-input.<strong>on</strong>('change', function(ev) {
+b.<strong>on</strong>('change', function(ev) {
   console.log(`change: ${ev.value}`);
 });
 </code></pre>
@@ -346,37 +369,38 @@ input.<strong>on</strong>('change', function(ev) {
 
 <p><a href="../misc/#events">Global events</a> are also available to handle events of all components at once.</p>
 
-<h2 id="presets">Presets</h2>
-<p>Use <code>exportPreset()</code> to export the current bound values in JSON format.</p>
+<h2 id="state"><a href="#state">State objects</a></h2>
+<p>Use <code>exportState()</code> to export a state of the pane.</p>
 
 <div class="main_media">
 	<div class="demo">
 		<div class="demo_code">
 			<div class="codeBlock">
 				<pre><code class="js">btn.on('click', function() {
-  const preset = pane.<strong>exportPreset</strong>();
-  console.log(preset);
+  const state = pane.<strong>exportState</strong>();
+  console.log(state);
 });
 </code></pre>
 			</div>
 		</div>
 		<div class="demo_result">
-			<div class="paneContainer" data-pane-preset></div>
-			<div class="paneContainer paneContainer-console" data-pane-presetconsole></div>
+			<div class="paneContainer" data-pane-state></div>
+			<div class="paneContainer paneContainer-console" data-pane-stateconsole></div>
 		</div>
 	</div>
 </div>
 
-<p>See <a href="../misc/#imex">Import/Export</a> section for details. </p>
+<p>See <a href="../misc/#state">Import/Export</a> section for details. </p>
 
-<h2 id="monitors">Monitor bindings</h2>
-<p>Use <code>addMonitor()</code> to monitor value changes.</p>
+<h2 id="monitors"><a href="#monitors">Monitor bindings</a></h2>
+<p>Use <code>addBinding()</code> with the option <code>{readonly: true}</code> to monitor value changes.</p>
 
 <div class="main_media">
 	<div class="demo">
 		<div class="demo_code">
 			<div class="codeBlock">
-				<pre><code class="js">pane.<strong>addMonitor</strong>(sketch, 'signal', {
+				<pre><code class="js">pane.<strong>addBinding</strong>(sketch, 'signal', {
+  <strong>readonly</strong>: true,
   view: 'graph',
   interval: 200,
   min: -1,
@@ -398,10 +422,10 @@ input.<strong>on</strong>('change', function(ev) {
 		<a class="relItem_anchor" href="../input-bindings/">
 			<div class="relItem_text">
 				<div class="relItem_title">
-					Input bindings
+					Bindings
 				</div>
 				<div class="relItem_detail">
-					components for fine-tuning parameter values
+					fine-tuning parameter values
 				</div>
 			</div>
 			<div class="relItem_icon relItem_icon-circle">
@@ -416,7 +440,7 @@ input.<strong>on</strong>('change', function(ev) {
 					Monitor bindings
 				</div>
 				<div class="relItem_detail">
-					components for monitoring value changes
+					monitoring value changes
 				</div>
 			</div>
 			<div class="relItem_icon relItem_icon-circle">
@@ -440,9 +464,25 @@ input.<strong>on</strong>('change', function(ev) {
 			</div>
 		</div>
 	</div>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/highlight.min.js"></script>
-	<script src="../assets/tweakpane.js" defer></script>
+	<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@10/build/highlight.min.js" defer></script>
+	<script src="../assets/tweakpane.js" type="module" defer></script>
+	<script type="module">
+		window.DocModules = [
+			async () => {
+				const m = await import('../assets/tweakpane.js');
+				window.Tweakpane = m;
+			},
+		];
+	</script>
 	
-	<script src="../assets/bundle.js" defer></script>
+	<script type="module">
+		// Load Tweakpane module and make it global variable
+		await Promise.all(window.DocModules.map((f) => f()));
+
+		// Load document script	
+		const scriptElem = document.createElement('script');
+		scriptElem.src = '../assets/bundle.js';
+		document.body.appendChild(scriptElem);
+	</script>
 </body>
 </html>
